@@ -1,0 +1,51 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go build cache
+*.a
+
+# Output of `go build`
+/bin/
+/build/
+/dist/
+
+# Go Modules cache
+/pkg/mod/
+/go.sum
+!go.sum
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs & temp
+*.log
+*.tmp
+/tmp/
+/*.pid
+
+# Env files
+.env
+.env.*.local
+dev.env
+
+# Dependency tools
+/vendor/
+
+# Test cache
+/coverage.out
+/coverage.html
+
+conf.yml

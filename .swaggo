@@ -1,0 +1,3 @@
+replace data_type.NullDateTime time
+replace data_type.DateTime time
+replace data_type.ArrayString []string

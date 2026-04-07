@@ -1,0 +1,22 @@
+# auth
+AUTH.INVALID_CREDENTIALS: "Invalid email or password"
+AUTH.WRONG_PASSWORD: "Wrong password"
+AUTH.ACCOUNT_NOT_REGISTERED: "Account is not registered"
+AUTH.TOKEN_EXPIRED: "Token has expired"
+AUTH.TOKEN_INVALID: "Invalid token"
+AUTH.REFRESH_TOKEN_EXPIRED: "Refresh token has expired"
+AUTH.REFRESH_TOKEN_INVALID: "Invalid refresh token"
+AUTH.LOGGED_OUT: "Logged out successfully"
+
+# user
+USER.NOT_FOUND: "User not found"
+USER.EMAIL_ALREADY_EXIST: "Email already exists"
+USER.INVALID_PASSWORD: "Invalid password"
+
+# system
+SYSTEM.UNAUTHORIZED: "Unauthorized"
+SYSTEM.FORBIDDEN: "Forbidden"
+SYSTEM.INVALID_REQUEST_PAYLOAD: "Invalid request payload"
+SYSTEM.INTERNAL_SERVER_ERROR: "Internal server error"
+SYSTEM.NOT_FOUND: "Not found"
+SYSTEM.MUST_BE_A_VALID_UUID: "%s must be a valid UUID"
