@@ -1,40 +1,40 @@
 services:
   app:
-    build: . 
+    build: .
     container_name: auction_app
     ports:
-      - "8080:8080" 
+      - "8080:8080"
     env_file:
-      - ./dev.env  
+      - ./dev.env
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
     networks:
       - app_network
 
-  postgres:
-    image: postgres:14
+  mysql:
+    image: mysql:8.4
     container_name: auction_database
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: auctions
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: auction_service
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: secret
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - mysql_data:/var/lib/mysql
     networks:
       - app_network
-    
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-psecret"]
       interval: 5s
       timeout: 5s
-      retries: 5
-      start_period: 10s
+      retries: 10
+      start_period: 30s
 
 volumes:
-  postgres_data:
+  mysql_data:
 
 networks:
   app_network:

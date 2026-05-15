@@ -1,25 +1,14 @@
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
-CREATE TYPE user_role AS ENUM ('superadmin', 'admin', 'user');
-
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(100) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    role user_role NOT NULL DEFAULT 'user',
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE user_access_tokens (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    token TEXT NOT NULL,
-    expired_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_user_access_tokens_user_id ON user_access_tokens(user_id);
-CREATE INDEX idx_user_access_tokens_token ON user_access_tokens(token);
+CREATE TABLE IF NOT EXISTS users (
+    id                  CHAR(36)        NOT NULL PRIMARY KEY,
+    fullname            VARCHAR(255)    NOT NULL,
+    phone               VARCHAR(20)     NOT NULL UNIQUE,
+    nik                 VARCHAR(50)     DEFAULT NULL,
+    birth               DATE            NOT NULL,
+    gender              VARCHAR(10)     DEFAULT NULL,
+    bank_account_number VARCHAR(50)     DEFAULT NULL,
+    is_verified         TINYINT(1)      NOT NULL DEFAULT 0,
+    is_deleted          TINYINT(1)      NOT NULL DEFAULT 0,
+    password            VARCHAR(255)    NOT NULL,
+    created_at          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

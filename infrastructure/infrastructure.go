@@ -6,24 +6,21 @@ import (
 	"auction-service/global"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
+	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jmoiron/sqlx"
 )
 
 type infrastructureManager struct {
 	sqlDB       *sqlx.DB
-	pgxPool     *pgxpool.Pool
 	loggerStack LoggerStack
 }
 
 func NewInfrastructureManager(configuration global.YamlConfig) InfrastructureManager {
-	sqlDB, pgxPool := NewPostgresSqlDB(configuration.Postgres)
+	sqlDB := NewMysqlDB(configuration.Mysql)
 
 	return &infrastructureManager{
 		sqlDB:       sqlDB,
-		pgxPool:     pgxPool,
 		loggerStack: NewLoggerStack(configuration.LogChannel),
 	}
 }
@@ -33,9 +30,9 @@ func (i *infrastructureManager) GetDB() *sqlx.DB {
 }
 
 func (i *infrastructureManager) migrationDSN() string {
-	pg := global.GetPostgresConfig()
-	return fmt.Sprintf("pgx5://%s:%s@%s:%d/%s?sslmode=disable",
-		pg.Username, pg.Password, pg.Host, pg.Port, pg.Database)
+	cfg := global.GetMysqlConfig()
+	return fmt.Sprintf("mysql://%s:%s@tcp(%s:%d)/%s",
+		cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.Database)
 }
 
 func (i *infrastructureManager) MigrateDB(isRollingBack bool, steps int, force *int) error {
@@ -80,9 +77,6 @@ func (i *infrastructureManager) RefreshDB() error {
 func (i *infrastructureManager) CloseDB() error {
 	if i.sqlDB != nil {
 		i.sqlDB.Close()
-	}
-	if i.pgxPool != nil {
-		i.pgxPool.Close()
 	}
 	return nil
 }

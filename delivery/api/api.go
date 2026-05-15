@@ -41,12 +41,35 @@ func (a *apiContext) getParam(key string) string {
 	return a.ginCtx.Param(key)
 }
 
+func (a *apiContext) getQuery(key string) string {
+	return a.ginCtx.Query(key)
+}
+
+func (a *apiContext) getQueryDefault(key, def string) string {
+	return a.ginCtx.DefaultQuery(key, def)
+}
+
 func (a *apiContext) shouldBind(obj interface{}) error {
-	return a.ginCtx.ShouldBindJSON(obj)
+	err := a.ginCtx.ShouldBindJSON(obj)
+	if errors.Is(err, io.EOF) {
+		// Empty body is acceptable; all fields keep their zero / nil values.
+		return nil
+	}
+	return err
 }
 
 func (a *apiContext) mustBind(obj interface{}) {
 	if err := a.shouldBind(obj); err != nil {
+		panic(a.translateBindErr(err))
+	}
+}
+
+func (a *apiContext) shouldBindQuery(obj interface{}) error {
+	return a.ginCtx.ShouldBindQuery(obj)
+}
+
+func (a *apiContext) mustBindQuery(obj interface{}) {
+	if err := a.shouldBindQuery(obj); err != nil {
 		panic(a.translateBindErr(err))
 	}
 }
@@ -111,6 +134,22 @@ func (a *api) Authorize(fn func(ctx apiContext)) gin.HandlerFunc {
 	}
 }
 
+// AuthorizeRoles requires the caller to have at least one of the specified roles.
+// SUPERADMIN always passes.
+func (a *api) AuthorizeRoles(roles []string, fn func(ctx apiContext)) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		apiCtx := newApiContext(ctx)
+		claims := model.MustGetUserCtx(apiCtx.context())
+		for _, required := range roles {
+			if claims.HasRole(required) {
+				fn(apiCtx)
+				return
+			}
+		}
+		panic(constant.ErrForbidden)
+	}
+}
+
 func (a *api) Guest(fn func(ctx apiContext)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		fn(newApiContext(ctx))
@@ -129,7 +168,15 @@ func registerRoutes(router gin.IRouter, container *manager.Container) {
 	_ = internalValidator.Translators
 
 	baseApi := newApi()
+	// admin
+	RegisterAdminAuthApi(router, &baseApi, container.UseCaseManager())
+	RegisterAdminUserApi(router, &baseApi, container.UseCaseManager())
+	RegisterAdminProductApi(router, &baseApi, container.UseCaseManager())
+
+	// user
 	RegisterAuthApi(router, &baseApi, container.UseCaseManager())
+	RegisterProductApi(router, &baseApi, container.UseCaseManager())
+	RegisterOwnApi(router, &baseApi, container.UseCaseManager())
 }
 
 func NewRouter(container *manager.Container) *gin.Engine {

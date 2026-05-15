@@ -18,15 +18,15 @@ import (
 	"auction-service/manager"
 )
 
-// @title			Auction Service API
-// @version		1.0.0
-// @description	Auction Service REST API
-// @host			localhost:8080
-// @BasePath		/
-// @securityDefinitions.apikey	BearerAuth
-// @in							header
-// @name						Authorization
-// @description				Type "Bearer" followed by a space and JWT token.
+//	@title						Auction Service API
+//	@version					1.0.0
+//	@description				Auction Service REST API
+//	@host						localhost:8080
+//	@BasePath					/
+//	@securityDefinitions.apikey	BearerAuth
+//	@in							header
+//	@name						Authorization
+//	@description				Type "Bearer" followed by a space and JWT token.
 func main() {
 	container := manager.NewContainer()
 

@@ -2,20 +2,44 @@ package use_case
 
 type UseCaseManager interface {
 	AuthUseCase() AuthUseCase
+	UserUseCase() UserUseCase
+	UserRoleUseCase() UserRoleUseCase
+	ProductUseCase() ProductUseCase
 }
 
 type useCaseManager struct {
-	authUseCase AuthUseCase
+	authUseCase     AuthUseCase
+	userUseCase     UserUseCase
+	userRoleUseCase UserRoleUseCase
+	productUseCase  ProductUseCase
 }
 
 func NewUseCaseManager(
 	authUseCase AuthUseCase,
+	userUseCase UserUseCase,
+	userRoleUseCase UserRoleUseCase,
+	productUseCase ProductUseCase,
 ) UseCaseManager {
 	return &useCaseManager{
-		authUseCase: authUseCase,
+		authUseCase:     authUseCase,
+		userUseCase:     userUseCase,
+		userRoleUseCase: userRoleUseCase,
+		productUseCase:  productUseCase,
 	}
 }
 
 func (u *useCaseManager) AuthUseCase() AuthUseCase {
 	return u.authUseCase
+}
+
+func (u *useCaseManager) UserUseCase() UserUseCase {
+	return u.userUseCase
+}
+
+func (u *useCaseManager) UserRoleUseCase() UserRoleUseCase {
+	return u.userRoleUseCase
+}
+
+func (u *useCaseManager) ProductUseCase() ProductUseCase {
+	return u.productUseCase
 }

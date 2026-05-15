@@ -1,81 +1,65 @@
 package model
 
-import "time"
+import "auction-service/data_type"
 
 const UserTableName = "users"
 
-type UserRole string
-
-const (
-	UserRoleSuperAdmin UserRole = "superadmin"
-	UserRoleAdmin      UserRole = "admin"
-	UserRoleUser       UserRole = "user"
-)
-
 type User struct {
-	Id        string    `db:"id"`
-	Name      string    `db:"name"`
-	Email     string    `db:"email"`
-	Password  string    `db:"password"`
-	Role      UserRole  `db:"role"`
-	IsActive  bool      `db:"is_active"`
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
+	Id                string             `db:"id"`
+	Fullname          string             `db:"fullname"`
+	Phone             string             `db:"phone"`
+	Nik               *string            `db:"nik"`
+	Birth             data_type.DateTime `db:"birth"`
+	Gender            *string            `db:"gender"`
+	BankAccountNumber *string            `db:"bank_account_number"`
+	IsVerified        bool               `db:"is_verified"`
+	IsDeleted         bool               `db:"is_deleted"`
+	Password          string             `db:"password"`
+	Timestamp
+
+	// relations
+	Roles []UserRole `db:"-"`
 }
 
-func (u *User) TableName() string {
-	return UserTableName
-}
-
-func (u *User) TableIds() []string {
-	return []string{"id"}
-}
+func (u *User) TableName() string { return UserTableName }
 
 func (u *User) ToMap() map[string]interface{} {
 	return map[string]interface{}{
-		"id":         u.Id,
-		"name":       u.Name,
-		"email":      u.Email,
-		"password":   u.Password,
-		"role":       u.Role,
-		"is_active":  u.IsActive,
-		"created_at": u.CreatedAt,
-		"updated_at": u.UpdatedAt,
+		"id":                  u.Id,
+		"fullname":            u.Fullname,
+		"phone":               u.Phone,
+		"nik":                 u.Nik,
+		"birth":               u.Birth,
+		"gender":              u.Gender,
+		"bank_account_number": u.BankAccountNumber,
+		"is_verified":         u.IsVerified,
+		"is_deleted":          u.IsDeleted,
+		"password":            u.Password,
+		"created_at":          u.CreatedAt,
+		"updated_at":          u.UpdatedAt,
 	}
 }
 
 type UserQueryOption struct {
-	IsCount bool
-	IdIn    []string
-	Phrase  *string
-	Page    *int
-	Limit   *int
+	QueryOption
+
+	Role *string
 }
 
-type UserAccessToken struct {
-	Id        string    `db:"id"`
-	UserId    string    `db:"user_id"`
-	Token     string    `db:"token"`
-	ExpiredAt time.Time `db:"expired_at"`
-	CreatedAt time.Time `db:"created_at"`
-}
+var _ PrepareOption = &UserQueryOption{}
 
-const UserAccessTokenTableName = "user_access_tokens"
-
-func (u *UserAccessToken) TableName() string {
-	return UserAccessTokenTableName
-}
-
-func (u *UserAccessToken) TableIds() []string {
-	return []string{"id"}
-}
-
-func (u *UserAccessToken) ToMap() map[string]interface{} {
-	return map[string]interface{}{
-		"id":         u.Id,
-		"user_id":    u.UserId,
-		"token":      u.Token,
-		"expired_at": u.ExpiredAt,
-		"created_at": u.CreatedAt,
+// SetDefaultSorts overrides the base default to use id ASC.
+func (o *UserQueryOption) SetDefaultSorts() {
+	if len(o.Sorts) == 0 {
+		o.Sorts = Sorts{{Field: "id", Direction: "asc"}}
 	}
+}
+
+// TranslateSorts prefixes every sort field with the users table alias "u.".
+func (o *UserQueryOption) TranslateSorts() {
+	translated := make(Sorts, len(o.Sorts))
+	for i, s := range o.Sorts {
+		translated[i] = struct{ Field, Direction string }{"u." + s.Field, s.Direction}
+	}
+	o.Sorts = translated
 }

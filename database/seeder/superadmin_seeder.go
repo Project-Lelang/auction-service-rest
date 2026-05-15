@@ -2,61 +2,65 @@ package seeder
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log"
 	"time"
 
+	"auction-service/constant"
+	"auction-service/data_type"
 	"auction-service/global"
+	"auction-service/infrastructure"
 	"auction-service/model"
+	"auction-service/repository"
 	"auction-service/util"
-
-	"github.com/jmoiron/sqlx"
 )
 
-func SeedSuperAdmin(db *sqlx.DB) error {
+func SeedSuperAdmin(db infrastructure.DBTX) error {
 	config := global.GetSuperAdminConfig()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// check if superadmin already exists
-	var count int
-	err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM users WHERE email = $1", config.Email).Scan(&count)
-	if err != nil {
-		return fmt.Errorf("failed to check existing superadmin: %w", err)
-	}
+	userRepo := repository.NewUserRepository(db)
+	userRoleRepo := repository.NewUserRoleRepository(db)
 
-	if count > 0 {
+	_, err := userRepo.GetByPhone(ctx, config.Phone)
+	if err != nil && !errors.Is(err, constant.ErrNoData) {
+		return err
+	}
+	if err == nil {
 		log.Println("Superadmin already exists, skipping seed")
 		return nil
 	}
 
 	hashedPassword, err := util.HashPassword(config.Password)
 	if err != nil {
-		return fmt.Errorf("failed to hash password: %w", err)
+		return err
 	}
 
-	now := time.Now().UTC()
+	birth := data_type.NewDateTime(time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC))
 	user := &model.User{
-		Id:        util.NewUuid(),
-		Name:      "Super Admin",
-		Email:     config.Email,
-		Password:  hashedPassword,
-		Role:      model.UserRoleSuperAdmin,
-		IsActive:  true,
-		CreatedAt: now,
-		UpdatedAt: now,
+		Id:         util.NewUuid(),
+		Fullname:   "Super Admin",
+		Phone:      config.Phone,
+		Birth:      birth,
+		IsVerified: true,
+		IsDeleted:  false,
+		Password:   hashedPassword,
 	}
 
-	_, err = db.ExecContext(ctx,
-		`INSERT INTO users (id, name, email, password, role, is_active, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		user.Id, user.Name, user.Email, user.Password, user.Role, user.IsActive, user.CreatedAt, user.UpdatedAt,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to insert superadmin: %w", err)
+	if err := userRepo.Insert(ctx, user); err != nil {
+		return err
 	}
 
-	log.Printf("Superadmin seeded successfully: %s", user.Email)
+	if err := userRoleRepo.Insert(ctx, &model.UserRole{
+		Id:     util.NewUuid(),
+		UserId: user.Id,
+		Role:   constant.RoleSuperAdmin,
+	}); err != nil {
+		return err
+	}
+
+	log.Printf("Superadmin seeded successfully: phone=%s", config.Phone)
 	return nil
 }

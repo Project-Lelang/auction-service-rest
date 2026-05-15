@@ -1,5 +1,5 @@
 # auth
-AUTH.INVALID_CREDENTIALS: "Invalid email or password"
+AUTH.INVALID_CREDENTIALS: "Invalid phone or password"
 AUTH.WRONG_PASSWORD: "Wrong password"
 AUTH.ACCOUNT_NOT_REGISTERED: "Account is not registered"
 AUTH.TOKEN_EXPIRED: "Token has expired"
@@ -7,11 +7,20 @@ AUTH.TOKEN_INVALID: "Invalid token"
 AUTH.REFRESH_TOKEN_EXPIRED: "Refresh token has expired"
 AUTH.REFRESH_TOKEN_INVALID: "Invalid refresh token"
 AUTH.LOGGED_OUT: "Logged out successfully"
+AUTH.OTP_INVALID: "OTP is invalid or has expired"
+AUTH.PHONE_ALREADY_REGISTERED: "Phone number is already registered"
 
 # user
 USER.NOT_FOUND: "User not found"
 USER.EMAIL_ALREADY_EXIST: "Email already exists"
+USER.PHONE_ALREADY_EXIST: "Phone number already exists"
 USER.INVALID_PASSWORD: "Invalid password"
+USER.ROLE_NOT_FOUND: "User role not found"
+USER.ROLE_ALREADY_EXIST: "User role already exists"
+
+# product
+PRODUCT.NOT_FOUND: "Product not found"
+PRODUCT.INVALID_STATUS_TRANSITION: "Invalid product status transition"
 
 # system
 SYSTEM.UNAUTHORIZED: "Unauthorized"

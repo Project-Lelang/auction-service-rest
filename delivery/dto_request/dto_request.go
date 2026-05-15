@@ -1,6 +1,6 @@
 package dto_request
 
 type PaginationRequest struct {
-	Page  *int `json:"page" validate:"omitempty,gte=1"`
-	Limit *int `json:"limit" validate:"omitempty,gte=1,lte=100"`
+	Page  *int `form:"page" json:"page" validate:"omitempty,gte=1"`
+	Limit *int `form:"limit" json:"limit" validate:"omitempty,gte=1,lte=100"`
 }

@@ -1,3 +1,1 @@
-DROP TABLE IF EXISTS user_access_tokens;
 DROP TABLE IF EXISTS users;
-DROP TYPE IF EXISTS user_role;

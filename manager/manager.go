@@ -20,20 +20,26 @@ func NewContainer() *Container {
 	infraManager := infrastructure.NewInfrastructureManager(config)
 
 	db := infraManager.GetDB()
-	loggerStack := infraManager.GetLoggerStack()
 
 	// repositories
-	userRepo := repository.NewUserRepository(db, loggerStack)
-	userAccessTokenRepo := repository.NewUserAccessTokenRepository(db, loggerStack)
+	userRepo := repository.NewUserRepository(db)
+	userRoleRepo := repository.NewUserRoleRepository(db)
+	otpRepo := repository.NewOtpRepository(db)
+	productRepo := repository.NewProductRepository(db)
+	productStatusHistoryRepo := repository.NewProductStatusHistoryRepository(db)
 
-	repoManager := repository.NewRepositoryManager(userRepo, userAccessTokenRepo)
+	repoManager := repository.NewRepositoryManager(userRepo, userRoleRepo, otpRepo, productRepo, productStatusHistoryRepo)
 
 	// jwt
 	jwtInstance := internalJwt.NewJwt([]byte(config.JwtConfig.SecretKey))
 
 	// use cases
 	authUseCase := use_case.NewAuthUseCase(repoManager, jwtInstance)
-	ucManager := use_case.NewUseCaseManager(authUseCase)
+	userUseCase := use_case.NewUserUseCase(repoManager)
+	userRoleUseCase := use_case.NewUserRoleUseCase(repoManager)
+	productUseCase := use_case.NewProductUseCase(repoManager)
+
+	ucManager := use_case.NewUseCaseManager(authUseCase, userUseCase, userRoleUseCase, productUseCase)
 
 	return &Container{
 		infrastructureManager: infraManager,

@@ -3,66 +3,61 @@ package repository
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"auction-service/constant"
 	"auction-service/infrastructure"
 	"auction-service/model"
+	"auction-service/util"
 
 	"github.com/Masterminds/squirrel"
 )
 
+// UserRepository defines all persistence operations for the User entity.
 type UserRepository interface {
 	// create
 	Insert(ctx context.Context, user *model.User) error
 
 	// read
+	GetByPhone(ctx context.Context, phone string) (*model.User, error)
+	GetById(ctx context.Context, id string) (*model.User, error)
+	FindAdminByPhone(ctx context.Context, phone string) (*model.User, error)
+	FetchByIds(ctx context.Context, ids []string) ([]model.User, error)
 	Fetch(ctx context.Context, options ...model.UserQueryOption) ([]model.User, error)
-	Get(ctx context.Context, id string) (*model.User, error)
-	GetByEmail(ctx context.Context, email string) (*model.User, error)
-	IsExistByEmail(ctx context.Context, email string) (bool, error)
+	Count(ctx context.Context, options ...model.UserQueryOption) (int64, error)
 
 	// update
-	Update(ctx context.Context, user *model.User) error
-
-	// delete
-	Delete(ctx context.Context, user *model.User) error
+	SoftDelete(ctx context.Context, id string) error
 }
 
 type userRepository struct {
-	db          infrastructure.DBTX
-	loggerStack infrastructure.LoggerStack
+	db infrastructure.DBTX
 }
 
-func NewUserRepository(db infrastructure.DBTX, loggerStack infrastructure.LoggerStack) UserRepository {
-	return &userRepository{
-		db:          db,
-		loggerStack: loggerStack,
+func NewUserRepository(db infrastructure.DBTX) UserRepository {
+	return &userRepository{db: db}
+}
+
+// ------------------------------------------------------------------ helpers
+
+func (r *userRepository) tableName() string { return model.UserTableName }
+func (r *userRepository) alias() string     { return "u" }
+func (r *userRepository) fromTable() string { return fmt.Sprintf("%s %s", r.tableName(), r.alias()) }
+func (r *userRepository) f(col string) string {
+	return fmt.Sprintf("%s.%s", r.alias(), col)
+}
+
+// buildBaseStmt returns a SelectBuilder with FROM, JOIN, and WHERE filters applied.
+// Callers must add the desired columns and call model.Prepare() before executing.
+func (r *userRepository) buildBaseStmt(option model.UserQueryOption) squirrel.SelectBuilder {
+	stmt := stmtBuilder.Select().
+		From(r.fromTable()).
+		LeftJoin("user_roles ur ON ur.user_id = u.id")
+
+	if option.Role != nil {
+		stmt = stmt.Where(squirrel.ILike{"ur.role": *option.Role})
 	}
-}
 
-func (r *userRepository) tableName() string {
-	return model.UserTableName
-}
-
-func (r *userRepository) tableAlias() string {
-	return "u"
-}
-
-func (r *userRepository) fromTable() string {
-	return fmt.Sprintf("%s %s", r.tableName(), r.tableAlias())
-}
-
-func (r *userRepository) f(field string) string {
-	return fmt.Sprintf("%s.%s", r.tableAlias(), field)
-}
-
-func (r *userRepository) fetchInternal(ctx context.Context, stmt squirrel.SelectBuilder) ([]model.User, error) {
-	users := []model.User{}
-	if err := fetch(r.db, ctx, &users, stmt); err != nil {
-		return nil, err
-	}
-	return users, nil
+	return stmt
 }
 
 func (r *userRepository) getInternal(ctx context.Context, stmt squirrel.SelectBuilder) (*model.User, error) {
@@ -73,14 +68,50 @@ func (r *userRepository) getInternal(ctx context.Context, stmt squirrel.SelectBu
 	return &user, nil
 }
 
+func (r *userRepository) fetchInternal(ctx context.Context, stmt squirrel.SelectBuilder) ([]model.User, error) {
+	users := []model.User{}
+	if err := fetch(r.db, ctx, &users, stmt); err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+// ------------------------------------------------------------------ create
+
 func (r *userRepository) Insert(ctx context.Context, user *model.User) error {
-	if user.CreatedAt.IsZero() {
-		user.CreatedAt = time.Now().UTC()
-	}
-	if user.UpdatedAt.IsZero() {
-		user.UpdatedAt = time.Now().UTC()
-	}
-	return insert(r.db, ctx, r.tableName(), user.ToMap())
+	return defaultInsert(r.db, ctx, user)
+}
+
+// ------------------------------------------------------------------ read
+
+func (r *userRepository) GetByPhone(ctx context.Context, phone string) (*model.User, error) {
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("phone"): phone}).
+		Limit(1)
+	return r.getInternal(ctx, stmt)
+}
+
+func (r *userRepository) GetById(ctx context.Context, id string) (*model.User, error) {
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("id"): id}).
+		Limit(1)
+	return r.getInternal(ctx, stmt)
+}
+
+func (r *userRepository) FindAdminByPhone(ctx context.Context, phone string) (*model.User, error) {
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Join("user_roles ur ON ur.user_id = u.id").
+		Where(squirrel.Eq{r.f("phone"): phone}).
+		Where(squirrel.Eq{r.f("is_deleted"): false}).
+		Where(squirrel.Or{
+			squirrel.Eq{"ur.role": constant.RoleAdmin},
+			squirrel.Eq{"ur.role": constant.RoleSuperAdmin},
+		}).
+		Limit(1)
+	return r.getInternal(ctx, stmt)
 }
 
 func (r *userRepository) Fetch(ctx context.Context, options ...model.UserQueryOption) ([]model.User, error) {
@@ -89,61 +120,45 @@ func (r *userRepository) Fetch(ctx context.Context, options ...model.UserQueryOp
 		option = options[0]
 	}
 
-	stmt := stmtBuilder.Select(r.f("*")).From(r.fromTable())
-
-	if len(option.IdIn) > 0 {
-		stmt = stmt.Where(squirrel.Eq{r.f("id"): option.IdIn})
-	}
-
-	if option.Phrase != nil {
-		phrase := "%" + *option.Phrase + "%"
-		stmt = stmt.Where(squirrel.Or{
-			squirrel.ILike{r.f("name"): phrase},
-			squirrel.ILike{r.f("email"): phrase},
-		})
-	}
-
-	if !option.IsCount && option.Limit != nil {
-		stmt = stmt.Limit(uint64(*option.Limit))
-		if option.Page != nil && *option.Page > 1 {
-			stmt = stmt.Offset(uint64((*option.Page - 1) * *option.Limit))
-		}
-	}
+	stmt := r.buildBaseStmt(option).Column("DISTINCT " + r.f("*"))
+	stmt = model.Prepare(stmt, &option)
 
 	return r.fetchInternal(ctx, stmt)
 }
 
-func (r *userRepository) Get(ctx context.Context, id string) (*model.User, error) {
-	stmt := stmtBuilder.Select(r.f("*")).
-		From(r.fromTable()).
-		Where(squirrel.Eq{r.f("id"): id})
-	return r.getInternal(ctx, stmt)
-}
-
-func (r *userRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
-	stmt := stmtBuilder.Select(r.f("*")).
-		From(r.fromTable()).
-		Where(squirrel.ILike{r.f("email"): email}).
-		Limit(1)
-	return r.getInternal(ctx, stmt)
-}
-
-func (r *userRepository) IsExistByEmail(ctx context.Context, email string) (bool, error) {
-	user, err := r.GetByEmail(ctx, email)
-	if err != nil && err != constant.ErrNoData {
-		return false, err
+func (r *userRepository) FetchByIds(ctx context.Context, ids []string) ([]model.User, error) {
+	if len(ids) == 0 {
+		return []model.User{}, nil
 	}
-	return user != nil, nil
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("id"): ids})
+	return r.fetchInternal(ctx, stmt)
 }
 
-func (r *userRepository) Update(ctx context.Context, user *model.User) error {
-	user.UpdatedAt = time.Now().UTC()
-	arg := user.ToMap()
-	delete(arg, "id")
-	delete(arg, "created_at")
-	return update(r.db, ctx, r.tableName(), arg, squirrel.Eq{"id": user.Id})
+func (r *userRepository) Count(ctx context.Context, options ...model.UserQueryOption) (int64, error) {
+	option := model.UserQueryOption{}
+	if len(options) > 0 {
+		option = options[0]
+	}
+
+	stmt := r.buildBaseStmt(option).Column("COUNT(DISTINCT u.id)")
+
+	var count int64
+	if err := get(r.db, ctx, &count, stmt); err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
-func (r *userRepository) Delete(ctx context.Context, user *model.User) error {
-	return destroy(r.db, ctx, r.tableName(), squirrel.Eq{"id": user.Id})
+// ------------------------------------------------------------------ update
+
+func (r *userRepository) SoftDelete(ctx context.Context, id string) error {
+	return update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"is_deleted": true,
+			"updated_at": util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	)
 }

@@ -19,7 +19,7 @@ const (
 	EnvironmentTesting     = "testing"
 )
 
-type PostgresConfig struct {
+type MysqlConfig struct {
 	Host     string `yaml:"host"`
 	Port     uint16 `yaml:"port"`
 	Username string `yaml:"username"`
@@ -34,7 +34,7 @@ type JwtConfig struct {
 }
 
 type SuperAdminConfig struct {
-	Email    string `yaml:"email"`
+	Phone    string `yaml:"phone"`
 	Password string `yaml:"password"`
 }
 
@@ -51,7 +51,7 @@ type YamlConfig struct {
 	Uri                string           `yaml:"uri"`
 	FeUri              string           `yaml:"fe_uri"`
 	CorsAllowedOrigins []string         `yaml:"cors_allowed_origins"`
-	Postgres           PostgresConfig   `yaml:"postgres"`
+	Mysql              MysqlConfig      `yaml:"mysql"`
 	JwtConfig          JwtConfig        `yaml:"jwt"`
 	SuperAdmin         SuperAdminConfig `yaml:"super_admin"`
 }
@@ -140,8 +140,8 @@ func GetTimezone() string {
 	return config.Timezone
 }
 
-func GetPostgresConfig() PostgresConfig {
-	return config.Postgres
+func GetMysqlConfig() MysqlConfig {
+	return config.Mysql
 }
 
 func GetSuperAdminConfig() SuperAdminConfig {

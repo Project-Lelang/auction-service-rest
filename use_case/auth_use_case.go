@@ -5,20 +5,27 @@ import (
 	"time"
 
 	"auction-service/constant"
+	"auction-service/data_type"
 	"auction-service/delivery/dto_request"
 	"auction-service/delivery/dto_response"
 	"auction-service/global"
 	internalJwt "auction-service/internal/jwt"
+	"auction-service/loader"
 	"auction-service/model"
 	"auction-service/repository"
 	"auction-service/util"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type AuthUseCase interface {
-	Login(ctx context.Context, request dto_request.AuthLoginRequest) model.Token
-	Refresh(ctx context.Context, request dto_request.AuthRefreshTokenRequest) model.Token
-	Logout(ctx context.Context)
-	Parse(ctx context.Context, token string) (*model.UserAccessToken, *model.User, error)
+	// Public
+	Login(ctx context.Context, request dto_request.AuthLoginRequest) string
+	AdminLogin(ctx context.Context, request dto_request.AdminAuthLoginRequest) string
+	Register(ctx context.Context, request dto_request.AuthRegisterRequest)
+	CreateOtp(ctx context.Context, phone string)
+	// Middleware helper
+	Parse(token string) (*model.UserClaims, error)
 }
 
 type authUseCase struct {
@@ -36,65 +43,28 @@ func NewAuthUseCase(
 	}
 }
 
-func (u *authUseCase) generateTokenPair(ctx context.Context, user *model.User) model.Token {
-	now := time.Now().UTC()
-	jwtConfig := global.GetConfig().JwtConfig
+func (u *authUseCase) generateToken(user *model.User) string {
+	roleStrings := make([]string, len(user.Roles))
+	for i, r := range user.Roles {
+		roleStrings[i] = r.Role
+	}
 
-	accessTokenId := util.NewUuid()
-	accessTokenExpiredAt := now.Add(time.Duration(jwtConfig.AccessTokenExpiryHours) * time.Hour)
+	now := util.CurrentDateTime()
+	expiry := time.Duration(global.GetConfig().JwtConfig.AccessTokenExpiryHours) * time.Hour
 
-	accessToken, err := u.jwt.Generate(internalJwt.Payload{
-		UserAccessTokenId: accessTokenId,
-		UserId:            user.Id,
-		CreatedAt:         now,
-		ExpiredAt:         accessTokenExpiredAt,
+	token, err := u.jwt.Generate(internalJwt.Payload{
+		Id:        user.Id,
+		Phone:     user.Phone,
+		Roles:     roleStrings,
+		CreatedAt: now,
+		ExpiredAt: now.Add(expiry),
 	})
 	panicIfErr(err)
-
-	// save access token
-	userAccessToken := &model.UserAccessToken{
-		Id:        accessTokenId,
-		UserId:    user.Id,
-		Token:     accessToken.AccessToken,
-		ExpiredAt: accessTokenExpiredAt,
-		CreatedAt: now,
-	}
-	err = u.repositoryManager.UserAccessTokenRepository().Insert(ctx, userAccessToken)
-	panicIfErr(err)
-
-	refreshTokenId := util.NewUuid()
-	refreshTokenExpiredAt := now.Add(time.Duration(jwtConfig.RefreshTokenExpiryHours) * time.Hour)
-
-	refreshToken, err := u.jwt.Generate(internalJwt.Payload{
-		UserAccessTokenId: refreshTokenId,
-		UserId:            user.Id,
-		CreatedAt:         now,
-		ExpiredAt:         refreshTokenExpiredAt,
-	})
-	panicIfErr(err)
-
-	// save refresh token
-	refreshUserAccessToken := &model.UserAccessToken{
-		Id:        refreshTokenId,
-		UserId:    user.Id,
-		Token:     refreshToken.AccessToken,
-		ExpiredAt: refreshTokenExpiredAt,
-		CreatedAt: now,
-	}
-	err = u.repositoryManager.UserAccessTokenRepository().Insert(ctx, refreshUserAccessToken)
-	panicIfErr(err)
-
-	return model.Token{
-		AccessToken:           "Bearer " + accessToken.AccessToken,
-		AccessTokenExpiredAt:  accessTokenExpiredAt,
-		RefreshToken:          "Bearer " + refreshToken.AccessToken,
-		RefreshTokenExpiredAt: refreshTokenExpiredAt,
-		TokenType:             "Bearer",
-	}
+	return token.AccessToken
 }
 
-func (u *authUseCase) Login(ctx context.Context, request dto_request.AuthLoginRequest) model.Token {
-	user, err := u.repositoryManager.UserRepository().GetByEmail(ctx, request.Email)
+func (u *authUseCase) Login(ctx context.Context, request dto_request.AuthLoginRequest) string {
+	user, err := u.repositoryManager.UserRepository().GetByPhone(ctx, request.Phone)
 	if err != nil {
 		if err == constant.ErrNoData {
 			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthInvalidCredentials))
@@ -106,64 +76,108 @@ func (u *authUseCase) Login(ctx context.Context, request dto_request.AuthLoginRe
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthInvalidCredentials))
 	}
 
-	return u.generateTokenPair(ctx, user)
+	userRolesLoader := loader.NewUserRolesLoader(u.repositoryManager.UserRoleRepository())
+	panicIfErr(util.Await(func(group *errgroup.Group) {
+		group.Go(userRolesLoader.UserFn(user))
+	}))
+	return u.generateToken(user)
 }
 
-func (u *authUseCase) Refresh(ctx context.Context, request dto_request.AuthRefreshTokenRequest) model.Token {
-	payload, err := u.jwt.Parse(request.RefreshToken)
+func (u *authUseCase) AdminLogin(ctx context.Context, request dto_request.AdminAuthLoginRequest) string {
+	user, err := u.repositoryManager.UserRepository().FindAdminByPhone(ctx, request.Phone)
 	if err != nil {
-		panic(dto_response.NewUnauthorizedErrorResponse(constant.LanguageAuthRefreshTokenInvalid))
+		if err == constant.ErrNoData {
+			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthInvalidCredentials))
+		}
+		panic(err)
 	}
 
-	if time.Now().UTC().After(payload.ExpiredAt) {
-		panic(dto_response.NewUnauthorizedErrorResponse(constant.LanguageAuthRefreshTokenExpired))
+	if !util.CheckPasswordHash(request.Password, user.Password) {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthInvalidCredentials))
 	}
 
-	// validate token exists in DB
-	tokenRecord, err := u.repositoryManager.UserAccessTokenRepository().GetById(ctx, payload.UserAccessTokenId)
-	if err != nil {
-		panic(dto_response.NewUnauthorizedErrorResponse(constant.LanguageAuthRefreshTokenInvalid))
-	}
-
-	user, err := u.repositoryManager.UserRepository().Get(ctx, tokenRecord.UserId)
-	panicIfRepositoryError(err, constant.LanguageUserNotFound)
-
-	// delete old token pair
-	err = u.repositoryManager.UserAccessTokenRepository().DeleteByUserId(ctx, user.Id)
-	panicIfErr(err)
-
-	return u.generateTokenPair(ctx, user)
+	userRolesLoader := loader.NewUserRolesLoader(u.repositoryManager.UserRoleRepository())
+	panicIfErr(util.Await(func(group *errgroup.Group) {
+		group.Go(userRolesLoader.UserFn(user))
+	}))
+	return u.generateToken(user)
 }
 
-func (u *authUseCase) Logout(ctx context.Context) {
-	userAccessToken, err := model.GetUserAccessTokenCtx(ctx)
+func (u *authUseCase) Register(ctx context.Context, request dto_request.AuthRegisterRequest) {
+	otp, err := u.repositoryManager.OtpRepository().GetByPhone(ctx, request.Phone)
 	if err != nil {
-		panic(constant.ErrNotAuthenticated)
+		if err == constant.ErrNoData {
+			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthOtpInvalid))
+		}
+		panic(err)
 	}
 
-	err = u.repositoryManager.UserAccessTokenRepository().Delete(ctx, userAccessToken)
-	panicIfErr(err)
+	if otp.Verified || otp.ExpiresAt.IsLessThan(util.CurrentDateTime()) || otp.Otp != request.Otp {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthOtpInvalid))
+	}
+
+	hashedPassword, hashErr := util.HashPassword(request.Password)
+	panicIfErr(hashErr)
+
+	birth, parseErr := time.Parse("2006-01-02", request.Birth)
+	if parseErr != nil {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageSystemInvalidRequestPayload))
+	}
+
+	user := &model.User{
+		Id:       util.NewUuid(),
+		Fullname: request.Fullname,
+		Phone:    request.Phone,
+		Birth:    data_type.NewDateTime(birth),
+		Gender:   request.Gender,
+		Password: hashedPassword,
+	}
+
+	insertErr := u.repositoryManager.UserRepository().Insert(ctx, user)
+	if insertErr != nil {
+		if insertErr == constant.ErrDuplicateData {
+			panic(dto_response.NewConflictErrorResponse(constant.LanguageAuthPhoneAlreadyRegistered))
+		}
+		panic(insertErr)
+	}
+
+	panicIfErr(u.repositoryManager.OtpRepository().MarkVerified(ctx, request.Phone))
 }
 
-func (u *authUseCase) Parse(ctx context.Context, token string) (*model.UserAccessToken, *model.User, error) {
+func (u *authUseCase) CreateOtp(ctx context.Context, phone string) {
+	_, err := u.repositoryManager.UserRepository().GetByPhone(ctx, phone)
+	if err == nil {
+		// Phone already registered — silently succeed (don't reveal existence)
+		return
+	}
+	if err != constant.ErrNoData {
+		panic(err)
+	}
+
+	otpValue, genErr := util.GenerateOTP(6)
+	panicIfErr(genErr)
+
+	expiresAt := util.CurrentDateTime().Add(time.Minute)
+	upsertErr := u.repositoryManager.OtpRepository().Upsert(ctx, phone, otpValue, expiresAt)
+	panicIfErr(upsertErr)
+
+	// TODO: send OTP via SMS/WhatsApp
+	// For development, the OTP is accessible via GET /v1/auth/debug-otp (not exposed in production)
+}
+
+func (u *authUseCase) Parse(token string) (*model.UserClaims, error) {
 	payload, err := u.jwt.Parse(token)
 	if err != nil {
-		return nil, nil, constant.ErrNotAuthenticated
+		return nil, constant.ErrNotAuthenticated
 	}
 
-	if time.Now().UTC().After(payload.ExpiredAt) {
-		return nil, nil, constant.ErrNotAuthenticated
+	if util.CurrentDateTime().IsGreaterThan(payload.ExpiredAt) {
+		return nil, constant.ErrNotAuthenticated
 	}
 
-	tokenRecord, err := u.repositoryManager.UserAccessTokenRepository().GetById(ctx, payload.UserAccessTokenId)
-	if err != nil {
-		return nil, nil, constant.ErrNotAuthenticated
-	}
-
-	user, err := u.repositoryManager.UserRepository().Get(ctx, tokenRecord.UserId)
-	if err != nil {
-		return nil, nil, constant.ErrNotAuthenticated
-	}
-
-	return tokenRecord, user, nil
+	return &model.UserClaims{
+		UserId: payload.Id,
+		Phone:  payload.Phone,
+		Roles:  payload.Roles,
+	}, nil
 }

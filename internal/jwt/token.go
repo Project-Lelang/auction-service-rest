@@ -2,13 +2,14 @@ package jwt
 
 import (
 	"strings"
-	"time"
+
+	"auction-service/data_type"
 )
 
 type Token struct {
 	AccessToken string
 	TokenType   string
-	ExpiredAt   time.Time
+	ExpiredAt   data_type.DateTime
 }
 
 func parseToken(finalizedToken string) (*Token, error) {

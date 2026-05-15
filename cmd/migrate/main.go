@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 
@@ -9,10 +10,20 @@ import (
 )
 
 func main() {
+	rollback := flag.Bool("rollback", false, "Roll back migrations")
+	steps := flag.Int("steps", 0, "Number of migration steps (0 = all)")
+	force := flag.Int("force", -1, "Force migration version (clears dirty state)")
+	flag.Parse()
+
 	infraManager := infrastructure.NewInfrastructureManager(global.GetConfig())
 	defer infraManager.CloseDB()
 
-	if err := infraManager.MigrateDB(false, 0, nil); err != nil {
+	var forcePtr *int
+	if *force >= 0 {
+		forcePtr = force
+	}
+
+	if err := infraManager.MigrateDB(*rollback, *steps, forcePtr); err != nil {
 		log.Fatalf("migration failed: %v", err)
 	}
 

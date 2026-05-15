@@ -14,6 +14,7 @@ build:
 run.dev:
 	air
 
+# make migration name=create_users_table
 .PHONY: migration
 migration:
 	migrate create -ext sql -dir migration -seq ${name}
@@ -22,14 +23,19 @@ migration:
 migrate:
 	go run cmd/migrate/main.go
 
+# make migrate-rollback steps=1
+.PHONY: migrate-rollback
+migrate-rollback:
+	go run cmd/migrate/main.go -rollback -steps=$(steps)
+
 .PHONY: seed
 seed:
 	go run cmd/seed/main.go
 
 .PHONY: generate-swagger
 generate-swagger:
-	swag fmt -d main.go,./delivery/api && \
-	swag init --parseDependency -d ./,./delivery/api --outputTypes json,yaml,go
+	go run ./tool/swag fmt -d main.go,./delivery/api && \
+	go run ./tool/swag init --parseDependency -d ./,./delivery/api --outputTypes json,yaml,go
 
 .PHONY: test.cleancache
 test.cleancache:

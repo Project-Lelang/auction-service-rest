@@ -3,10 +3,19 @@ package jwt
 import (
 	"errors"
 
+	"auction-service/data_type"
+
 	jwtLib "github.com/golang-jwt/jwt/v4"
 )
 
 var ErrInvalidToken = errors.New("invalid token")
+
+type customClaims struct {
+	Id    string   `json:"id"`
+	Phone string   `json:"phone"`
+	Roles []string `json:"roles"`
+	jwtLib.RegisteredClaims
+}
 
 type jwt struct {
 	secretKey []byte
@@ -14,6 +23,10 @@ type jwt struct {
 
 func (j *jwt) signMethod() jwtLib.SigningMethod {
 	return jwtLib.SigningMethodHS256
+}
+
+func (j *jwt) tokenType() string {
+	return "Bearer"
 }
 
 func (j *jwt) finalizeToken(signedToken string) *Token {
@@ -28,28 +41,25 @@ func (j *jwt) parseToken(finalizedToken string) (string, error) {
 	if err != nil {
 		return "", ErrInvalidToken
 	}
-
 	if token.TokenType != j.tokenType() {
 		return "", ErrInvalidToken
 	}
-
 	return token.AccessToken, nil
 }
 
-func (j *jwt) tokenType() string {
-	return "Bearer"
-}
-
 func (j *jwt) Generate(payload Payload) (*Token, error) {
-	token := jwtLib.NewWithClaims(j.signMethod(), jwtLib.RegisteredClaims{
-		Audience:  []string{payload.UserId},
-		ExpiresAt: &jwtLib.NumericDate{Time: payload.ExpiredAt},
-		ID:        payload.UserAccessTokenId,
-		IssuedAt:  &jwtLib.NumericDate{Time: payload.CreatedAt},
-		NotBefore: &jwtLib.NumericDate{Time: payload.CreatedAt},
-		Subject:   payload.UserId,
-	})
+	claims := &customClaims{
+		Id:    payload.Id,
+		Phone: payload.Phone,
+		Roles: payload.Roles,
+		RegisteredClaims: jwtLib.RegisteredClaims{
+			ExpiresAt: &jwtLib.NumericDate{Time: payload.ExpiredAt.Time()},
+			IssuedAt:  &jwtLib.NumericDate{Time: payload.CreatedAt.Time()},
+			NotBefore: &jwtLib.NumericDate{Time: payload.CreatedAt.Time()},
+		},
+	}
 
+	token := jwtLib.NewWithClaims(j.signMethod(), claims)
 	signedToken, err := token.SignedString(j.secretKey)
 	if err != nil {
 		return nil, err
@@ -57,7 +67,6 @@ func (j *jwt) Generate(payload Payload) (*Token, error) {
 
 	finalizedToken := j.finalizeToken(signedToken)
 	finalizedToken.ExpiredAt = payload.ExpiredAt
-
 	return finalizedToken, nil
 }
 
@@ -67,8 +76,8 @@ func (j *jwt) Parse(finalizedToken string) (*Payload, error) {
 		return nil, err
 	}
 
-	claims := jwtLib.RegisteredClaims{}
-	_, err = jwtLib.ParseWithClaims(signedToken, &claims, func(t *jwtLib.Token) (interface{}, error) {
+	claims := &customClaims{}
+	_, err = jwtLib.ParseWithClaims(signedToken, claims, func(t *jwtLib.Token) (interface{}, error) {
 		if t.Method != j.signMethod() {
 			return nil, ErrInvalidToken
 		}
@@ -79,17 +88,15 @@ func (j *jwt) Parse(finalizedToken string) (*Payload, error) {
 	}
 
 	payload := Payload{
-		UserAccessTokenId: claims.ID,
-		UserId:            claims.Subject,
-		CreatedAt:         claims.IssuedAt.Time,
-		ExpiredAt:         claims.ExpiresAt.Time,
+		Id:        claims.Id,
+		Phone:     claims.Phone,
+		Roles:     claims.Roles,
+		CreatedAt: data_type.NewDateTime(claims.IssuedAt.Time),
+		ExpiredAt: data_type.NewDateTime(claims.ExpiresAt.Time),
 	}
-
 	return &payload, nil
 }
 
 func NewJwt(secretKey []byte) Jwt {
-	return &jwt{
-		secretKey: secretKey,
-	}
+	return &jwt{secretKey: secretKey}
 }

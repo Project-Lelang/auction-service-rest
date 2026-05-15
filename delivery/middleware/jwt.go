@@ -23,7 +23,7 @@ func JWTHandler(router gin.IRouter, authUseCase use_case.AuthUseCase) {
 			return
 		}
 
-		userAccessToken, user, err := authUseCase.Parse(ctx.Request.Context(), token)
+		claims, err := authUseCase.Parse(token)
 		if err != nil {
 			if err != constant.ErrNotAuthenticated {
 				panic(err)
@@ -32,9 +32,7 @@ func JWTHandler(router gin.IRouter, authUseCase use_case.AuthUseCase) {
 			return
 		}
 
-		ctx.Request = ctx.Request.WithContext(model.SetUserAccessTokenCtx(ctx.Request.Context(), userAccessToken))
-		ctx.Request = ctx.Request.WithContext(model.SetUserCtx(ctx.Request.Context(), user))
-
+		ctx.Request = ctx.Request.WithContext(model.SetUserCtx(ctx.Request.Context(), claims))
 		ctx.Next()
 	})
 }

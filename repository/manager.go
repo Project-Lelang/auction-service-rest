@@ -2,21 +2,33 @@ package repository
 
 type RepositoryManager interface {
 	UserRepository() UserRepository
-	UserAccessTokenRepository() UserAccessTokenRepository
+	UserRoleRepository() UserRoleRepository
+	OtpRepository() OtpRepository
+	ProductRepository() ProductRepository
+	ProductStatusHistoryRepository() ProductStatusHistoryRepository
 }
 
 type repositoryManager struct {
-	userRepository            UserRepository
-	userAccessTokenRepository UserAccessTokenRepository
+	userRepository                 UserRepository
+	userRoleRepository             UserRoleRepository
+	otpRepository                  OtpRepository
+	productRepository              ProductRepository
+	productStatusHistoryRepository ProductStatusHistoryRepository
 }
 
 func NewRepositoryManager(
 	userRepository UserRepository,
-	userAccessTokenRepository UserAccessTokenRepository,
+	userRoleRepository UserRoleRepository,
+	otpRepository OtpRepository,
+	productRepository ProductRepository,
+	productStatusHistoryRepository ProductStatusHistoryRepository,
 ) RepositoryManager {
 	return &repositoryManager{
-		userRepository:            userRepository,
-		userAccessTokenRepository: userAccessTokenRepository,
+		userRepository:                 userRepository,
+		userRoleRepository:             userRoleRepository,
+		otpRepository:                  otpRepository,
+		productRepository:              productRepository,
+		productStatusHistoryRepository: productStatusHistoryRepository,
 	}
 }
 
@@ -24,6 +36,18 @@ func (r *repositoryManager) UserRepository() UserRepository {
 	return r.userRepository
 }
 
-func (r *repositoryManager) UserAccessTokenRepository() UserAccessTokenRepository {
-	return r.userAccessTokenRepository
+func (r *repositoryManager) UserRoleRepository() UserRoleRepository {
+	return r.userRoleRepository
+}
+
+func (r *repositoryManager) OtpRepository() OtpRepository {
+	return r.otpRepository
+}
+
+func (r *repositoryManager) ProductRepository() ProductRepository {
+	return r.productRepository
+}
+
+func (r *repositoryManager) ProductStatusHistoryRepository() ProductStatusHistoryRepository {
+	return r.productStatusHistoryRepository
 }

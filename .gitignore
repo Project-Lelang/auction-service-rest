@@ -49,3 +49,6 @@ dev.env
 /coverage.html
 
 conf.yml
+
+/docs/swagger.json
+/docs/swagger.yaml

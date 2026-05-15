@@ -1,8 +1,12 @@
 package use_case
 
 import (
+	"context"
+
 	"auction-service/constant"
 	"auction-service/delivery/dto_response"
+	"auction-service/model"
+	"auction-service/repository"
 )
 
 func panicIfErr(err error, excludedErrs ...error) {
@@ -23,4 +27,16 @@ func panicIfRepositoryError(err error, errNoDataMessage string) {
 		}
 		panic(err)
 	}
+}
+
+func mustGetUser(ctx context.Context, repositoryManager repository.RepositoryManager, id string) model.User {
+	user, err := repositoryManager.UserRepository().GetById(ctx, id)
+	panicIfRepositoryError(err, constant.LanguageUserNotFound)
+	return *user
+}
+
+func mustGetProduct(ctx context.Context, repositoryManager repository.RepositoryManager, id string) model.Product {
+	product, err := repositoryManager.ProductRepository().GetById(ctx, id)
+	panicIfRepositoryError(err, constant.LanguageProductNotFound)
+	return *product
 }

@@ -18,10 +18,10 @@ type AuthApi struct {
 // Login godoc
 //
 //	@Router		/auth/login [post]
-//	@Summary	Login
+//	@Summary	User Login
 //	@tags		Auth
 //	@Accept		json
-//	@Param		AuthLoginRequest	body	dto_request.AuthLoginRequest	true	"Body Request"
+//	@Param		body	body	dto_request.AuthLoginRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.AuthTokenResponse}
 func (a *AuthApi) Login() gin.HandlerFunc {
@@ -29,51 +29,51 @@ func (a *AuthApi) Login() gin.HandlerFunc {
 		var request dto_request.AuthLoginRequest
 		ctx.mustBind(&request)
 
-		data := a.authUseCase.Login(ctx.context(), request)
+		token := a.authUseCase.Login(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
-			Data: dto_response.NewAuthTokenResponse(data),
+			Data: dto_response.NewAuthTokenResponse(token),
 		})
 	})
 }
 
-// Refresh godoc
+// RequestOtp godoc
 //
-//	@Router		/auth/refresh [post]
-//	@Summary	Refresh Token
+//	@Router		/auth/request-otp [post]
+//	@Summary	Request OTP for phone verification
 //	@tags		Auth
 //	@Accept		json
-//	@Param		AuthRefreshTokenRequest	body	dto_request.AuthRefreshTokenRequest	true	"Body Request"
+//	@Param		body	body	dto_request.AuthOtpRequest	true	"Body Request"
 //	@Produce	json
-//	@Success	200	{object}	dto_response.Response{data=dto_response.AuthTokenResponse}
-func (a *AuthApi) Refresh() gin.HandlerFunc {
+//	@Success	200	{object}	dto_response.SuccessResponse
+func (a *AuthApi) RequestOtp() gin.HandlerFunc {
 	return a.Guest(func(ctx apiContext) {
-		var request dto_request.AuthRefreshTokenRequest
+		var request dto_request.AuthOtpRequest
 		ctx.mustBind(&request)
 
-		data := a.authUseCase.Refresh(ctx.context(), request)
+		a.authUseCase.CreateOtp(ctx.context(), request.Phone)
 
-		ctx.json(http.StatusOK, dto_response.Response{
-			Data: dto_response.NewAuthTokenResponse(data),
-		})
+		ctx.json(http.StatusOK, dto_response.SuccessResponse{Message: "Success"})
 	})
 }
 
-// Logout godoc
+// Register godoc
 //
-//	@Router			/auth/logout [post]
-//	@Summary		Logout
-//	@tags			Auth
-//	@Produce		json
-//	@Security		BearerAuth
-//	@Success		200	{object}	dto_response.SuccessResponse
-func (a *AuthApi) Logout() gin.HandlerFunc {
-	return a.Authorize(func(ctx apiContext) {
-		a.authUseCase.Logout(ctx.context())
+//	@Router		/auth/register [post]
+//	@Summary	Register a new user (requires OTP)
+//	@tags		Auth
+//	@Accept		json
+//	@Param		body	body	dto_request.AuthRegisterRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	201	{object}	dto_response.SuccessResponse
+func (a *AuthApi) Register() gin.HandlerFunc {
+	return a.Guest(func(ctx apiContext) {
+		var request dto_request.AuthRegisterRequest
+		ctx.mustBind(&request)
 
-		ctx.json(http.StatusOK, dto_response.SuccessResponse{
-			Message: "OK",
-		})
+		a.authUseCase.Register(ctx.context(), request)
+
+		ctx.json(http.StatusCreated, dto_response.SuccessResponse{Message: "Success"})
 	})
 }
 
@@ -85,6 +85,6 @@ func RegisterAuthApi(router gin.IRouter, baseApi *api, useCaseManager use_case.U
 
 	routerGroup := router.Group("/auth")
 	routerGroup.POST("/login", api.Login())
-	routerGroup.POST("/refresh", api.Refresh())
-	routerGroup.POST("/logout", api.Logout())
+	routerGroup.POST("/request-otp", api.RequestOtp())
+	routerGroup.POST("/register", api.Register())
 }

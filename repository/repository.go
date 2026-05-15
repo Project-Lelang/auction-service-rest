@@ -7,13 +7,13 @@ import (
 	"auction-service/constant"
 	"auction-service/infrastructure"
 	"auction-service/model"
+	"auction-service/util"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/go-sql-driver/mysql"
 )
 
-var stmtBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+var stmtBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Question)
 
 func dbtx(db infrastructure.DBTX, ctx context.Context) infrastructure.DBTX {
 	dbtx, err := model.GetDbtxCtx(ctx)
@@ -37,6 +37,17 @@ func exec(db infrastructure.DBTX, ctx context.Context, stmt squirrel.Sqlizer) er
 func insert(db infrastructure.DBTX, ctx context.Context, tableName string, arg map[string]interface{}) error {
 	stmt := stmtBuilder.Insert(tableName).SetMap(arg)
 	return exec(db, ctx, stmt)
+}
+
+func defaultInsert(db infrastructure.DBTX, ctx context.Context, m model.BaseModel) error {
+	now := util.CurrentDateTime()
+	if m.GetCreatedAt().IsZero() {
+		m.SetCreatedAt(now)
+	}
+	if m.GetUpdatedAt().IsZero() {
+		m.SetUpdatedAt(now)
+	}
+	return insert(db, ctx, m.TableName(), m.ToMap())
 }
 
 func fetch(db infrastructure.DBTX, ctx context.Context, dest interface{}, stmt squirrel.SelectBuilder) error {
@@ -67,11 +78,11 @@ func destroy(db infrastructure.DBTX, ctx context.Context, tableName string, wher
 
 func translateSqlError(err error) error {
 	switch v := err.(type) {
-	case *pgconn.PgError:
-		switch v.Code {
-		case pgerrcode.UniqueViolation:
+	case *mysql.MySQLError:
+		switch v.Number {
+		case 1062: // ER_DUP_ENTRY
 			return constant.ErrDuplicateData
-		case pgerrcode.ForeignKeyViolation:
+		case 1451, 1452: // ER_ROW_IS_REFERENCED_2, ER_NO_REFERENCED_ROW_2
 			return constant.ErrForeignKeyViolation
 		default:
 			return err

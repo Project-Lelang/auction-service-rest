@@ -9,10 +9,10 @@ uri: http://localhost:8080
 fe_uri: http://localhost:3000
 cors_allowed_origins:
   - http://localhost:3000
-postgres:
+mysql:
   host: localhost
-  port: 5432
-  username: postgres
+  port: 3306
+  username: mysql
   password: secret
   database: auction_service
 jwt:
@@ -20,5 +20,5 @@ jwt:
   access_token_expiry_hours: 24
   refresh_token_expiry_hours: 168
 super_admin:
-  email: superadmin@example.com
+  phone: "+628100000000"
   password: SuperAdmin@123

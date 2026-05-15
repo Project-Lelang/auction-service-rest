@@ -1,10 +1,11 @@
 package jwt
 
-import "time"
+import "auction-service/data_type"
 
 type Payload struct {
-	UserAccessTokenId string
-	UserId            string
-	CreatedAt         time.Time
-	ExpiredAt         time.Time
+	Id        string
+	Phone     string
+	Roles     []string
+	CreatedAt data_type.DateTime
+	ExpiredAt data_type.DateTime
 }

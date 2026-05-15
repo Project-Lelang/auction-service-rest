@@ -16,7 +16,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/auth/login": {
+        "/admin/auth/login": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -25,13 +25,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Auth"
+                    "Admin Auth"
                 ],
-                "summary": "Login",
+                "summary": "Admin Login",
                 "parameters": [
                     {
                         "description": "Body Request",
-                        "name": "AuthLoginRequest",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -61,7 +61,72 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/logout": {
+        "/admin/products/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Products"
+                ],
+                "summary": "Admin — get all products (paginated)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AdminProductFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/ProductResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/products/{productId}/histories": {
             "post": {
                 "security": [
                     {
@@ -72,9 +137,236 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Auth"
+                    "Admin Products"
                 ],
-                "summary": "Logout",
+                "summary": "Admin — get status history for any product",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product ID",
+                        "name": "productId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "histories": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/ProductStatusHistoryResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Users"
+                ],
+                "summary": "Create a new admin user",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AdminCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Users"
+                ],
+                "summary": "Get paginated list of users",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AdminUserFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/UserResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/{userId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Users"
+                ],
+                "summary": "Get user by ID with roles",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "user": {
+                                                            "$ref": "#/definitions/UserResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Users"
+                ],
+                "summary": "Soft-delete a user",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -85,7 +377,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/refresh": {
+        "/auth/login": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -96,15 +388,15 @@ const docTemplate = `{
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Refresh Token",
+                "summary": "User Login",
                 "parameters": [
                     {
                         "description": "Body Request",
-                        "name": "AuthRefreshTokenRequest",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/AuthRefreshTokenRequest"
+                            "$ref": "#/definitions/AuthLoginRequest"
                         }
                     }
                 ],
@@ -129,65 +421,770 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/auth/register": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Register a new user (requires OTP)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuthRegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/request-otp": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Request OTP for phone verification",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuthOtpRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/own/products": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Create a new product listing",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ProductCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "product": {
+                                                            "$ref": "#/definitions/ProductResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/products/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get the authenticated user's own products (paginated)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OwnProductFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/ProductResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/products/{productId}/histories": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get status history for the caller's own product",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product ID",
+                        "name": "productId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "histories": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/ProductStatusHistoryResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/products/{productId}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Get a single product by ID (public)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product ID",
+                        "name": "productId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "product": {
+                                                            "$ref": "#/definitions/ProductResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "AuthLoginRequest": {
+        "AdminCreateRequest": {
             "type": "object",
             "required": [
-                "email",
-                "password"
+                "birth",
+                "fullname",
+                "password",
+                "phone"
             ],
             "properties": {
-                "email": {
+                "birth": {
+                    "type": "string",
+                    "example": "1990-01-15"
+                },
+                "fullname": {
                     "type": "string",
                     "maxLength": 255,
-                    "example": "admin@example.com"
+                    "example": "Admin User"
+                },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "MALE",
+                        "FEMALE"
+                    ],
+                    "example": "MALE"
                 },
                 "password": {
                     "type": "string",
                     "maxLength": 255,
                     "minLength": 8,
                     "example": "password123"
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "example": "+6281234567891"
                 }
             }
         },
-        "AuthRefreshTokenRequest": {
+        "AdminProductFetchRequest": {
+            "type": "object",
+            "properties": {
+                "condition": {
+                    "type": "string",
+                    "enum": [
+                        "NEW",
+                        "PRELOVED"
+                    ],
+                    "example": "NEW"
+                },
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "search": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "laptop"
+                },
+                "sorts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "direction",
+                            "field"
+                        ],
+                        "properties": {
+                            "direction": {
+                                "type": "string",
+                                "enum": [
+                                    "asc",
+                                    "desc"
+                                ],
+                                "example": "desc"
+                            },
+                            "field": {
+                                "type": "string",
+                                "enum": [
+                                    "id",
+                                    "name",
+                                    "status",
+                                    "condition",
+                                    "created_at",
+                                    "updated_at"
+                                ],
+                                "example": "created_at"
+                            }
+                        }
+                    }
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "DRAFT",
+                        "REQUEST",
+                        "VERIFIED",
+                        "REJECTED",
+                        "ON_BIDS",
+                        "COMPLETED"
+                    ],
+                    "example": "VERIFIED"
+                }
+            }
+        },
+        "AdminUserFetchRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "ADMIN",
+                        "BIDDER",
+                        "SELLER",
+                        "SUPERADMIN"
+                    ],
+                    "example": "BIDDER"
+                },
+                "sorts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "direction",
+                            "field"
+                        ],
+                        "properties": {
+                            "direction": {
+                                "type": "string",
+                                "enum": [
+                                    "asc",
+                                    "desc"
+                                ],
+                                "example": "desc"
+                            },
+                            "field": {
+                                "type": "string",
+                                "enum": [
+                                    "id",
+                                    "fullname",
+                                    "phone",
+                                    "birth",
+                                    "gender",
+                                    "created_at",
+                                    "updated_at"
+                                ],
+                                "example": "created_at"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "AuthLoginRequest": {
             "type": "object",
             "required": [
-                "refresh_token"
+                "password",
+                "phone"
             ],
             "properties": {
-                "refresh_token": {
+                "password": {
                     "type": "string",
-                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    "maxLength": 255,
+                    "minLength": 8,
+                    "example": "password123"
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "example": "+6281234567890"
+                }
+            }
+        },
+        "AuthOtpRequest": {
+            "type": "object",
+            "required": [
+                "phone"
+            ],
+            "properties": {
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "example": "+6281234567890"
+                }
+            }
+        },
+        "AuthRegisterRequest": {
+            "type": "object",
+            "required": [
+                "birth",
+                "fullname",
+                "otp",
+                "password",
+                "phone"
+            ],
+            "properties": {
+                "birth": {
+                    "type": "string",
+                    "example": "1990-01-15"
+                },
+                "fullname": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "John Doe"
+                },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "MALE",
+                        "FEMALE"
+                    ],
+                    "example": "MALE"
+                },
+                "otp": {
+                    "type": "string",
+                    "example": "123456"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 8,
+                    "example": "password123"
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "example": "+6281234567890"
                 }
             }
         },
         "AuthTokenResponse": {
             "type": "object",
             "properties": {
-                "access_token": {
+                "token": {
                     "type": "string",
-                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+                    "example": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                }
+            }
+        },
+        "DataResponse": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "OwnProductFetchRequest": {
+            "type": "object",
+            "properties": {
+                "condition": {
+                    "type": "string",
+                    "enum": [
+                        "NEW",
+                        "PRELOVED"
+                    ],
+                    "example": "NEW"
                 },
-                "access_token_expired_at": {
-                    "type": "string",
-                    "format": "YYYY-MM-DDThh:mm:ssZ",
-                    "example": "2006-01-02T03:04:05+07:00"
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
                 },
-                "refresh_token": {
-                    "type": "string",
-                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
                 },
-                "refresh_token_expired_at": {
+                "search": {
                     "type": "string",
-                    "format": "YYYY-MM-DDThh:mm:ssZ",
-                    "example": "2006-01-02T03:04:05+07:00"
+                    "maxLength": 255,
+                    "example": "laptop"
                 },
-                "token_type": {
+                "sorts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "direction",
+                            "field"
+                        ],
+                        "properties": {
+                            "direction": {
+                                "type": "string",
+                                "enum": [
+                                    "asc",
+                                    "desc"
+                                ],
+                                "example": "desc"
+                            },
+                            "field": {
+                                "type": "string",
+                                "enum": [
+                                    "id",
+                                    "name",
+                                    "status",
+                                    "condition",
+                                    "created_at",
+                                    "updated_at"
+                                ],
+                                "example": "created_at"
+                            }
+                        }
+                    }
+                },
+                "status": {
                     "type": "string",
-                    "example": "Bearer"
+                    "enum": [
+                        "DRAFT",
+                        "REQUEST",
+                        "VERIFIED",
+                        "REJECTED",
+                        "ON_BIDS",
+                        "COMPLETED"
+                    ],
+                    "example": "VERIFIED"
+                }
+            }
+        },
+        "PaginationResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "nodes": {},
+                "page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 24
+                }
+            }
+        },
+        "ProductCreateRequest": {
+            "type": "object",
+            "required": [
+                "condition",
+                "name"
+            ],
+            "properties": {
+                "condition": {
+                    "type": "string",
+                    "enum": [
+                        "NEW",
+                        "PRELOVED"
+                    ],
+                    "example": "NEW"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "example": "A beautiful vintage camera"
+                },
+                "image_count": {
+                    "type": "integer",
+                    "maximum": 10,
+                    "minimum": 0,
+                    "example": 3
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "Vintage Camera"
+                }
+            }
+        },
+        "ProductResponse": {
+            "type": "object",
+            "properties": {
+                "condition": {
+                    "type": "string",
+                    "example": "NEW"
+                },
+                "cover_image_url": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "A beautiful vintage camera"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "image_urls": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Vintage Camera"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "DRAFT"
+                },
+                "status_histories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ProductStatusHistoryResponse"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/UserResponse"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                }
+            }
+        },
+        "ProductStatusHistoryResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Looks good!"
+                },
+                "product_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "VERIFIED"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },
@@ -203,6 +1200,80 @@ const docTemplate = `{
                 "message": {
                     "type": "string",
                     "example": "OK"
+                }
+            }
+        },
+        "UserResponse": {
+            "type": "object",
+            "properties": {
+                "bank_account_number": {
+                    "type": "string"
+                },
+                "birth": {
+                    "type": "string",
+                    "example": "1990-01-15T00:00:00Z"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "fullname": {
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "gender": {
+                    "type": "string",
+                    "example": "MALE"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "is_deleted": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "is_verified": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "nik": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string",
+                    "example": "+6281234567890"
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/UserRoleResponse"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "UserRoleResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "ADMIN"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
                 }
             }
         }

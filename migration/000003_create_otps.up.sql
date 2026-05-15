@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS otps (
+    id          CHAR(36)        NOT NULL PRIMARY KEY,
+    phone       VARCHAR(20)     NOT NULL UNIQUE,
+    otp         VARCHAR(10)     NOT NULL,
+    expires_at  DATETIME        NOT NULL,
+    verified    TINYINT(1)      NOT NULL DEFAULT 0,
+    created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
