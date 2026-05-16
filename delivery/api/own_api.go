@@ -15,6 +15,7 @@ import (
 type OwnApi struct {
 	*api
 	productUseCase use_case.ProductUseCase
+	userUseCase    use_case.UserUseCase
 }
 
 // Create godoc
@@ -169,13 +170,63 @@ func (a *OwnApi) Request() gin.HandlerFunc {
 	})
 }
 
+// GetProfile godoc
+//
+//	@Router		/own/profiles [get]
+//	@Summary	Get the authenticated user's own profile
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{user=dto_response.UserResponse}}
+func (a *OwnApi) GetProfile() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+		user := a.userUseCase.OwnGet(ctx.context())
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"user": dto_response.NewUserResponse(ctx.context(), user),
+			},
+		})
+	})
+}
+
+// UpdateProfile godoc
+//
+//	@Router		/own/profiles [put]
+//	@Summary	Update the authenticated user's own profile
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		body	body	dto_request.OwnProfileUpdateRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{user=dto_response.UserResponse}}
+func (a *OwnApi) UpdateProfile() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+		var request dto_request.OwnProfileUpdateRequest
+		ctx.mustBind(&request)
+
+		user := a.userUseCase.OwnUpdate(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"user": dto_response.NewUserResponse(ctx.context(), user),
+			},
+		})
+	})
+}
+
 func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.UseCaseManager) {
 	api := &OwnApi{
 		api:            baseApi,
 		productUseCase: useCaseManager.ProductUseCase(),
+		userUseCase:    useCaseManager.UserUseCase(),
 	}
 
 	routerGroup := router.Group("/own")
+
+	routerProfileGroup := routerGroup.Group("/profiles")
+	routerProfileGroup.GET("", api.GetProfile())
+	routerProfileGroup.PUT("", api.UpdateProfile())
 
 	routerProductGroup := routerGroup.Group("/products")
 	routerProductGroup.POST("", api.Create())

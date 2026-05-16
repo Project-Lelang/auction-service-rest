@@ -1,5 +1,14 @@
 package dto_request
 
+type OwnProfileUpdateRequest struct {
+	Fullname          string  `json:"fullname"            validate:"required,max=255"          example:"John Doe"`
+	Phone             string  `json:"phone"               validate:"required,max=20"           example:"+6281234567890"`
+	Nik               *string `json:"nik"                 validate:"omitempty,max=50"          example:"3201010101010001"`
+	Birth             string  `json:"birth"               validate:"required"                  example:"1990-01-15"`
+	Gender            *string `json:"gender"              validate:"omitempty,oneof=MALE FEMALE" example:"MALE"`
+	BankAccountNumber *string `json:"bank_account_number" validate:"omitempty,max=50"          example:"1234567890"`
+} // @name OwnProfileUpdateRequest
+
 // OwnProductFetchSorts defines sortable fields for the own product fetch endpoint.
 // The anonymous-struct layout must stay identical to model.Sorts for direct
 // type-conversion: model.Sorts(request.Sorts).

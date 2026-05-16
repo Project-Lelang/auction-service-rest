@@ -23,6 +23,10 @@ type UserUseCase interface {
 	// read
 	AdminFetch(ctx context.Context, request dto_request.AdminUserFetchRequest) ([]model.User, int64)
 	AdminGet(ctx context.Context, request dto_request.AdminUserGetRequest) model.User
+	OwnGet(ctx context.Context) model.User
+
+	// update
+	OwnUpdate(ctx context.Context, request dto_request.OwnProfileUpdateRequest) model.User
 
 	// delete
 	AdminDelete(ctx context.Context, request dto_request.AdminUserDeleteRequest)
@@ -108,6 +112,36 @@ func (u *userUseCase) AdminGet(ctx context.Context, request dto_request.AdminUse
 	user := mustGetUser(ctx, u.repositoryManager, request.UserId)
 	u.mustLoadUserData(ctx, []*model.User{&user}, userLoaderParams{roles: true})
 	return user
+}
+
+func (u *userUseCase) OwnGet(ctx context.Context) model.User {
+	userClaims := model.MustGetUserCtx(ctx)
+	user := mustGetUser(ctx, u.repositoryManager, userClaims.UserId)
+	u.mustLoadUserData(ctx, []*model.User{&user}, userLoaderParams{roles: true})
+	return user
+}
+
+func (u *userUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnProfileUpdateRequest) model.User {
+	userClaims := model.MustGetUserCtx(ctx)
+
+	birth, parseErr := time.Parse("2006-01-02", request.Birth)
+	if parseErr != nil {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageSystemInvalidRequestPayload))
+	}
+
+	updated, err := u.repositoryManager.UserRepository().Update(
+		ctx,
+		userClaims.UserId,
+		request.Fullname,
+		request.Phone,
+		request.Nik,
+		data_type.NewDateTime(birth),
+		request.Gender,
+		request.BankAccountNumber,
+	)
+	panicIfErr(err)
+
+	return *updated
 }
 
 func (u *userUseCase) AdminDelete(ctx context.Context, request dto_request.AdminUserDeleteRequest) {

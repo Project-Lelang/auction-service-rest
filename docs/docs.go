@@ -856,6 +856,114 @@ const docTemplate = `{
                 }
             }
         },
+        "/own/profiles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get the authenticated user's own profile",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "user": {
+                                                            "$ref": "#/definitions/UserResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Update the authenticated user's own profile",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OwnProfileUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "user": {
+                                                            "$ref": "#/definitions/UserResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/products/{productId}": {
             "get": {
                 "produces": [
@@ -1262,6 +1370,48 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 255,
                     "example": "Vintage Camera"
+                }
+            }
+        },
+        "OwnProfileUpdateRequest": {
+            "type": "object",
+            "required": [
+                "birth",
+                "fullname",
+                "phone"
+            ],
+            "properties": {
+                "bank_account_number": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "1234567890"
+                },
+                "birth": {
+                    "type": "string",
+                    "example": "1990-01-15"
+                },
+                "fullname": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "John Doe"
+                },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "MALE",
+                        "FEMALE"
+                    ],
+                    "example": "MALE"
+                },
+                "nik": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "3201010101010001"
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "example": "+6281234567890"
                 }
             }
         },
