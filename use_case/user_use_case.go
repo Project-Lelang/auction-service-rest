@@ -22,10 +22,10 @@ type UserUseCase interface {
 
 	// read
 	AdminFetch(ctx context.Context, request dto_request.AdminUserFetchRequest) ([]model.User, int64)
-	AdminGet(ctx context.Context, userId string) model.User
+	AdminGet(ctx context.Context, request dto_request.AdminUserGetRequest) model.User
 
 	// delete
-	AdminDelete(ctx context.Context, userId string)
+	AdminDelete(ctx context.Context, request dto_request.AdminUserDeleteRequest)
 }
 
 type userUseCase struct {
@@ -104,13 +104,13 @@ func (u *userUseCase) AdminFetch(ctx context.Context, request dto_request.AdminU
 	return users, total
 }
 
-func (u *userUseCase) AdminGet(ctx context.Context, userId string) model.User {
-	user := mustGetUser(ctx, u.repositoryManager, userId)
+func (u *userUseCase) AdminGet(ctx context.Context, request dto_request.AdminUserGetRequest) model.User {
+	user := mustGetUser(ctx, u.repositoryManager, request.UserId)
 	u.mustLoadUserData(ctx, []*model.User{&user}, userLoaderParams{roles: true})
 	return user
 }
 
-func (u *userUseCase) AdminDelete(ctx context.Context, userId string) {
-	mustGetUser(ctx, u.repositoryManager, userId)
-	panicIfErr(u.repositoryManager.UserRepository().SoftDelete(ctx, userId))
+func (u *userUseCase) AdminDelete(ctx context.Context, request dto_request.AdminUserDeleteRequest) {
+	mustGetUser(ctx, u.repositoryManager, request.UserId)
+	panicIfErr(u.repositoryManager.UserRepository().SoftDelete(ctx, request.UserId))
 }

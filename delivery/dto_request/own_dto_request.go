@@ -15,3 +15,23 @@ type OwnProductFetchRequest struct {
 	Condition *string              `json:"condition" validate:"omitempty,oneof=NEW PRELOVED" example:"NEW"`
 	Search    *string              `json:"search"    validate:"omitempty,max=255"                                            example:"laptop"`
 } // @name OwnProductFetchRequest
+
+type OwnProductFetchStatusHistoriesRequest struct {
+	ProductId string `json:"-" swaggerignore:"true"`
+} // @name OwnProductFetchStatusHistoriesRequest
+
+type OwnProductGetRequest struct {
+	ProductId string `json:"-" swaggerignore:"true"`
+} // @name OwnProductGetRequest
+
+type OwnProductUpdateRequest struct {
+	Name        string  `json:"name"        validate:"required,max=255"            example:"Vintage Camera"`
+	Description *string `json:"description" validate:"omitempty,max=2000"          example:"A beautiful vintage camera"`
+	Condition   string  `json:"condition"   validate:"required,oneof=NEW PRELOVED" example:"NEW"`
+
+	ProductId string `json:"-" swaggerignore:"true"`
+} // @name OwnProductUpdateRequest
+
+type OwnProductRequestRequest struct {
+	ProductId string `json:"-" swaggerignore:"true"`
+} // @name OwnProductRequestRequest

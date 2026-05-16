@@ -5,6 +5,7 @@ import (
 
 	"auction-service/constant"
 	"auction-service/delivery/dto_request"
+	"auction-service/delivery/dto_response"
 	"auction-service/loader"
 	"auction-service/model"
 	"auction-service/repository"
@@ -17,14 +18,17 @@ import (
 type ProductUseCase interface {
 	// products
 	OwnCreate(ctx context.Context, request dto_request.ProductCreateRequest) model.Product
+	OwnGet(ctx context.Context, request dto_request.OwnProductGetRequest) model.Product
+	OwnUpdate(ctx context.Context, request dto_request.OwnProductUpdateRequest) model.Product
+	OwnRequest(ctx context.Context, request dto_request.OwnProductRequestRequest) model.Product
 	Fetch(ctx context.Context, request dto_request.ProductFetchRequest) ([]model.Product, int64)
 	OwnFetch(ctx context.Context, request dto_request.OwnProductFetchRequest) ([]model.Product, int64)
-	Get(ctx context.Context, productId string) model.Product
+	Get(ctx context.Context, request dto_request.ProductGetRequest) model.Product
 	AdminFetch(ctx context.Context, request dto_request.AdminProductFetchRequest) ([]model.Product, int64)
 
 	// histories
-	FetchStatusHistories(ctx context.Context, productId string) []model.ProductStatusHistory
-	AdminFetchStatusHistories(ctx context.Context, productId string) []model.ProductStatusHistory
+	FetchStatusHistories(ctx context.Context, request dto_request.OwnProductFetchStatusHistoriesRequest) []model.ProductStatusHistory
+	AdminFetchStatusHistories(ctx context.Context, request dto_request.AdminProductFetchStatusHistoriesRequest) []model.ProductStatusHistory
 }
 
 type productUseCase struct {
@@ -109,8 +113,8 @@ func (u *productUseCase) OwnFetch(ctx context.Context, request dto_request.OwnPr
 	})
 }
 
-func (u *productUseCase) Get(ctx context.Context, productId string) model.Product {
-	product := mustGetProduct(ctx, u.repositoryManager, productId)
+func (u *productUseCase) Get(ctx context.Context, request dto_request.ProductGetRequest) model.Product {
+	product := mustGetProduct(ctx, u.repositoryManager, request.ProductId)
 	u.mustLoadProductData(ctx, []*model.Product{&product}, productLoaderParams{user: true, statusHistories: true})
 	return product
 }
@@ -124,22 +128,70 @@ func (u *productUseCase) AdminFetch(ctx context.Context, request dto_request.Adm
 	})
 }
 
-func (u *productUseCase) FetchStatusHistories(ctx context.Context, productId string) []model.ProductStatusHistory {
-	mustGetProduct(ctx, u.repositoryManager, productId)
+func (u *productUseCase) FetchStatusHistories(ctx context.Context, request dto_request.OwnProductFetchStatusHistoriesRequest) []model.ProductStatusHistory {
+	mustGetProduct(ctx, u.repositoryManager, request.ProductId)
 
-	histories, err := u.repositoryManager.ProductStatusHistoryRepository().FetchByProductId(ctx, productId)
+	histories, err := u.repositoryManager.ProductStatusHistoryRepository().FetchByProductId(ctx, request.ProductId)
 	panicIfErr(err)
 
 	return histories
 }
 
-func (u *productUseCase) AdminFetchStatusHistories(ctx context.Context, productId string) []model.ProductStatusHistory {
-	mustGetProduct(ctx, u.repositoryManager, productId)
+func (u *productUseCase) AdminFetchStatusHistories(ctx context.Context, request dto_request.AdminProductFetchStatusHistoriesRequest) []model.ProductStatusHistory {
+	mustGetProduct(ctx, u.repositoryManager, request.ProductId)
 
-	histories, err := u.repositoryManager.ProductStatusHistoryRepository().FetchByProductId(ctx, productId)
+	histories, err := u.repositoryManager.ProductStatusHistoryRepository().FetchByProductId(ctx, request.ProductId)
 	panicIfErr(err)
 
 	return histories
+}
+
+func (u *productUseCase) OwnGet(ctx context.Context, request dto_request.OwnProductGetRequest) model.Product {
+	userClaims := model.MustGetUserCtx(ctx)
+
+	product := mustGetProduct(ctx, u.repositoryManager, request.ProductId)
+	if product.UserId != userClaims.UserId {
+		panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
+	}
+
+	u.mustLoadProductData(ctx, []*model.Product{&product}, productLoaderParams{user: true, statusHistories: true})
+	return product
+}
+
+func (u *productUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnProductUpdateRequest) model.Product {
+	userClaims := model.MustGetUserCtx(ctx)
+
+	product := mustGetProduct(ctx, u.repositoryManager, request.ProductId)
+	if product.UserId != userClaims.UserId {
+		panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
+	}
+	if product.Status != constant.ProductStatusDraft {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageProductInvalidStatusTransition))
+	}
+
+	updated, err := u.repositoryManager.ProductRepository().Update(ctx, request.ProductId, request.Name, request.Description, request.Condition)
+	panicIfErr(err)
+
+	return *updated
+}
+
+func (u *productUseCase) OwnRequest(ctx context.Context, request dto_request.OwnProductRequestRequest) model.Product {
+	userClaims := model.MustGetUserCtx(ctx)
+
+	product := mustGetProduct(ctx, u.repositoryManager, request.ProductId)
+	if product.UserId != userClaims.UserId {
+		panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
+	}
+	if !constant.ValidProductStatusTransitionFor(product.Status, constant.ProductStatusRequest) {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageProductInvalidStatusTransition))
+	}
+
+	updated, err := u.repositoryManager.ProductRepository().UpdateStatus(ctx, request.ProductId, constant.ProductStatusRequest)
+	panicIfErr(err)
+
+	u.recordHistory(ctx, request.ProductId, constant.ProductStatusRequest, nil)
+
+	return *updated
 }
 
 func (u *productUseCase) recordHistory(ctx context.Context, productId string, status string, message *string) {

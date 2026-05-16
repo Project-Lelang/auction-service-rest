@@ -23,6 +23,7 @@ type ProductRepository interface {
 	Count(ctx context.Context, options ...model.ProductQueryOption) (int64, error)
 
 	// update
+	Update(ctx context.Context, id string, name string, description *string, condition string) (*model.Product, error)
 	UpdateStatus(ctx context.Context, id string, status string) (*model.Product, error)
 }
 
@@ -128,6 +129,21 @@ func (r *productRepository) Count(ctx context.Context, options ...model.ProductQ
 }
 
 // ------------------------------------------------------------------ update
+
+func (r *productRepository) Update(ctx context.Context, id string, name string, description *string, condition string) (*model.Product, error) {
+	if err := update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"name":        name,
+			"description": description,
+			"condition":   condition,
+			"updated_at":  util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	); err != nil {
+		return nil, err
+	}
+	return r.GetById(ctx, id)
+}
 
 func (r *productRepository) UpdateStatus(ctx context.Context, id string, status string) (*model.Product, error) {
 	if err := update(r.db, ctx, r.tableName(),

@@ -56,9 +56,10 @@ func (a *AdminProductApi) Fetch() gin.HandlerFunc {
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{histories=[]dto_response.ProductStatusHistoryResponse}}
 func (a *AdminProductApi) FetchStatusHistories() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
-		productId := ctx.getParam("productId")
+		var request dto_request.AdminProductFetchStatusHistoriesRequest
+		request.ProductId = ctx.getParam("productId")
 
-		histories := a.productUseCase.AdminFetchStatusHistories(ctx.context(), productId)
+		histories := a.productUseCase.AdminFetchStatusHistories(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{

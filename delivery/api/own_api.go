@@ -81,13 +81,89 @@ func (a *OwnApi) FetchProducts() gin.HandlerFunc {
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{histories=[]dto_response.ProductStatusHistoryResponse}}
 func (a *OwnApi) FetchStatusHistories() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
-		productId := ctx.getParam("productId")
+		var request dto_request.OwnProductFetchStatusHistoriesRequest
+		request.ProductId = ctx.getParam("productId")
 
-		histories := a.productUseCase.FetchStatusHistories(ctx.context(), productId)
+		histories := a.productUseCase.FetchStatusHistories(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
 				"histories": util.ConvertArray(ctx.context(), histories, dto_response.NewProductStatusHistoryResponse),
+			},
+		})
+	})
+}
+
+// Get godoc
+//
+//	@Router		/own/products/{productId} [get]
+//	@Summary	Get the authenticated user's own product by ID
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Param		productId	path	string	true	"Product ID"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{product=dto_response.ProductResponse}}
+func (a *OwnApi) Get() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+		var request dto_request.OwnProductGetRequest
+		request.ProductId = ctx.getParam("productId")
+
+		product := a.productUseCase.OwnGet(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"product": dto_response.NewProductResponse(ctx.context(), product),
+			},
+		})
+	})
+}
+
+// Update godoc
+//
+//	@Router		/own/products/{productId} [put]
+//	@Summary	Update the authenticated user's own product (only allowed when DRAFT)
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		productId	path	string								true	"Product ID"
+//	@Param		body		body	dto_request.OwnProductUpdateRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{product=dto_response.ProductResponse}}
+func (a *OwnApi) Update() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+		var request dto_request.OwnProductUpdateRequest
+		ctx.mustBind(&request)
+		request.ProductId = ctx.getParam("productId")
+
+		product := a.productUseCase.OwnUpdate(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"product": dto_response.NewProductResponse(ctx.context(), product),
+			},
+		})
+	})
+}
+
+// Request godoc
+//
+//	@Router		/own/products/{productId}/request [patch]
+//	@Summary	Request the authenticated user's own product for review (DRAFT → REQUEST)
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Param		productId	path	string	true	"Product ID"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{product=dto_response.ProductResponse}}
+func (a *OwnApi) Request() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+		var request dto_request.OwnProductRequestRequest
+		request.ProductId = ctx.getParam("productId")
+
+		product := a.productUseCase.OwnRequest(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"product": dto_response.NewProductResponse(ctx.context(), product),
 			},
 		})
 	})
@@ -104,5 +180,8 @@ func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.Us
 	routerProductGroup := routerGroup.Group("/products")
 	routerProductGroup.POST("", api.Create())
 	routerProductGroup.POST("/filter", api.FetchProducts())
+	routerProductGroup.GET("/:productId", api.Get())
+	routerProductGroup.PUT("/:productId", api.Update())
+	routerProductGroup.PATCH("/:productId/request", api.Request())
 	routerProductGroup.POST("/:productId/histories", api.FetchStatusHistories())
 }

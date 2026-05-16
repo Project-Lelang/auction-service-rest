@@ -36,3 +36,16 @@ type AdminUserRoleCreateRequest struct {
 
 	UserId string `json:"-" swaggerignore:"true"`
 } // @name AdminUserRoleRequest
+
+type AdminUserGetRequest struct {
+	UserId string `json:"-" swaggerignore:"true"`
+} // @name AdminUserGetRequest
+
+type AdminUserDeleteRequest struct {
+	UserId string `json:"-" swaggerignore:"true"`
+} // @name AdminUserDeleteRequest
+
+type AdminUserRoleDeleteRequest struct {
+	UserId string `json:"-" swaggerignore:"true"`
+	Role   string `json:"-" swaggerignore:"true"`
+} // @name AdminUserRoleDeleteRequest
