@@ -19,6 +19,7 @@ type OwnApi struct {
 	roleRequestUseCase       use_case.RoleRequestUseCase
 	withdrawalRequestUseCase use_case.WithdrawalRequestUseCase
 	auctionUseCase           use_case.AuctionUseCase
+	bidUseCase               use_case.BidUseCase
 }
 
 // Create godoc
@@ -352,7 +353,7 @@ func (a *OwnApi) CreateAuction() gin.HandlerFunc {
 //	@tags		Own
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		auctionId	path	string							true	"Auction ID"
+//	@Param		auctionId	path	string								true	"Auction ID"
 //	@Param		body		body	dto_request.OwnAuctionUpdateRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{auction=dto_response.AuctionResponse}}
@@ -372,6 +373,58 @@ func (a *OwnApi) UpdateAuction() gin.HandlerFunc {
 	})
 }
 
+// FetchBids godoc
+//
+//	@Router		/own/bids/filter [post]
+//	@Summary	Get the authenticated user's own bids (paginated)
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		body	body	dto_request.OwnBidFetchRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.AuctionBidResponse}}
+func (a *OwnApi) FetchBids() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+		var request dto_request.OwnBidFetchRequest
+		ctx.mustBind(&request)
+
+		bids, total := a.bidUseCase.OwnFetch(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.NewPaginationResponse(
+				util.ConvertArray(ctx.context(), bids, dto_response.NewAuctionBidResponse),
+				int(total),
+				request.Page,
+				request.Limit,
+			),
+		})
+	})
+}
+
+// GetBid godoc
+//
+//	@Router		/own/bids/{bidId} [get]
+//	@Summary	Get the authenticated user's own bid by ID
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Param		bidId	path	string	true	"Bid ID"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{bid=dto_response.AuctionBidResponse}}
+func (a *OwnApi) GetBid() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+		var request dto_request.OwnBidGetRequest
+		request.BidId = ctx.getParam("bidId")
+
+		bid := a.bidUseCase.OwnGet(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"bid": dto_response.NewAuctionBidResponse(ctx.context(), bid),
+			},
+		})
+	})
+}
+
 func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.UseCaseManager) {
 	api := &OwnApi{
 		api:                      baseApi,
@@ -380,6 +433,7 @@ func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.Us
 		roleRequestUseCase:       useCaseManager.RoleRequestUseCase(),
 		withdrawalRequestUseCase: useCaseManager.WithdrawalRequestUseCase(),
 		auctionUseCase:           useCaseManager.AuctionUseCase(),
+		bidUseCase:               useCaseManager.BidUseCase(),
 	}
 
 	routerGroup := router.Group("/own")
@@ -404,4 +458,8 @@ func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.Us
 	routerAuctionGroup.GET("/:auctionId", api.GetAuction())
 	routerAuctionGroup.POST("", api.CreateAuction())
 	routerAuctionGroup.PUT("/:auctionId", api.UpdateAuction())
+
+	routerBidGroup := routerGroup.Group("/bids")
+	routerBidGroup.POST("/filter", api.FetchBids())
+	routerBidGroup.GET("/:bidId", api.GetBid())
 }

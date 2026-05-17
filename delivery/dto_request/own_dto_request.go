@@ -89,3 +89,19 @@ type OwnAuctionUpdateRequest struct {
 
 	AuctionId string `json:"-" swaggerignore:"true"`
 } // @name OwnAuctionUpdateRequest
+
+// OwnBidFetchSorts defines sortable fields for the own bid fetch endpoint.
+type OwnBidFetchSorts []struct {
+	Field     string `json:"field"     validate:"required,oneof=id amount created_at updated_at" example:"created_at"`
+	Direction string `json:"direction" validate:"required,oneof=asc desc"                       example:"desc"`
+} // @name OwnBidFetchSorts
+
+type OwnBidFetchRequest struct {
+	PaginationRequest
+	Sorts     OwnBidFetchSorts `json:"sorts"      validate:"dive"`
+	AuctionId *string          `json:"auction_id" validate:"omitempty,uuid4" example:"550e8400-e29b-41d4-a716-446655440000"`
+} // @name OwnBidFetchRequest
+
+type OwnBidGetRequest struct {
+	BidId string `json:"-" swaggerignore:"true"`
+} // @name OwnBidGetRequest

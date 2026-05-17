@@ -44,6 +44,9 @@ const (
 	LanguageAuctionNotScheduled       = "AUCTION.NOT_SCHEDULED"
 	LanguageAuctionInvalidTimeRange   = "AUCTION.INVALID_TIME_RANGE"
 
+	// bid
+	LanguageBidNotFound = "BID.NOT_FOUND"
+
 	// system
 	LanguageSystemUnauthorized          = "SYSTEM.UNAUTHORIZED"
 	LanguageSystemForbidden             = "SYSTEM.FORBIDDEN"

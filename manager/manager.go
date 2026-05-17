@@ -36,8 +36,9 @@ func NewContainer() *Container {
 	roleRequestRepo := repository.NewRoleRequestRepository(db)
 	withdrawalRequestRepo := repository.NewWithdrawalRequestRepository(db)
 	auctionRepo := repository.NewAuctionRepository(db)
+	auctionBidRepo := repository.NewAuctionBidRepository(db)
 
-	repoManager := repository.NewRepositoryManager(db, userRepo, userRoleRepo, otpRepo, productRepo, productStatusHistoryRepo, roleRequestRepo, withdrawalRequestRepo, auctionRepo)
+	repoManager := repository.NewRepositoryManager(db, userRepo, userRoleRepo, otpRepo, productRepo, productStatusHistoryRepo, roleRequestRepo, withdrawalRequestRepo, auctionRepo, auctionBidRepo)
 	jwtInstance := internalJwt.NewJwt([]byte(config.JwtConfig.SecretKey))
 
 	// filesystem
@@ -74,10 +75,11 @@ func NewContainer() *Container {
 	roleRequestUseCase := use_case.NewRoleRequestUseCase(repoManager, filesystemManager)
 	withdrawalRequestUseCase := use_case.NewWithdrawalRequestUseCase(repoManager)
 	auctionUseCase := use_case.NewAuctionUseCase(repoManager)
+	bidUseCase := use_case.NewBidUseCase(repoManager)
 
 	baseFileUseCase := use_case.NewBaseFileUseCase(filesystemManager.Main(), filesystemManager.Tmp())
 
-	ucManager := use_case.NewUseCaseManager(authUseCase, userUseCase, userRoleUseCase, productUseCase, roleRequestUseCase, withdrawalRequestUseCase, auctionUseCase)
+	ucManager := use_case.NewUseCaseManager(authUseCase, userUseCase, userRoleUseCase, productUseCase, roleRequestUseCase, withdrawalRequestUseCase, auctionUseCase, bidUseCase)
 
 	return &Container{
 		infrastructureManager: infraManager,
