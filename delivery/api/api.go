@@ -20,6 +20,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -112,6 +113,12 @@ func (a *apiContext) translateBindErr(err error) dto_response.ErrorResponse {
 	}
 }
 
+func (a *apiContext) mustBindForm(obj interface{}) {
+	if err := a.ginCtx.ShouldBindWith(obj, binding.FormMultipart); err != nil {
+		panic(a.translateBindErr(err))
+	}
+}
+
 func (a *apiContext) json(code int, obj interface{}) {
 	a.ginCtx.JSON(code, obj)
 }
@@ -177,6 +184,9 @@ func registerRoutes(router gin.IRouter, container *manager.Container) {
 	RegisterAuthApi(router, &baseApi, container.UseCaseManager())
 	RegisterProductApi(router, &baseApi, container.UseCaseManager())
 	RegisterOwnApi(router, &baseApi, container.UseCaseManager())
+
+	// file
+	RegisterFileApi(router, &baseApi, container.FilesystemManager(), container.BaseFileUseCase())
 }
 
 func NewRouter(container *manager.Container) *gin.Engine {

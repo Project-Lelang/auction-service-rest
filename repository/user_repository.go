@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"auction-service/constant"
+	"auction-service/data_type"
 	"auction-service/infrastructure"
 	"auction-service/model"
 	"auction-service/util"
@@ -26,6 +27,9 @@ type UserRepository interface {
 	Count(ctx context.Context, options ...model.UserQueryOption) (int64, error)
 
 	// update
+	Update(ctx context.Context, id string, fullname string, phone string, nik *string, birth data_type.DateTime, gender *string, bankAccountNumber *string) (*model.User, error)
+	UpdateIdentityInfo(ctx context.Context, id string, nik string, identityImagePath string, selfieIdentityImagePath string) error
+	UpdateBankAccountNumber(ctx context.Context, id string, bankAccountNumber string) error
 	SoftDelete(ctx context.Context, id string) error
 }
 
@@ -153,11 +157,51 @@ func (r *userRepository) Count(ctx context.Context, options ...model.UserQueryOp
 
 // ------------------------------------------------------------------ update
 
+func (r *userRepository) Update(ctx context.Context, id string, fullname string, phone string, nik *string, birth data_type.DateTime, gender *string, bankAccountNumber *string) (*model.User, error) {
+	if err := update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"fullname":            fullname,
+			"phone":               phone,
+			"nik":                 nik,
+			"birth":               birth,
+			"gender":              gender,
+			"bank_account_number": bankAccountNumber,
+			"updated_at":          util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	); err != nil {
+		return nil, err
+	}
+	return r.GetById(ctx, id)
+}
+
 func (r *userRepository) SoftDelete(ctx context.Context, id string) error {
 	return update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
 			"is_deleted": true,
 			"updated_at": util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	)
+}
+
+func (r *userRepository) UpdateIdentityInfo(ctx context.Context, id string, nik string, identityImagePath string, selfieIdentityImagePath string) error {
+	return update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"nik":                        nik,
+			"identity_image_path":        identityImagePath,
+			"selfie_identity_image_path": selfieIdentityImagePath,
+			"updated_at":                 util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	)
+}
+
+func (r *userRepository) UpdateBankAccountNumber(ctx context.Context, id string, bankAccountNumber string) error {
+	return update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"bank_account_number": bankAccountNumber,
+			"updated_at":          util.CurrentDateTime(),
 		},
 		squirrel.Eq{"id": id},
 	)

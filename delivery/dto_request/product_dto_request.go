@@ -22,3 +22,7 @@ type ProductCreateRequest struct {
 	Condition   string  `json:"condition" validate:"required,oneof=NEW PRELOVED" example:"NEW"`
 	ImageCount  int     `json:"image_count" validate:"omitempty,gte=0,lte=10" example:"3"`
 } // @name ProductCreateRequest
+
+type ProductGetRequest struct {
+	ProductId string `json:"-" swaggerignore:"true"`
+} // @name ProductGetRequest

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"cloud.google.com/go/storage"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -20,6 +21,9 @@ type InfrastructureManager interface {
 	MigrateDB(isRollingBack bool, steps int, force *int) error
 	RefreshDB() error
 	CloseDB() error
+
+	// gcs
+	GetGcsClient() *storage.Client
 
 	// logger
 	GetLoggerStack() LoggerStack

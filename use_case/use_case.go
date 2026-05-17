@@ -40,3 +40,9 @@ func mustGetProduct(ctx context.Context, repositoryManager repository.Repository
 	panicIfRepositoryError(err, constant.LanguageProductNotFound)
 	return *product
 }
+
+func mustGetAuction(ctx context.Context, repositoryManager repository.RepositoryManager, id string) model.Auction {
+	auction, err := repositoryManager.AuctionRepository().GetById(ctx, id)
+	panicIfRepositoryError(err, constant.LanguageAuctionNotFound)
+	return *auction
+}

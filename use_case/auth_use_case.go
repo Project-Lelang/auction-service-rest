@@ -133,15 +133,17 @@ func (u *authUseCase) Register(ctx context.Context, request dto_request.AuthRegi
 		Password: hashedPassword,
 	}
 
-	insertErr := u.repositoryManager.UserRepository().Insert(ctx, user)
-	if insertErr != nil {
-		if insertErr == constant.ErrDuplicateData {
+	if err := u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+		if err := u.repositoryManager.UserRepository().Insert(ctx, user); err != nil {
+			return err
+		}
+		return u.repositoryManager.OtpRepository().MarkVerified(ctx, request.Phone)
+	}); err != nil {
+		if err == constant.ErrDuplicateData {
 			panic(dto_response.NewConflictErrorResponse(constant.LanguageAuthPhoneAlreadyRegistered))
 		}
-		panic(insertErr)
+		panic(err)
 	}
-
-	panicIfErr(u.repositoryManager.OtpRepository().MarkVerified(ctx, request.Phone))
 }
 
 func (u *authUseCase) CreateOtp(ctx context.Context, phone string) {

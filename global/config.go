@@ -38,6 +38,26 @@ type SuperAdminConfig struct {
 	Password string `yaml:"password"`
 }
 
+type FilesystemConfig struct {
+	Type                  string `yaml:"type"`
+	BaseUri               string `yaml:"base_uri"`
+	PresignedUrlSecretKey string `yaml:"presigned_url_secret_key"`
+}
+
+type GcsConfig struct {
+	FileName   string `yaml:"file_name"`
+	ProjectId  string `yaml:"project_id"`
+	BucketName string `yaml:"bucket_name"`
+}
+
+func (c GcsConfig) GcsDir() string {
+	return "./storage/gcp"
+}
+
+func (c GcsConfig) ConfigFilepath() string {
+	return fmt.Sprintf("%s/%s", c.GcsDir(), c.FileName)
+}
+
 type YamlConfig struct {
 	timeLocation       *time.Location
 	BaseDir            string
@@ -54,6 +74,8 @@ type YamlConfig struct {
 	Mysql              MysqlConfig      `yaml:"mysql"`
 	JwtConfig          JwtConfig        `yaml:"jwt"`
 	SuperAdmin         SuperAdminConfig `yaml:"super_admin"`
+	Filesystem         FilesystemConfig `yaml:"filesystem"`
+	Gcs                *GcsConfig       `yaml:"gcs"`
 }
 
 var config YamlConfig
@@ -126,6 +148,14 @@ func GetStorageDir() string {
 
 func GetJwtSecretKey() string {
 	return config.JwtConfig.SecretKey
+}
+
+func GetFilesystem() FilesystemConfig {
+	return config.Filesystem
+}
+
+func GetGcsConfig() *GcsConfig {
+	return config.Gcs
 }
 
 func GetAppName() string {
