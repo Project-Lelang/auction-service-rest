@@ -38,6 +38,12 @@ const (
 	LanguageWithdrawalRequestNoBankAccount       = "WITHDRAWAL_REQUEST.NO_BANK_ACCOUNT"
 	LanguageWithdrawalRequestNotFound            = "WITHDRAWAL_REQUEST.NOT_FOUND"
 
+	// auction
+	LanguageAuctionNotFound           = "AUCTION.NOT_FOUND"
+	LanguageAuctionProductNotVerified = "AUCTION.PRODUCT_NOT_VERIFIED"
+	LanguageAuctionNotScheduled       = "AUCTION.NOT_SCHEDULED"
+	LanguageAuctionInvalidTimeRange   = "AUCTION.INVALID_TIME_RANGE"
+
 	// system
 	LanguageSystemUnauthorized          = "SYSTEM.UNAUTHORIZED"
 	LanguageSystemForbidden             = "SYSTEM.FORBIDDEN"

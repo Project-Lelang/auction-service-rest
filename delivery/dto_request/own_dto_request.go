@@ -1,5 +1,7 @@
 package dto_request
 
+import "auction-service/data_type"
+
 type OwnProfileUpdateRequest struct {
 	Fullname          string  `json:"fullname"            validate:"required,max=255"          example:"John Doe"`
 	Phone             string  `json:"phone"               validate:"required,max=20"           example:"+6281234567890"`
@@ -56,3 +58,34 @@ type OwnRoleRequestCreateRequest struct {
 type OwnWithdrawalRequestCreateRequest struct {
 	Amount float64 `json:"amount" validate:"required,gt=0" example:"500000"`
 } // @name OwnWithdrawalRequestCreateRequest
+
+// OwnAuctionFetchSorts defines sortable fields for the own auction fetch endpoint.
+type OwnAuctionFetchSorts []struct {
+	Field     string `json:"field"     validate:"required,oneof=id starting_price start_time end_time status fee created_at updated_at" example:"created_at"`
+	Direction string `json:"direction" validate:"required,oneof=asc desc"                                                              example:"desc"`
+} // @name OwnAuctionFetchSorts
+
+type OwnAuctionFetchRequest struct {
+	PaginationRequest
+	Sorts  OwnAuctionFetchSorts `json:"sorts"  validate:"dive"`
+	Status *string              `json:"status" validate:"omitempty,oneof=SCHEDULED ON_GOING WAITING_FOR_PAYMENT WAITING_FOR_SHIPMENT SHIPPED DELIVERED CANCELLED COMPLETED" example:"SCHEDULED"`
+} // @name OwnAuctionFetchRequest
+
+type OwnAuctionGetRequest struct {
+	AuctionId string `json:"-" swaggerignore:"true"`
+} // @name OwnAuctionGetRequest
+
+type OwnAuctionCreateRequest struct {
+	ProductId     string             `json:"product_id"     validate:"required,uuid4" example:"550e8400-e29b-41d4-a716-446655440000"`
+	StartingPrice float64            `json:"starting_price" validate:"required,gt=0"  example:"100000"`
+	StartTime     data_type.DateTime `json:"start_time"     validate:"required"        example:"2026-06-01T10:00:00Z"`
+	EndTime       data_type.DateTime `json:"end_time"       validate:"required"        example:"2026-06-01T12:00:00Z"`
+} // @name OwnAuctionCreateRequest
+
+type OwnAuctionUpdateRequest struct {
+	StartingPrice float64            `json:"starting_price" validate:"required,gt=0" example:"150000"`
+	StartTime     data_type.DateTime `json:"start_time"     validate:"required"       example:"2026-06-01T10:00:00Z"`
+	EndTime       data_type.DateTime `json:"end_time"       validate:"required"       example:"2026-06-01T12:00:00Z"`
+
+	AuctionId string `json:"-" swaggerignore:"true"`
+} // @name OwnAuctionUpdateRequest

@@ -7,6 +7,7 @@ type UseCaseManager interface {
 	ProductUseCase() ProductUseCase
 	RoleRequestUseCase() RoleRequestUseCase
 	WithdrawalRequestUseCase() WithdrawalRequestUseCase
+	AuctionUseCase() AuctionUseCase
 }
 
 type useCaseManager struct {
@@ -16,6 +17,7 @@ type useCaseManager struct {
 	productUseCase           ProductUseCase
 	roleRequestUseCase       RoleRequestUseCase
 	withdrawalRequestUseCase WithdrawalRequestUseCase
+	auctionUseCase           AuctionUseCase
 }
 
 func NewUseCaseManager(
@@ -25,6 +27,7 @@ func NewUseCaseManager(
 	productUseCase ProductUseCase,
 	roleRequestUseCase RoleRequestUseCase,
 	withdrawalRequestUseCase WithdrawalRequestUseCase,
+	auctionUseCase AuctionUseCase,
 ) UseCaseManager {
 	return &useCaseManager{
 		authUseCase:              authUseCase,
@@ -33,6 +36,7 @@ func NewUseCaseManager(
 		productUseCase:           productUseCase,
 		roleRequestUseCase:       roleRequestUseCase,
 		withdrawalRequestUseCase: withdrawalRequestUseCase,
+		auctionUseCase:           auctionUseCase,
 	}
 }
 
@@ -58,4 +62,8 @@ func (u *useCaseManager) RoleRequestUseCase() RoleRequestUseCase {
 
 func (u *useCaseManager) WithdrawalRequestUseCase() WithdrawalRequestUseCase {
 	return u.withdrawalRequestUseCase
+}
+
+func (u *useCaseManager) AuctionUseCase() AuctionUseCase {
+	return u.auctionUseCase
 }
