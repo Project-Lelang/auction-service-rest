@@ -8,6 +8,7 @@ import (
 	"auction-service/data_type"
 	"auction-service/delivery/dto_request"
 	"auction-service/delivery/dto_response"
+	internalFilesystem "auction-service/internal/filesystem"
 	"auction-service/loader"
 	"auction-service/model"
 	"auction-service/repository"
@@ -34,10 +35,11 @@ type UserUseCase interface {
 
 type userUseCase struct {
 	repositoryManager repository.RepositoryManager
+	filesystemManager internalFilesystem.FilesystemManager
 }
 
-func NewUserUseCase(repositoryManager repository.RepositoryManager) UserUseCase {
-	return &userUseCase{repositoryManager: repositoryManager}
+func NewUserUseCase(repositoryManager repository.RepositoryManager, filesystemManager internalFilesystem.FilesystemManager) UserUseCase {
+	return &userUseCase{repositoryManager: repositoryManager, filesystemManager: filesystemManager}
 }
 
 type userLoaderParams struct {
@@ -54,6 +56,21 @@ func (u *userUseCase) mustLoadUserData(_ context.Context, users []*model.User, o
 			}
 		}
 	}))
+}
+
+func (u *userUseCase) populateImageLinks(users ...*model.User) {
+	const presignedExpiry = 24 * time.Hour
+	mainFs := u.filesystemManager.Main()
+	for _, user := range users {
+		if user.IdentityImagePath != nil && *user.IdentityImagePath != "" {
+			link := mainFs.PresignedUrl(util.GetFilenameFromPath(*user.IdentityImagePath), *user.IdentityImagePath, presignedExpiry)
+			user.IdentityImageLink = &link
+		}
+		if user.SelfieIdentityImagePath != nil && *user.SelfieIdentityImagePath != "" {
+			link := mainFs.PresignedUrl(util.GetFilenameFromPath(*user.SelfieIdentityImagePath), *user.SelfieIdentityImagePath, presignedExpiry)
+			user.SelfieIdentityImageLink = &link
+		}
+	}
 }
 
 func (u *userUseCase) AdminCreate(ctx context.Context, request dto_request.AdminUserCreateRequest) {
@@ -74,19 +91,19 @@ func (u *userUseCase) AdminCreate(ctx context.Context, request dto_request.Admin
 		Password: hashedPassword,
 	}
 
-	insertErr := u.repositoryManager.UserRepository().Insert(ctx, user)
-	if insertErr != nil {
-		if insertErr == constant.ErrDuplicateData {
+	if err := u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+		if err := u.repositoryManager.UserRepository().Insert(ctx, user); err != nil {
+			return err
+		}
+		return u.repositoryManager.UserRoleRepository().Insert(ctx, &model.UserRole{
+			Id:     util.NewUuid(),
+			UserId: user.Id,
+			Role:   constant.RoleAdmin,
+		})
+	}); err != nil {
+		if err == constant.ErrDuplicateData {
 			panic(dto_response.NewConflictErrorResponse(constant.LanguageAuthPhoneAlreadyRegistered))
 		}
-		panic(insertErr)
-	}
-
-	if err := u.repositoryManager.UserRoleRepository().Insert(ctx, &model.UserRole{
-		Id:     util.NewUuid(),
-		UserId: user.Id,
-		Role:   constant.RoleAdmin,
-	}); err != nil {
 		panic(err)
 	}
 }
@@ -111,6 +128,7 @@ func (u *userUseCase) AdminFetch(ctx context.Context, request dto_request.AdminU
 func (u *userUseCase) AdminGet(ctx context.Context, request dto_request.AdminUserGetRequest) model.User {
 	user := mustGetUser(ctx, u.repositoryManager, request.UserId)
 	u.mustLoadUserData(ctx, []*model.User{&user}, userLoaderParams{roles: true})
+	u.populateImageLinks(&user)
 	return user
 }
 
@@ -118,6 +136,7 @@ func (u *userUseCase) OwnGet(ctx context.Context) model.User {
 	userClaims := model.MustGetUserCtx(ctx)
 	user := mustGetUser(ctx, u.repositoryManager, userClaims.UserId)
 	u.mustLoadUserData(ctx, []*model.User{&user}, userLoaderParams{roles: true})
+	u.populateImageLinks(&user)
 	return user
 }
 

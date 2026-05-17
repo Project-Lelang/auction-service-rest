@@ -14,8 +14,10 @@ import (
 
 type OwnApi struct {
 	*api
-	productUseCase use_case.ProductUseCase
-	userUseCase    use_case.UserUseCase
+	productUseCase           use_case.ProductUseCase
+	userUseCase              use_case.UserUseCase
+	roleRequestUseCase       use_case.RoleRequestUseCase
+	withdrawalRequestUseCase use_case.WithdrawalRequestUseCase
 }
 
 // Create godoc
@@ -215,11 +217,63 @@ func (a *OwnApi) UpdateProfile() gin.HandlerFunc {
 	})
 }
 
+// CreateRoleRequest godoc
+//
+//	@Router		/own/role-requests [post]
+//	@Summary	Submit a new role request (BIDDER or SELLER)
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		body	body	dto_request.OwnRoleRequestCreateRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	201	{object}	dto_response.Response{data=dto_response.DataResponse{role_request=dto_response.RoleRequestResponse}}
+func (a *OwnApi) CreateRoleRequest() gin.HandlerFunc {
+	return a.Authorize(func(ctx apiContext) {
+		var request dto_request.OwnRoleRequestCreateRequest
+		ctx.mustBind(&request)
+
+		roleRequest := a.roleRequestUseCase.OwnCreate(ctx.context(), request)
+
+		ctx.json(http.StatusCreated, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"role_request": dto_response.NewRoleRequestResponse(roleRequest),
+			},
+		})
+	})
+}
+
+// CreateWithdrawalRequest godoc
+//
+//	@Router		/own/withdrawal-requests [post]
+//	@Summary	Submit a new withdrawal request
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		body	body	dto_request.OwnWithdrawalRequestCreateRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	201	{object}	dto_response.Response{data=dto_response.DataResponse{withdrawal_request=dto_response.WithdrawalRequestResponse}}
+func (a *OwnApi) CreateWithdrawalRequest() gin.HandlerFunc {
+	return a.Authorize(func(ctx apiContext) {
+		var request dto_request.OwnWithdrawalRequestCreateRequest
+		ctx.mustBind(&request)
+
+		withdrawalRequest := a.withdrawalRequestUseCase.OwnCreate(ctx.context(), request)
+
+		ctx.json(http.StatusCreated, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"withdrawal_request": dto_response.NewWithdrawalRequestResponse(withdrawalRequest),
+			},
+		})
+	})
+}
+
 func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.UseCaseManager) {
 	api := &OwnApi{
-		api:            baseApi,
-		productUseCase: useCaseManager.ProductUseCase(),
-		userUseCase:    useCaseManager.UserUseCase(),
+		api:                      baseApi,
+		productUseCase:           useCaseManager.ProductUseCase(),
+		userUseCase:              useCaseManager.UserUseCase(),
+		roleRequestUseCase:       useCaseManager.RoleRequestUseCase(),
+		withdrawalRequestUseCase: useCaseManager.WithdrawalRequestUseCase(),
 	}
 
 	routerGroup := router.Group("/own")
@@ -235,4 +289,7 @@ func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.Us
 	routerProductGroup.PUT("/:productId", api.Update())
 	routerProductGroup.PATCH("/:productId/request", api.Request())
 	routerProductGroup.POST("/:productId/histories", api.FetchStatusHistories())
+
+	routerGroup.POST("/role-requests", api.CreateRoleRequest())
+	routerGroup.POST("/withdrawal-requests", api.CreateWithdrawalRequest())
 }

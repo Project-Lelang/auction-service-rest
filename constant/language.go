@@ -25,6 +25,19 @@ const (
 	LanguageProductNotFound                = "PRODUCT.NOT_FOUND"
 	LanguageProductInvalidStatusTransition = "PRODUCT.INVALID_STATUS_TRANSITION"
 
+	// role request
+	LanguageRoleRequestAlreadyHaveRole    = "ROLE_REQUEST.ALREADY_HAVE_ROLE"
+	LanguageRoleRequestPendingExists      = "ROLE_REQUEST.PENDING_EXISTS"
+	LanguageRoleRequestPrerequisiteNotMet = "ROLE_REQUEST.PREREQUISITE_NOT_MET"
+	LanguageRoleRequestMissingBidderInfo  = "ROLE_REQUEST.MISSING_BIDDER_INFO"
+	LanguageRoleRequestMissingSellerInfo  = "ROLE_REQUEST.MISSING_SELLER_INFO"
+	LanguageRoleRequestNotFound           = "ROLE_REQUEST.NOT_FOUND"
+
+	// withdrawal request
+	LanguageWithdrawalRequestInsufficientBalance = "WITHDRAWAL_REQUEST.INSUFFICIENT_BALANCE"
+	LanguageWithdrawalRequestNoBankAccount       = "WITHDRAWAL_REQUEST.NO_BANK_ACCOUNT"
+	LanguageWithdrawalRequestNotFound            = "WITHDRAWAL_REQUEST.NOT_FOUND"
+
 	// system
 	LanguageSystemUnauthorized          = "SYSTEM.UNAUTHORIZED"
 	LanguageSystemForbidden             = "SYSTEM.FORBIDDEN"
@@ -32,4 +45,11 @@ const (
 	LanguageSystemInternalServerError   = "SYSTEM.INTERNAL_SERVER_ERROR"
 	LanguageSystemNotFound              = "SYSTEM.NOT_FOUND"
 	LanguageSystemMustBeAValidUuid      = "SYSTEM.MUST_BE_A_VALID_UUID"
+
+	// file
+	LanguageFileExtensionIsNotSupported = "FILE.EXTENSION_IS_NOT_SUPPORTED"
+	LanguageFileSizeIs0B                = "FILE.SIZE_IS_0B"
+	LanguageFileFileNotExist            = "FILE.FILE_NOT_EXIST"
+	LanguageFileSomeFileNotExist        = "FILE.SOME_FILE_NOT_EXIST"
+	LanguageFileMaximumFileSizeIsXMB    = "FILE.MAXIMUM_FILE_SIZE_IS_X_MB"
 )

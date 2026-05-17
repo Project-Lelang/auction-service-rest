@@ -28,6 +28,8 @@ type UserRepository interface {
 
 	// update
 	Update(ctx context.Context, id string, fullname string, phone string, nik *string, birth data_type.DateTime, gender *string, bankAccountNumber *string) (*model.User, error)
+	UpdateIdentityInfo(ctx context.Context, id string, nik string, identityImagePath string, selfieIdentityImagePath string) error
+	UpdateBankAccountNumber(ctx context.Context, id string, bankAccountNumber string) error
 	SoftDelete(ctx context.Context, id string) error
 }
 
@@ -178,6 +180,28 @@ func (r *userRepository) SoftDelete(ctx context.Context, id string) error {
 		map[string]interface{}{
 			"is_deleted": true,
 			"updated_at": util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	)
+}
+
+func (r *userRepository) UpdateIdentityInfo(ctx context.Context, id string, nik string, identityImagePath string, selfieIdentityImagePath string) error {
+	return update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"nik":                        nik,
+			"identity_image_path":        identityImagePath,
+			"selfie_identity_image_path": selfieIdentityImagePath,
+			"updated_at":                 util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	)
+}
+
+func (r *userRepository) UpdateBankAccountNumber(ctx context.Context, id string, bankAccountNumber string) error {
+	return update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"bank_account_number": bankAccountNumber,
+			"updated_at":          util.CurrentDateTime(),
 		},
 		squirrel.Eq{"id": id},
 	)

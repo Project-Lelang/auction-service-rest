@@ -186,10 +186,19 @@ func (u *productUseCase) OwnRequest(ctx context.Context, request dto_request.Own
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageProductInvalidStatusTransition))
 	}
 
-	updated, err := u.repositoryManager.ProductRepository().UpdateStatus(ctx, request.ProductId, constant.ProductStatusRequest)
-	panicIfErr(err)
-
-	u.recordHistory(ctx, request.ProductId, constant.ProductStatusRequest, nil)
+	var updated *model.Product
+	panicIfErr(u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+		var err error
+		updated, err = u.repositoryManager.ProductRepository().UpdateStatus(ctx, request.ProductId, constant.ProductStatusRequest)
+		if err != nil {
+			return err
+		}
+		return u.repositoryManager.ProductStatusHistoryRepository().Insert(ctx, &model.ProductStatusHistory{
+			Id:        util.NewUuid(),
+			ProductId: request.ProductId,
+			Status:    constant.ProductStatusRequest,
+		})
+	}))
 
 	return *updated
 }

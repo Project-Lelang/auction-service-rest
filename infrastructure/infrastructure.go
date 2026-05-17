@@ -5,6 +5,7 @@ import (
 
 	"auction-service/global"
 
+	"cloud.google.com/go/storage"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -13,20 +14,27 @@ import (
 
 type infrastructureManager struct {
 	sqlDB       *sqlx.DB
+	gcsClient   *storage.Client
 	loggerStack LoggerStack
 }
 
 func NewInfrastructureManager(configuration global.YamlConfig) InfrastructureManager {
 	sqlDB := NewMysqlDB(configuration.Mysql)
+	gcsClient := NewGcsClient(configuration.Gcs)
 
 	return &infrastructureManager{
 		sqlDB:       sqlDB,
+		gcsClient:   gcsClient,
 		loggerStack: NewLoggerStack(configuration.LogChannel),
 	}
 }
 
 func (i *infrastructureManager) GetDB() *sqlx.DB {
 	return i.sqlDB
+}
+
+func (i *infrastructureManager) GetGcsClient() *storage.Client {
+	return i.gcsClient
 }
 
 func (i *infrastructureManager) migrationDSN() string {

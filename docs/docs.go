@@ -488,6 +488,66 @@ const docTemplate = `{
                 }
             }
         },
+        "/own/files/upload": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Upload a file to temporary storage and return its temporary path",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "File to upload",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "path": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/own/products": {
             "post": {
                 "security": [
@@ -964,6 +1024,130 @@ const docTemplate = `{
                 }
             }
         },
+        "/own/role-requests": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Submit a new role request (BIDDER or SELLER)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OwnRoleRequestCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "role_request": {
+                                                            "$ref": "#/definitions/RoleRequestResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/withdrawal-requests": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Submit a new withdrawal request",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OwnWithdrawalRequestCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "withdrawal_request": {
+                                                            "$ref": "#/definitions/WithdrawalRequestResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/products/{productId}": {
             "get": {
                 "produces": [
@@ -1012,6 +1196,31 @@ const docTemplate = `{
                                 }
                             ]
                         }
+                    }
+                }
+            }
+        },
+        "/storage/public/{filePath}": {
+            "get": {
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Serve a presigned local file",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "File path",
+                        "name": "filePath",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -1415,6 +1624,54 @@ const docTemplate = `{
                 }
             }
         },
+        "OwnRoleRequestCreateRequest": {
+            "type": "object",
+            "required": [
+                "role"
+            ],
+            "properties": {
+                "bank_account_number": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "1234567890"
+                },
+                "identity_image_path": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "/uploads/identity.jpg"
+                },
+                "nik": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "3201010101010001"
+                },
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "BIDDER",
+                        "SELLER"
+                    ],
+                    "example": "BIDDER"
+                },
+                "selfie_identity_image_path": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "/uploads/selfie.jpg"
+                }
+            }
+        },
+        "OwnWithdrawalRequestCreateRequest": {
+            "type": "object",
+            "required": [
+                "amount"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number",
+                    "example": 500000
+                }
+            }
+        },
         "PaginationResponse": {
             "type": "object",
             "properties": {
@@ -1552,6 +1809,37 @@ const docTemplate = `{
                 "data": {}
             }
         },
+        "RoleRequestResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Please review my request"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "BIDDER"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "REQUESTED"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                }
+            }
+        },
         "SuccessResponse": {
             "type": "object",
             "properties": {
@@ -1586,6 +1874,9 @@ const docTemplate = `{
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
+                "identity_image_link": {
+                    "type": "string"
+                },
                 "is_deleted": {
                     "type": "boolean",
                     "example": false
@@ -1606,6 +1897,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/UserRoleResponse"
                     }
+                },
+                "selfie_identity_image_link": {
+                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
@@ -1632,6 +1926,37 @@ const docTemplate = `{
                 "user_id": {
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440001"
+                }
+            }
+        },
+        "WithdrawalRequestResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number",
+                    "example": 500000
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "REQUESTED"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                },
+                "validator_user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440002"
                 }
             }
         }

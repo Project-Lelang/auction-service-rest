@@ -22,3 +22,11 @@ jwt:
 super_admin:
   phone: "+628100000000"
   password: SuperAdmin@123
+filesystem:
+  type: local  # local | gcs
+  base_uri: http://localhost:8080/storage/public
+  presigned_url_secret_key: change-me-in-production
+# gcs:  # uncomment when type is gcs
+#   file_name: service-account.json
+#   project_id: your-gcp-project
+#   bucket_name: your-gcs-bucket

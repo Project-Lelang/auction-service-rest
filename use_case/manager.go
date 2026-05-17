@@ -5,13 +5,17 @@ type UseCaseManager interface {
 	UserUseCase() UserUseCase
 	UserRoleUseCase() UserRoleUseCase
 	ProductUseCase() ProductUseCase
+	RoleRequestUseCase() RoleRequestUseCase
+	WithdrawalRequestUseCase() WithdrawalRequestUseCase
 }
 
 type useCaseManager struct {
-	authUseCase     AuthUseCase
-	userUseCase     UserUseCase
-	userRoleUseCase UserRoleUseCase
-	productUseCase  ProductUseCase
+	authUseCase              AuthUseCase
+	userUseCase              UserUseCase
+	userRoleUseCase          UserRoleUseCase
+	productUseCase           ProductUseCase
+	roleRequestUseCase       RoleRequestUseCase
+	withdrawalRequestUseCase WithdrawalRequestUseCase
 }
 
 func NewUseCaseManager(
@@ -19,12 +23,16 @@ func NewUseCaseManager(
 	userUseCase UserUseCase,
 	userRoleUseCase UserRoleUseCase,
 	productUseCase ProductUseCase,
+	roleRequestUseCase RoleRequestUseCase,
+	withdrawalRequestUseCase WithdrawalRequestUseCase,
 ) UseCaseManager {
 	return &useCaseManager{
-		authUseCase:     authUseCase,
-		userUseCase:     userUseCase,
-		userRoleUseCase: userRoleUseCase,
-		productUseCase:  productUseCase,
+		authUseCase:              authUseCase,
+		userUseCase:              userUseCase,
+		userRoleUseCase:          userRoleUseCase,
+		productUseCase:           productUseCase,
+		roleRequestUseCase:       roleRequestUseCase,
+		withdrawalRequestUseCase: withdrawalRequestUseCase,
 	}
 }
 
@@ -42,4 +50,12 @@ func (u *useCaseManager) UserRoleUseCase() UserRoleUseCase {
 
 func (u *useCaseManager) ProductUseCase() ProductUseCase {
 	return u.productUseCase
+}
+
+func (u *useCaseManager) RoleRequestUseCase() RoleRequestUseCase {
+	return u.roleRequestUseCase
+}
+
+func (u *useCaseManager) WithdrawalRequestUseCase() WithdrawalRequestUseCase {
+	return u.withdrawalRequestUseCase
 }

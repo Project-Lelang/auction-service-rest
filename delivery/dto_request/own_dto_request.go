@@ -44,3 +44,15 @@ type OwnProductUpdateRequest struct {
 type OwnProductRequestRequest struct {
 	ProductId string `json:"-" swaggerignore:"true"`
 } // @name OwnProductRequestRequest
+
+type OwnRoleRequestCreateRequest struct {
+	Role                    string  `json:"role"                      validate:"required,oneof=BIDDER SELLER" example:"BIDDER"`
+	Nik                     *string `json:"nik"                       validate:"omitempty,max=50"            example:"3201010101010001"`
+	IdentityImagePath       *string `json:"identity_image_path"       validate:"omitempty,max=500"           example:"/uploads/identity.jpg"`
+	SelfieIdentityImagePath *string `json:"selfie_identity_image_path" validate:"omitempty,max=500"          example:"/uploads/selfie.jpg"`
+	BankAccountNumber       *string `json:"bank_account_number"       validate:"omitempty,max=50"            example:"1234567890"`
+} // @name OwnRoleRequestCreateRequest
+
+type OwnWithdrawalRequestCreateRequest struct {
+	Amount float64 `json:"amount" validate:"required,gt=0" example:"500000"`
+} // @name OwnWithdrawalRequestCreateRequest
