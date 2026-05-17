@@ -14,8 +14,8 @@ type ProductResponse struct {
 	Name            string                         `json:"name"                     example:"Vintage Camera"`
 	Description     *string                        `json:"description,omitempty"    example:"A beautiful vintage camera"`
 	Condition       string                         `json:"condition"                example:"NEW"`
-	CoverImageUrl   *string                        `json:"cover_image_url,omitempty"`
-	ImageUrls       []string                       `json:"image_urls"`
+	CoverImageLink  *string                        `json:"cover_image_link,omitempty"`
+	ImageLinks      []string                       `json:"image_links"`
 	Status          string                         `json:"status"                   example:"DRAFT"`
 	User            *UserResponse                  `json:"user,omitempty"`
 	StatusHistories []ProductStatusHistoryResponse `json:"status_histories"`
@@ -38,8 +38,8 @@ func NewProductResponse(ctx context.Context, p model.Product) ProductResponse {
 		Name:            p.Name,
 		Description:     p.Description,
 		Condition:       p.Condition,
-		CoverImageUrl:   p.CoverImageUrl,
-		ImageUrls:       model.ParseImageUrls(p.ImageUrls),
+		CoverImageLink:  p.CoverImageLink,
+		ImageLinks:      p.ImageLinks,
 		Status:          p.Status,
 		StatusHistories: []ProductStatusHistoryResponse{},
 		Timestamp:       Timestamp(p.Timestamp),

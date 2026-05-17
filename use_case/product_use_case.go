@@ -2,10 +2,12 @@ package use_case
 
 import (
 	"context"
+	"time"
 
 	"auction-service/constant"
 	"auction-service/delivery/dto_request"
 	"auction-service/delivery/dto_response"
+	internalFilesystem "auction-service/internal/filesystem"
 	"auction-service/loader"
 	"auction-service/model"
 	"auction-service/repository"
@@ -33,10 +35,28 @@ type ProductUseCase interface {
 
 type productUseCase struct {
 	repositoryManager repository.RepositoryManager
+	filesystemManager internalFilesystem.FilesystemManager
 }
 
-func NewProductUseCase(repositoryManager repository.RepositoryManager) ProductUseCase {
-	return &productUseCase{repositoryManager: repositoryManager}
+func NewProductUseCase(repositoryManager repository.RepositoryManager, filesystemManager internalFilesystem.FilesystemManager) ProductUseCase {
+	return &productUseCase{repositoryManager: repositoryManager, filesystemManager: filesystemManager}
+}
+
+func (u *productUseCase) populateImageLinks(products ...*model.Product) {
+	const presignedExpiry = 24 * time.Hour
+	mainFs := u.filesystemManager.Main()
+	for _, product := range products {
+		if product.CoverImagePath != nil && *product.CoverImagePath != "" {
+			link := mainFs.PresignedUrl(util.GetFilenameFromPath(*product.CoverImagePath), *product.CoverImagePath, presignedExpiry)
+			product.CoverImageLink = &link
+		}
+		imagePaths := model.ParseImagePaths(product.ImagePaths)
+		links := make([]string, 0, len(imagePaths))
+		for _, p := range imagePaths {
+			links = append(links, mainFs.PresignedUrl(util.GetFilenameFromPath(p), p, presignedExpiry))
+		}
+		product.ImageLinks = links
+	}
 }
 
 type productLoaderParams struct {
@@ -69,6 +89,7 @@ func (u *productUseCase) fetchPaginated(ctx context.Context, option model.Produc
 	panicIfErr(err)
 
 	u.mustLoadProductData(ctx, util.SliceValueToSlicePointer(products), productLoaderParams{user: true})
+	u.populateImageLinks(util.SliceValueToSlicePointer(products)...)
 
 	return products, total
 }
@@ -76,7 +97,7 @@ func (u *productUseCase) fetchPaginated(ctx context.Context, option model.Produc
 func (u *productUseCase) OwnCreate(ctx context.Context, request dto_request.ProductCreateRequest) model.Product {
 	userClaims := model.MustGetUserCtx(ctx)
 
-	imageUrls := model.MarshalImageUrls(make([]string, 0, request.ImageCount))
+	imagePaths := model.MarshalImagePaths(make([]string, 0, request.ImageCount))
 
 	product := model.Product{
 		Id:          util.NewUuid(),
@@ -84,7 +105,7 @@ func (u *productUseCase) OwnCreate(ctx context.Context, request dto_request.Prod
 		Name:        request.Name,
 		Description: request.Description,
 		Condition:   request.Condition,
-		ImageUrls:   &imageUrls,
+		ImagePaths:  &imagePaths,
 		Status:      constant.ProductStatusDraft,
 	}
 
@@ -116,6 +137,7 @@ func (u *productUseCase) OwnFetch(ctx context.Context, request dto_request.OwnPr
 func (u *productUseCase) Get(ctx context.Context, request dto_request.ProductGetRequest) model.Product {
 	product := mustGetProduct(ctx, u.repositoryManager, request.ProductId)
 	u.mustLoadProductData(ctx, []*model.Product{&product}, productLoaderParams{user: true, statusHistories: true})
+	u.populateImageLinks(&product)
 	return product
 }
 
@@ -155,6 +177,7 @@ func (u *productUseCase) OwnGet(ctx context.Context, request dto_request.OwnProd
 	}
 
 	u.mustLoadProductData(ctx, []*model.Product{&product}, productLoaderParams{user: true, statusHistories: true})
+	u.populateImageLinks(&product)
 	return product
 }
 
@@ -171,6 +194,7 @@ func (u *productUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnP
 
 	updated, err := u.repositoryManager.ProductRepository().Update(ctx, request.ProductId, request.Name, request.Description, request.Condition)
 	panicIfErr(err)
+	u.populateImageLinks(updated)
 
 	return *updated
 }
@@ -200,6 +224,7 @@ func (u *productUseCase) OwnRequest(ctx context.Context, request dto_request.Own
 		})
 	}))
 
+	u.populateImageLinks(updated)
 	return *updated
 }
 

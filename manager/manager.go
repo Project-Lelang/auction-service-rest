@@ -71,7 +71,7 @@ func NewContainer() *Container {
 	authUseCase := use_case.NewAuthUseCase(repoManager, jwtInstance)
 	userUseCase := use_case.NewUserUseCase(repoManager, filesystemManager)
 	userRoleUseCase := use_case.NewUserRoleUseCase(repoManager)
-	productUseCase := use_case.NewProductUseCase(repoManager)
+	productUseCase := use_case.NewProductUseCase(repoManager, filesystemManager)
 	roleRequestUseCase := use_case.NewRoleRequestUseCase(repoManager, filesystemManager)
 	withdrawalRequestUseCase := use_case.NewWithdrawalRequestUseCase(repoManager)
 
