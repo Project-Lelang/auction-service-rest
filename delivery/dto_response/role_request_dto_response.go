@@ -4,7 +4,7 @@ import "auction-service/model"
 
 // RoleRequestResponse represents a single role request in API responses.
 type RoleRequestResponse struct {
-	Id      string  `json:"id"              example:"550e8400-e29b-41d4-a716-446655440000"`
+	Id      int64   `json:"id"              example:"1"`
 	UserId  string  `json:"user_id"         example:"550e8400-e29b-41d4-a716-446655440001"`
 	Status  string  `json:"status"          example:"REQUESTED"`
 	Role    string  `json:"role"            example:"BIDDER"`

@@ -35,10 +35,25 @@ func NewContainer() *Container {
 	productStatusHistoryRepo := repository.NewProductStatusHistoryRepository(db)
 	roleRequestRepo := repository.NewRoleRequestRepository(db)
 	withdrawalRequestRepo := repository.NewWithdrawalRequestRepository(db)
+	paymentMethodRepo := repository.NewPaymentMethodRepository(db)
 	auctionRepo := repository.NewAuctionRepository(db)
 	auctionBidRepo := repository.NewAuctionBidRepository(db)
 
-	repoManager := repository.NewRepositoryManager(db, userRepo, userRoleRepo, otpRepo, productRepo, productStatusHistoryRepo, roleRequestRepo, withdrawalRequestRepo, auctionRepo, auctionBidRepo)
+	// FIX: Urutan disesuaikan dengan parameter constructor RepositoryManager (auctionRepo, auctionBidRepo, baru paymentMethodRepo)
+	repoManager := repository.NewRepositoryManager(
+		db,
+		userRepo,
+		userRoleRepo,
+		otpRepo,
+		productRepo,
+		productStatusHistoryRepo,
+		roleRequestRepo,
+		withdrawalRequestRepo,
+		auctionRepo,
+		auctionBidRepo,
+		paymentMethodRepo,
+	)
+
 	jwtInstance := internalJwt.NewJwt([]byte(config.JwtConfig.SecretKey))
 
 	// filesystem
@@ -74,12 +89,24 @@ func NewContainer() *Container {
 	productUseCase := use_case.NewProductUseCase(repoManager, filesystemManager)
 	roleRequestUseCase := use_case.NewRoleRequestUseCase(repoManager, filesystemManager)
 	withdrawalRequestUseCase := use_case.NewWithdrawalRequestUseCase(repoManager)
+	paymentMethodUseCase := use_case.NewPaymentMethodUseCase(repoManager)
 	auctionUseCase := use_case.NewAuctionUseCase(repoManager)
 	bidUseCase := use_case.NewBidUseCase(repoManager)
 
 	baseFileUseCase := use_case.NewBaseFileUseCase(filesystemManager.Main(), filesystemManager.Tmp())
 
-	ucManager := use_case.NewUseCaseManager(authUseCase, userUseCase, userRoleUseCase, productUseCase, roleRequestUseCase, withdrawalRequestUseCase, auctionUseCase, bidUseCase)
+	// FIX: Urutan disesuaikan dengan parameter constructor UseCaseManager (auctionUseCase, bidUseCase, baru paymentMethodUseCase)
+	ucManager := use_case.NewUseCaseManager(
+		authUseCase,
+		userUseCase,
+		userRoleUseCase,
+		productUseCase,
+		roleRequestUseCase,
+		withdrawalRequestUseCase,
+		auctionUseCase,
+		bidUseCase,
+		paymentMethodUseCase,
+	)
 
 	return &Container{
 		infrastructureManager: infraManager,

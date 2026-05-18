@@ -20,8 +20,8 @@ type RepositoryManager interface {
 	WithdrawalRequestRepository() WithdrawalRequestRepository
 	AuctionRepository() AuctionRepository
 	AuctionBidRepository() AuctionBidRepository
-
 	Transaction(ctx context.Context, fn func(ctx context.Context) error) error
+	PaymentMethodRepository() PaymentMethodRepository
 }
 
 type repositoryManager struct {
@@ -35,6 +35,7 @@ type repositoryManager struct {
 	withdrawalRequestRepository    WithdrawalRequestRepository
 	auctionRepository              AuctionRepository
 	auctionBidRepository           AuctionBidRepository
+	paymentMethodRepository        PaymentMethodRepository
 }
 
 func NewRepositoryManager(
@@ -48,6 +49,7 @@ func NewRepositoryManager(
 	withdrawalRequestRepository WithdrawalRequestRepository,
 	auctionRepository AuctionRepository,
 	auctionBidRepository AuctionBidRepository,
+	paymentMethodRepository PaymentMethodRepository,
 ) RepositoryManager {
 	return &repositoryManager{
 		db:                             db,
@@ -60,6 +62,7 @@ func NewRepositoryManager(
 		withdrawalRequestRepository:    withdrawalRequestRepository,
 		auctionRepository:              auctionRepository,
 		auctionBidRepository:           auctionBidRepository,
+		paymentMethodRepository:        paymentMethodRepository,
 	}
 }
 
@@ -128,4 +131,8 @@ func (r *repositoryManager) AuctionRepository() AuctionRepository {
 
 func (r *repositoryManager) AuctionBidRepository() AuctionBidRepository {
 	return r.auctionBidRepository
+}
+
+func (r *repositoryManager) PaymentMethodRepository() PaymentMethodRepository {
+	return r.paymentMethodRepository
 }

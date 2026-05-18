@@ -81,7 +81,7 @@ func (p *Product) ToMap() map[string]interface{} {
 		"user_id":          p.UserId,
 		"name":             p.Name,
 		"description":      p.Description,
-		"condition":        p.Condition,
+		"`condition`":      p.Condition,
 		"cover_image_path": p.CoverImagePath,
 		"image_paths":      imagePathsJSON,
 		"status":           p.Status,

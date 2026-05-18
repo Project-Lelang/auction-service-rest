@@ -43,11 +43,14 @@ func (r *productRepository) fromTable() string {
 	return fmt.Sprintf("%s %s", r.tableName(), r.alias())
 }
 func (r *productRepository) f(col string) string {
+	// If the column is 'condition', explicitly wrap it in backticks to prevent MySQL 1064 syntax errors
+	if col == "condition" {
+		return fmt.Sprintf("%s.`condition`", r.alias())
+	}
 	return fmt.Sprintf("%s.%s", r.alias(), col)
 }
 
 // buildBaseStmt returns a SelectBuilder with FROM and WHERE filters applied.
-// Callers should add columns and call model.Prepare() before executing.
 func (r *productRepository) buildBaseStmt(option model.ProductQueryOption) squirrel.SelectBuilder {
 	stmt := stmtBuilder.Select().From(r.fromTable())
 
@@ -94,7 +97,7 @@ func (r *productRepository) Insert(ctx context.Context, product *model.Product) 
 func (r *productRepository) GetById(ctx context.Context, id string) (*model.Product, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
-		Where(squirrel.Eq{r.f("id"): id}).
+		Where(squirrel.Eq{fmt.Sprintf("%s.id", r.alias()): id}).
 		Limit(1)
 	return r.getInternal(ctx, stmt)
 }
@@ -135,7 +138,7 @@ func (r *productRepository) Update(ctx context.Context, id string, name string, 
 		map[string]interface{}{
 			"name":        name,
 			"description": description,
-			"condition":   condition,
+			"`condition`": condition, // Added backticks to bypass MySQL keyword restriction
 			"updated_at":  util.CurrentDateTime(),
 		},
 		squirrel.Eq{"id": id},

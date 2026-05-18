@@ -179,11 +179,15 @@ func registerRoutes(router gin.IRouter, container *manager.Container) {
 	RegisterAdminAuthApi(router, &baseApi, container.UseCaseManager())
 	RegisterAdminUserApi(router, &baseApi, container.UseCaseManager())
 	RegisterAdminProductApi(router, &baseApi, container.UseCaseManager())
+	RegisterAdminRoleRequestApi(router, &baseApi, container.UseCaseManager())
+	RegisterAdminWithdrawalRequestApi(router, &baseApi, container.UseCaseManager())
+	RegisterAdminPaymentMethodApi(router, &baseApi, container.UseCaseManager())
 
 	// user
 	RegisterAuthApi(router, &baseApi, container.UseCaseManager())
 	RegisterProductApi(router, &baseApi, container.UseCaseManager())
 	RegisterOwnApi(router, &baseApi, container.UseCaseManager())
+	RegisterUserRoleRequestApi(router, &baseApi, container.UseCaseManager())
 
 	// file
 	RegisterFileApi(router, &baseApi, container.FilesystemManager(), container.BaseFileUseCase())

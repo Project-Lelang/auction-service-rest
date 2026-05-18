@@ -9,6 +9,7 @@ type UseCaseManager interface {
 	WithdrawalRequestUseCase() WithdrawalRequestUseCase
 	AuctionUseCase() AuctionUseCase
 	BidUseCase() BidUseCase
+	PaymentMethodUseCase() PaymentMethodUseCase
 }
 
 type useCaseManager struct {
@@ -20,6 +21,7 @@ type useCaseManager struct {
 	withdrawalRequestUseCase WithdrawalRequestUseCase
 	auctionUseCase           AuctionUseCase
 	bidUseCase               BidUseCase
+	paymentMethodUseCase     PaymentMethodUseCase
 }
 
 func NewUseCaseManager(
@@ -31,6 +33,7 @@ func NewUseCaseManager(
 	withdrawalRequestUseCase WithdrawalRequestUseCase,
 	auctionUseCase AuctionUseCase,
 	bidUseCase BidUseCase,
+	paymentMethodUseCase PaymentMethodUseCase,
 ) UseCaseManager {
 	return &useCaseManager{
 		authUseCase:              authUseCase,
@@ -41,6 +44,7 @@ func NewUseCaseManager(
 		withdrawalRequestUseCase: withdrawalRequestUseCase,
 		auctionUseCase:           auctionUseCase,
 		bidUseCase:               bidUseCase,
+		paymentMethodUseCase:     paymentMethodUseCase,
 	}
 }
 
@@ -74,4 +78,7 @@ func (u *useCaseManager) AuctionUseCase() AuctionUseCase {
 
 func (u *useCaseManager) BidUseCase() BidUseCase {
 	return u.bidUseCase
+}
+func (u *useCaseManager) PaymentMethodUseCase() PaymentMethodUseCase {
+	return u.paymentMethodUseCase
 }

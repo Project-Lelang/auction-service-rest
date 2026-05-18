@@ -27,6 +27,8 @@ type ProductUseCase interface {
 	OwnFetch(ctx context.Context, request dto_request.OwnProductFetchRequest) ([]model.Product, int64)
 	Get(ctx context.Context, request dto_request.ProductGetRequest) model.Product
 	AdminFetch(ctx context.Context, request dto_request.AdminProductFetchRequest) ([]model.Product, int64)
+	AdminApprove(ctx context.Context, request dto_request.AdminProductApproveRequest) model.Product
+	AdminReject(ctx context.Context, request dto_request.AdminProductRejectRequest) model.Product
 
 	// histories
 	FetchStatusHistories(ctx context.Context, request dto_request.OwnProductFetchStatusHistoriesRequest) []model.ProductStatusHistory
@@ -150,6 +152,68 @@ func (u *productUseCase) AdminFetch(ctx context.Context, request dto_request.Adm
 	})
 }
 
+func (u *productUseCase) AdminApprove(ctx context.Context, request dto_request.AdminProductApproveRequest) model.Product {
+	product := mustGetProduct(ctx, u.repositoryManager, request.ProductId)
+
+	// Validate ownership alignment
+	if product.UserId != request.UserId {
+		panic(dto_response.NewBadRequestErrorResponse("Product does not belong to specified user"))
+	}
+	// Verify it can transition from REQUEST to VERIFIED status
+	if product.Status != constant.ProductStatusRequest {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageProductInvalidStatusTransition))
+	}
+
+	var updated *model.Product
+	panicIfErr(u.repositoryManager.Transaction(ctx, func(txCtx context.Context) error {
+		var err error
+		updated, err = u.repositoryManager.ProductRepository().UpdateStatus(txCtx, request.ProductId, constant.ProductStatusVerified)
+		if err != nil {
+			return err
+		}
+
+		return u.repositoryManager.ProductStatusHistoryRepository().Insert(txCtx, &model.ProductStatusHistory{
+			Id:        util.NewUuid(),
+			ProductId: request.ProductId,
+			Status:    constant.ProductStatusVerified,
+			Message:   nil, // Verification holds no negative comment message
+		})
+	}))
+
+	u.populateImageLinks(updated)
+	return *updated
+}
+
+func (u *productUseCase) AdminReject(ctx context.Context, request dto_request.AdminProductRejectRequest) model.Product {
+	product := mustGetProduct(ctx, u.repositoryManager, request.ProductId)
+
+	if product.UserId != request.UserId {
+		panic(dto_response.NewBadRequestErrorResponse("Product does not belong to specified user"))
+	}
+	if product.Status != constant.ProductStatusRequest {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageProductInvalidStatusTransition))
+	}
+
+	var updated *model.Product
+	panicIfErr(u.repositoryManager.Transaction(ctx, func(txCtx context.Context) error {
+		var err error
+		updated, err = u.repositoryManager.ProductRepository().UpdateStatus(txCtx, request.ProductId, constant.ProductStatusRejected)
+		if err != nil {
+			return err
+		}
+
+		return u.repositoryManager.ProductStatusHistoryRepository().Insert(txCtx, &model.ProductStatusHistory{
+			Id:        util.NewUuid(),
+			ProductId: request.ProductId,
+			Status:    constant.ProductStatusRejected,
+			Message:   request.Message, // Saved directly to history record
+		})
+	}))
+
+	u.populateImageLinks(updated)
+	return *updated
+}
+
 func (u *productUseCase) FetchStatusHistories(ctx context.Context, request dto_request.OwnProductFetchStatusHistoriesRequest) []model.ProductStatusHistory {
 	mustGetProduct(ctx, u.repositoryManager, request.ProductId)
 
@@ -226,14 +290,4 @@ func (u *productUseCase) OwnRequest(ctx context.Context, request dto_request.Own
 
 	u.populateImageLinks(updated)
 	return *updated
-}
-
-func (u *productUseCase) recordHistory(ctx context.Context, productId string, status string, message *string) {
-	h := &model.ProductStatusHistory{
-		Id:        util.NewUuid(),
-		ProductId: productId,
-		Status:    status,
-		Message:   message,
-	}
-	panicIfErr(u.repositoryManager.ProductStatusHistoryRepository().Insert(ctx, h))
 }
