@@ -1,0 +1,1 @@
+ALTER TABLE products ADD COLUMN weight_gram INT NOT NULL DEFAULT 1000;

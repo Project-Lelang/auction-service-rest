@@ -19,11 +19,13 @@ type ProductRepository interface {
 
 	// read
 	GetById(ctx context.Context, id string) (*model.Product, error)
+	FetchByIds(ctx context.Context, ids []string) ([]model.Product, error)
 	Fetch(ctx context.Context, options ...model.ProductQueryOption) ([]model.Product, error)
 	Count(ctx context.Context, options ...model.ProductQueryOption) (int64, error)
 
 	// update
-	Update(ctx context.Context, id string, name string, description *string, condition string) (*model.Product, error)
+	Update(ctx context.Context, id string, name string, description *string, condition string, weightGram int) (*model.Product, error)
+	UpdateImages(ctx context.Context, id string, coverImagePath *string, imagePaths *string) (*model.Product, error)
 	UpdateStatus(ctx context.Context, id string, status string) (*model.Product, error)
 }
 
@@ -99,6 +101,16 @@ func (r *productRepository) GetById(ctx context.Context, id string) (*model.Prod
 	return r.getInternal(ctx, stmt)
 }
 
+func (r *productRepository) FetchByIds(ctx context.Context, ids []string) ([]model.Product, error) {
+	if len(ids) == 0 {
+		return []model.Product{}, nil
+	}
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("id"): ids})
+	return r.fetchInternal(ctx, stmt)
+}
+
 func (r *productRepository) Fetch(ctx context.Context, options ...model.ProductQueryOption) ([]model.Product, error) {
 	option := model.ProductQueryOption{}
 	if len(options) > 0 {
@@ -130,13 +142,28 @@ func (r *productRepository) Count(ctx context.Context, options ...model.ProductQ
 
 // ------------------------------------------------------------------ update
 
-func (r *productRepository) Update(ctx context.Context, id string, name string, description *string, condition string) (*model.Product, error) {
+func (r *productRepository) Update(ctx context.Context, id string, name string, description *string, condition string, weightGram int) (*model.Product, error) {
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
 			"name":        name,
 			"description": description,
-			"condition":   condition,
+			"`condition`": condition,
+			"weight_gram": weightGram,
 			"updated_at":  util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	); err != nil {
+		return nil, err
+	}
+	return r.GetById(ctx, id)
+}
+
+func (r *productRepository) UpdateImages(ctx context.Context, id string, coverImagePath *string, imagePaths *string) (*model.Product, error) {
+	if err := update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"cover_image_path": coverImagePath,
+			"image_paths":      imagePaths,
+			"updated_at":       util.CurrentDateTime(),
 		},
 		squirrel.Eq{"id": id},
 	); err != nil {

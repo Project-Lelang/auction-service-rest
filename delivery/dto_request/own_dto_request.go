@@ -3,12 +3,9 @@ package dto_request
 import "auction-service/data_type"
 
 type OwnProfileUpdateRequest struct {
-	Fullname          string  `json:"fullname"            validate:"required,max=255"          example:"John Doe"`
-	Phone             string  `json:"phone"               validate:"required,max=20"           example:"+6281234567890"`
-	Nik               *string `json:"nik"                 validate:"omitempty,max=50"          example:"3201010101010001"`
-	Birth             string  `json:"birth"               validate:"required"                  example:"1990-01-15"`
-	Gender            *string `json:"gender"              validate:"omitempty,oneof=MALE FEMALE" example:"MALE"`
-	BankAccountNumber *string `json:"bank_account_number" validate:"omitempty,max=50"          example:"1234567890"`
+	Fullname string  `json:"fullname" validate:"required,max=255"            example:"John Doe"`
+	Birth    string  `json:"birth"    validate:"required"                    example:"1990-01-15"`
+	Gender   *string `json:"gender"   validate:"omitempty,oneof=MALE FEMALE" example:"MALE"`
 } // @name OwnProfileUpdateRequest
 
 // OwnProductFetchSorts defines sortable fields for the own product fetch endpoint.
@@ -27,6 +24,15 @@ type OwnProductFetchRequest struct {
 	Search    *string              `json:"search"    validate:"omitempty,max=255"                                            example:"laptop"`
 } // @name OwnProductFetchRequest
 
+type OwnProductCreateRequest struct {
+	Name           string   `json:"name"             validate:"required,max=255"                    example:"Vintage Camera"`
+	Description    *string  `json:"description"      validate:"omitempty,max=2000"                  example:"A beautiful vintage camera"`
+	Condition      string   `json:"condition"        validate:"required,oneof=NEW PRELOVED"         example:"NEW"`
+	CoverImagePath *string  `json:"cover_image_path" validate:"omitempty,max=500"                  example:"upload/abc123.jpg"`
+	ImagePaths     []string `json:"image_paths"      validate:"omitempty,dive,required,max=500"`
+	WeightGram     int      `json:"weight_gram"      validate:"required,gt=0"                       example:"1000"`
+} // @name OwnProductCreateRequest
+
 type OwnProductFetchStatusHistoriesRequest struct {
 	ProductId string `json:"-" swaggerignore:"true"`
 } // @name OwnProductFetchStatusHistoriesRequest
@@ -36,9 +42,12 @@ type OwnProductGetRequest struct {
 } // @name OwnProductGetRequest
 
 type OwnProductUpdateRequest struct {
-	Name        string  `json:"name"        validate:"required,max=255"            example:"Vintage Camera"`
-	Description *string `json:"description" validate:"omitempty,max=2000"          example:"A beautiful vintage camera"`
-	Condition   string  `json:"condition"   validate:"required,oneof=NEW PRELOVED" example:"NEW"`
+	Name           string   `json:"name"             validate:"required,max=255"                    example:"Vintage Camera"`
+	Description    *string  `json:"description"      validate:"omitempty,max=2000"                  example:"A beautiful vintage camera"`
+	Condition      string   `json:"condition"        validate:"required,oneof=NEW PRELOVED"         example:"NEW"`
+	CoverImagePath *string  `json:"cover_image_path" validate:"omitempty,max=500"                  example:"upload/abc123.jpg"`
+	ImagePaths     []string `json:"image_paths"      validate:"omitempty,dive,required,max=500"`
+	WeightGram     int      `json:"weight_gram"      validate:"required,gt=0"                       example:"1000"`
 
 	ProductId string `json:"-" swaggerignore:"true"`
 } // @name OwnProductUpdateRequest
@@ -68,7 +77,7 @@ type OwnAuctionFetchSorts []struct {
 type OwnAuctionFetchRequest struct {
 	PaginationRequest
 	Sorts  OwnAuctionFetchSorts `json:"sorts"  validate:"dive"`
-	Status *string              `json:"status" validate:"omitempty,oneof=SCHEDULED ON_GOING WAITING_FOR_PAYMENT WAITING_FOR_SHIPMENT SHIPPED DELIVERED CANCELLED COMPLETED" example:"SCHEDULED"`
+	Status *string              `json:"status" validate:"omitempty,oneof=SCHEDULED ON_GOING WAITING_FOR_PAYMENT WAITING_FOR_SELLER_DECISION WAITING_FOR_SHIPMENT SHIPPED DELIVERED CANCELLED COMPLETED" example:"SCHEDULED"`
 } // @name OwnAuctionFetchRequest
 
 type OwnAuctionGetRequest struct {

@@ -17,6 +17,12 @@ type AuctionBidRepository interface {
 
 	// read
 	GetById(ctx context.Context, id string) (*model.AuctionBid, error)
+	GetHighestByAuctionId(ctx context.Context, auctionId string) (*model.AuctionBid, error)
+	GetNextHighestByAuctionId(ctx context.Context, auctionId string, excludeBidId string) (*model.AuctionBid, error)
+	// GetNextHighestByAuctionIdExcludingUsers returns the highest bid for an auction
+	// whose user_id is NOT in excludeUserIds. Used by OwnSecondChance to skip all
+	// bids (including lower bids) from users who have already been cancelled winners.
+	GetNextHighestByAuctionIdExcludingUsers(ctx context.Context, auctionId string, excludeUserIds []string) (*model.AuctionBid, error)
 	Fetch(ctx context.Context, options ...model.AuctionBidQueryOption) ([]model.AuctionBid, error)
 	Count(ctx context.Context, options ...model.AuctionBidQueryOption) (int64, error)
 }
@@ -81,6 +87,42 @@ func (r *auctionBidRepository) GetById(ctx context.Context, id string) (*model.A
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("id"): id}).
+		Limit(1)
+	return r.getInternal(ctx, stmt)
+}
+
+// GetHighestByAuctionId returns the single highest bid for an auction.
+func (r *auctionBidRepository) GetHighestByAuctionId(ctx context.Context, auctionId string) (*model.AuctionBid, error) {
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("auction_id"): auctionId}).
+		OrderBy(r.f("amount") + " DESC").
+		Limit(1)
+	return r.getInternal(ctx, stmt)
+}
+
+// GetNextHighestByAuctionId returns the highest bid that is NOT the excluded bid.
+// Used to find the fallback winner when the current winner doesn't pay.
+func (r *auctionBidRepository) GetNextHighestByAuctionId(ctx context.Context, auctionId string, excludeBidId string) (*model.AuctionBid, error) {
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("auction_id"): auctionId}).
+		Where(squirrel.NotEq{r.f("id"): excludeBidId}).
+		OrderBy(r.f("amount") + " DESC").
+		Limit(1)
+	return r.getInternal(ctx, stmt)
+}
+
+// GetNextHighestByAuctionIdExcludingUsers returns the highest bid whose user_id
+// is not in excludeUserIds. squirrel translates a slice value in NotEq to a
+// NOT IN clause. Used by OwnSecondChance so that ALL bids from a deadbeat winner
+// are skipped, not just the single bid that was selected as winning bid.
+func (r *auctionBidRepository) GetNextHighestByAuctionIdExcludingUsers(ctx context.Context, auctionId string, excludeUserIds []string) (*model.AuctionBid, error) {
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("auction_id"): auctionId}).
+		Where(squirrel.NotEq{r.f("user_id"): excludeUserIds}).
+		OrderBy(r.f("amount") + " DESC").
 		Limit(1)
 	return r.getInternal(ctx, stmt)
 }

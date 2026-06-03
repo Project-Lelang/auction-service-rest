@@ -19,6 +19,7 @@ type OwnApi struct {
 	roleRequestUseCase       use_case.RoleRequestUseCase
 	withdrawalRequestUseCase use_case.WithdrawalRequestUseCase
 	auctionUseCase           use_case.AuctionUseCase
+	paymentUseCase           use_case.PaymentUseCase
 	bidUseCase               use_case.BidUseCase
 }
 
@@ -29,12 +30,12 @@ type OwnApi struct {
 //	@tags		Own
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		body	body	dto_request.ProductCreateRequest	true	"Body Request"
+//	@Param		body	body	dto_request.OwnProductCreateRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	201	{object}	dto_response.Response{data=dto_response.DataResponse{product=dto_response.ProductResponse}}
 func (a *OwnApi) Create() gin.HandlerFunc {
-	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
-		var request dto_request.ProductCreateRequest
+	return a.AuthorizeRoles([]string{constant.RoleBidder, constant.RoleSeller}, func(ctx apiContext) {
+		var request dto_request.OwnProductCreateRequest
 		ctx.mustBind(&request)
 
 		product := a.productUseCase.OwnCreate(ctx.context(), request)
@@ -58,7 +59,7 @@ func (a *OwnApi) Create() gin.HandlerFunc {
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.ProductResponse}}
 func (a *OwnApi) FetchProducts() gin.HandlerFunc {
-	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+	return a.AuthorizeRoles([]string{constant.RoleBidder, constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.OwnProductFetchRequest
 		ctx.mustBind(&request)
 
@@ -85,7 +86,7 @@ func (a *OwnApi) FetchProducts() gin.HandlerFunc {
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{histories=[]dto_response.ProductStatusHistoryResponse}}
 func (a *OwnApi) FetchStatusHistories() gin.HandlerFunc {
-	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+	return a.AuthorizeRoles([]string{constant.RoleBidder, constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.OwnProductFetchStatusHistoriesRequest
 		request.ProductId = ctx.getParam("productId")
 
@@ -109,7 +110,7 @@ func (a *OwnApi) FetchStatusHistories() gin.HandlerFunc {
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{product=dto_response.ProductResponse}}
 func (a *OwnApi) Get() gin.HandlerFunc {
-	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+	return a.AuthorizeRoles([]string{constant.RoleBidder, constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.OwnProductGetRequest
 		request.ProductId = ctx.getParam("productId")
 
@@ -135,7 +136,7 @@ func (a *OwnApi) Get() gin.HandlerFunc {
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{product=dto_response.ProductResponse}}
 func (a *OwnApi) Update() gin.HandlerFunc {
-	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+	return a.AuthorizeRoles([]string{constant.RoleBidder, constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.OwnProductUpdateRequest
 		ctx.mustBind(&request)
 		request.ProductId = ctx.getParam("productId")
@@ -160,7 +161,7 @@ func (a *OwnApi) Update() gin.HandlerFunc {
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{product=dto_response.ProductResponse}}
 func (a *OwnApi) Request() gin.HandlerFunc {
-	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+	return a.AuthorizeRoles([]string{constant.RoleBidder, constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.OwnProductRequestRequest
 		request.ProductId = ctx.getParam("productId")
 
@@ -183,7 +184,7 @@ func (a *OwnApi) Request() gin.HandlerFunc {
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{user=dto_response.UserResponse}}
 func (a *OwnApi) GetProfile() gin.HandlerFunc {
-	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+	return a.Authorize(func(ctx apiContext) {
 		user := a.userUseCase.OwnGet(ctx.context())
 
 		ctx.json(http.StatusOK, dto_response.Response{
@@ -205,7 +206,7 @@ func (a *OwnApi) GetProfile() gin.HandlerFunc {
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{user=dto_response.UserResponse}}
 func (a *OwnApi) UpdateProfile() gin.HandlerFunc {
-	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+	return a.Authorize(func(ctx apiContext) {
 		var request dto_request.OwnProfileUpdateRequest
 		ctx.mustBind(&request)
 
@@ -425,6 +426,58 @@ func (a *OwnApi) GetBid() gin.HandlerFunc {
 	})
 }
 
+// RelistAuction godoc
+//
+//	@Router		/own/auctions/{auctionId}/relist [patch]
+//	@Summary	Cancel the auction and relist the product after winner did not pay
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Produce	json
+//	@Param		auctionId	path		string	true	"Auction ID"
+//	@Success	200			{object}	dto_response.Response{data=dto_response.DataResponse{auction=dto_response.AuctionResponse}}
+func (a *OwnApi) RelistAuction() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleSeller}, func(ctx apiContext) {
+		var request dto_request.OwnAuctionRelistRequest
+		request.AuctionId = ctx.getParam("auctionId")
+
+		auction := a.auctionUseCase.OwnRelist(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"auction": dto_response.NewAuctionResponse(ctx.context(), auction),
+			},
+		})
+	})
+}
+
+// SecondChanceAuction godoc
+//
+//	@Router		/own/auctions/{auctionId}/second-chance [patch]
+//	@Summary	Offer the auction to the next-highest bidder after winner did not pay
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Produce	json
+//	@Param		auctionId	path		string	true	"Auction ID"
+//	@Success	200			{object}	dto_response.Response{data=dto_response.DataResponse{auction=dto_response.AuctionResponse}}
+func (a *OwnApi) SecondChanceAuction() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleSeller}, func(ctx apiContext) {
+		var request dto_request.OwnAuctionSecondChanceRequest
+		request.AuctionId = ctx.getParam("auctionId")
+
+		auction := a.auctionUseCase.OwnSecondChance(ctx.context(), request)
+		// Create the initial payment for the new winner (same as post-close flow).
+		if err := a.paymentUseCase.CreateInitialPaymentForWinner(ctx.context(), auction.Id); err != nil {
+			panic(err)
+		}
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"auction": dto_response.NewAuctionResponse(ctx.context(), auction),
+			},
+		})
+	})
+}
+
 func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.UseCaseManager) {
 	api := &OwnApi{
 		api:                      baseApi,
@@ -433,6 +486,7 @@ func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.Us
 		roleRequestUseCase:       useCaseManager.RoleRequestUseCase(),
 		withdrawalRequestUseCase: useCaseManager.WithdrawalRequestUseCase(),
 		auctionUseCase:           useCaseManager.AuctionUseCase(),
+		paymentUseCase:           useCaseManager.PaymentUseCase(),
 		bidUseCase:               useCaseManager.BidUseCase(),
 	}
 
@@ -458,6 +512,8 @@ func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.Us
 	routerAuctionGroup.GET("/:auctionId", api.GetAuction())
 	routerAuctionGroup.POST("", api.CreateAuction())
 	routerAuctionGroup.PUT("/:auctionId", api.UpdateAuction())
+	routerAuctionGroup.PATCH("/:auctionId/relist", api.RelistAuction())
+	routerAuctionGroup.PATCH("/:auctionId/second-chance", api.SecondChanceAuction())
 
 	routerBidGroup := routerGroup.Group("/bids")
 	routerBidGroup.POST("/filter", api.FetchBids())

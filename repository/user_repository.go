@@ -27,7 +27,7 @@ type UserRepository interface {
 	Count(ctx context.Context, options ...model.UserQueryOption) (int64, error)
 
 	// update
-	Update(ctx context.Context, id string, fullname string, phone string, nik *string, birth data_type.DateTime, gender *string, bankAccountNumber *string) (*model.User, error)
+	Update(ctx context.Context, id string, fullname string, birth data_type.DateTime, gender *string) (*model.User, error)
 	UpdateIdentityInfo(ctx context.Context, id string, nik string, identityImagePath string, selfieIdentityImagePath string) error
 	UpdateBankAccountNumber(ctx context.Context, id string, bankAccountNumber string) error
 	SoftDelete(ctx context.Context, id string) error
@@ -157,16 +157,13 @@ func (r *userRepository) Count(ctx context.Context, options ...model.UserQueryOp
 
 // ------------------------------------------------------------------ update
 
-func (r *userRepository) Update(ctx context.Context, id string, fullname string, phone string, nik *string, birth data_type.DateTime, gender *string, bankAccountNumber *string) (*model.User, error) {
+func (r *userRepository) Update(ctx context.Context, id string, fullname string, birth data_type.DateTime, gender *string) (*model.User, error) {
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
-			"fullname":            fullname,
-			"phone":               phone,
-			"nik":                 nik,
-			"birth":               birth,
-			"gender":              gender,
-			"bank_account_number": bankAccountNumber,
-			"updated_at":          util.CurrentDateTime(),
+			"fullname":   fullname,
+			"birth":      birth,
+			"gender":     gender,
+			"updated_at": util.CurrentDateTime(),
 		},
 		squirrel.Eq{"id": id},
 	); err != nil {

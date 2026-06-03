@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	FilesystemLocal = "local"
-	FilesystemGCS   = "gcs"
+	FilesystemLocal    = "local"
+	FilesystemSupabase = "supabase"
 )
 
 // FilesystemManager exposes main (permanent) and tmp (temporary) filesystem clients.
@@ -28,8 +28,8 @@ func (m *filesystemManager) Tmp() Client  { return m.tmp }
 
 // Config holds optional cloud provider config passed from the application manager.
 type Config struct {
-	Filesystem      string
-	GcsClientConfig *GcsClientConfig
+	Filesystem           string
+	SupabaseClientConfig *SupabaseClientConfig
 }
 
 func generateLocalClientConfig(subDir string) *LocalClientConfig {
@@ -45,8 +45,8 @@ func generateLocalClientConfig(subDir string) *LocalClientConfig {
 func NewFilesystemManager(config Config) FilesystemManager {
 	var main Client
 	switch config.Filesystem {
-	case FilesystemGCS:
-		main = NewGcsClient(config.GcsClientConfig)
+	case FilesystemSupabase:
+		main = NewSupabaseClient(config.SupabaseClientConfig)
 	default:
 		main = NewLocal(generateLocalClientConfig(LocalMainPath))
 	}

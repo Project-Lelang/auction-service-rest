@@ -152,11 +152,8 @@ func (u *userUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnProf
 		ctx,
 		userClaims.UserId,
 		request.Fullname,
-		request.Phone,
-		request.Nik,
 		data_type.NewDateTime(birth),
 		request.Gender,
-		request.BankAccountNumber,
 	)
 	panicIfErr(err)
 

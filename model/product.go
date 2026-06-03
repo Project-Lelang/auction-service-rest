@@ -14,6 +14,7 @@ type Product struct {
 	Condition      string  `db:"condition"`
 	CoverImagePath *string `db:"cover_image_path"`
 	ImagePaths     *string `db:"image_paths"` // stored as JSON string
+	WeightGram     int     `db:"weight_gram"`
 	Status         string  `db:"status"`
 	Timestamp
 
@@ -81,9 +82,10 @@ func (p *Product) ToMap() map[string]interface{} {
 		"user_id":          p.UserId,
 		"name":             p.Name,
 		"description":      p.Description,
-		"condition":        p.Condition,
+		"`condition`":      p.Condition,
 		"cover_image_path": p.CoverImagePath,
 		"image_paths":      imagePathsJSON,
+		"weight_gram":      p.WeightGram,
 		"status":           p.Status,
 		"created_at":       p.CreatedAt,
 		"updated_at":       p.UpdatedAt,
