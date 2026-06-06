@@ -292,6 +292,35 @@ func (a *AuctionApi) UpdateBuyerAddress() gin.HandlerFunc {
 	})
 }
 
+// UpdateSellerAddress godoc
+//
+//	@Router		/auctions/{auctionId}/shipments/{shipmentId}/seller-address [patch]
+//	@Summary	Update seller sender address (SELLER only, before shipped)
+//	@tags		Auction
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		auctionId	path	string		true	"Auction ID"
+//	@Param		shipmentId	path	string		true	"Shipment ID"
+//	@Param		body		body	dto_request.AuctionShipmentUpdateAddressRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{shipment=dto_response.ShipmentResponse}}
+func (a *AuctionApi) UpdateSellerAddress() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleSeller}, func(ctx apiContext) {
+		var request dto_request.AuctionShipmentUpdateAddressRequest
+		ctx.mustBind(&request)
+		request.AuctionId = ctx.getParam("auctionId")
+		request.ShipmentId = ctx.getParam("shipmentId")
+
+		shipment := a.shipmentUseCase.UpdateSellerAddress(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"shipment": dto_response.NewShipmentResponse(ctx.context(), shipment),
+			},
+		})
+	})
+}
+
 // GetTracking godoc
 //
 //	@Router		/auctions/{auctionId}/shipments/{shipmentId}/tracking [get]
@@ -319,16 +348,16 @@ func (a *AuctionApi) GetTracking() gin.HandlerFunc {
 	})
 }
 
-//	@Router		/auctions/{auctionId}/shipments/{shipmentId}/receive [post]
-//	@Summary	Mark a shipment as received with delivery proof (BIDDER only)
-//	@tags		Auction
-//	@Security	BearerAuth
-//	@Accept		json
-//	@Param		auctionId	path	string										true	"Auction ID"
-//	@Param		shipmentId	path	string										true	"Shipment ID"
-//	@Param		body		body	dto_request.AuctionShipmentReceiveRequest	true	"Body Request"
-//	@Produce	json
-//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{shipment=dto_response.ShipmentResponse}}
+// @Router		/auctions/{auctionId}/shipments/{shipmentId}/receive [post]
+// @Summary	Mark a shipment as received with delivery proof (BIDDER only)
+// @tags		Auction
+// @Security	BearerAuth
+// @Accept		json
+// @Param		auctionId	path	string										true	"Auction ID"
+// @Param		shipmentId	path	string										true	"Shipment ID"
+// @Param		body		body	dto_request.AuctionShipmentReceiveRequest	true	"Body Request"
+// @Produce	json
+// @Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{shipment=dto_response.ShipmentResponse}}
 func (a *AuctionApi) Receive() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
 		var request dto_request.AuctionShipmentReceiveRequest
@@ -389,6 +418,7 @@ func RegisterAuctionApi(router gin.IRouter, baseApi *api, useCaseManager use_cas
 	auctionsGroup.POST("/:auctionId/shipments/:shipmentId/ship", a.Ship())
 	auctionsGroup.POST("/:auctionId/shipments/:shipmentId/receive", a.Receive())
 	auctionsGroup.PATCH("/:auctionId/shipments/:shipmentId/buyer-address", a.UpdateBuyerAddress())
+	auctionsGroup.PATCH("/:auctionId/shipments/:shipmentId/seller-address", a.UpdateSellerAddress())
 	auctionsGroup.GET("/:auctionId/shipments/:shipmentId/tracking", a.GetTracking())
 
 	router.POST("/payment-notifications", a.HandlePaymentNotification())

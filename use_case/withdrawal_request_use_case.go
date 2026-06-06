@@ -15,7 +15,7 @@ import (
 )
 
 type WithdrawalRequestUseCase interface {
-	OwnCreate(ctx context.Context, request dto_request.OwnWithdrawalRequestCreateRequest) model.WithdrawalRequest
+	CreateOwn(ctx context.Context, request dto_request.OwnWithdrawalRequestCreateRequest) model.WithdrawalRequest
 }
 
 type withdrawalRequestUseCase struct {
@@ -35,7 +35,7 @@ func (u *withdrawalRequestUseCase) mustLoadUserRoles(ctx context.Context, users 
 	}))
 }
 
-func (u *withdrawalRequestUseCase) OwnCreate(ctx context.Context, request dto_request.OwnWithdrawalRequestCreateRequest) model.WithdrawalRequest {
+func (u *withdrawalRequestUseCase) CreateOwn(ctx context.Context, request dto_request.OwnWithdrawalRequestCreateRequest) model.WithdrawalRequest {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	// load user with roles

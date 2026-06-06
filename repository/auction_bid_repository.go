@@ -24,6 +24,8 @@ type AuctionBidRepository interface {
 	// bids (including lower bids) from users who have already been cancelled winners.
 	GetNextHighestByAuctionIdExcludingUsers(ctx context.Context, auctionId string, excludeUserIds []string) (*model.AuctionBid, error)
 	Fetch(ctx context.Context, options ...model.AuctionBidQueryOption) ([]model.AuctionBid, error)
+	FetchByIds(ctx context.Context, ids []string) ([]model.AuctionBid, error)
+	FetchByAuctionIds(ctx context.Context, auctionIds []string) ([]model.AuctionBid, error)
 	Count(ctx context.Context, options ...model.AuctionBidQueryOption) (int64, error)
 }
 
@@ -136,6 +138,27 @@ func (r *auctionBidRepository) Fetch(ctx context.Context, options ...model.Aucti
 	stmt := r.buildBaseStmt(option).Column(r.f("*"))
 	stmt = model.Prepare(stmt, &option)
 
+	return r.fetchInternal(ctx, stmt)
+}
+
+func (r *auctionBidRepository) FetchByIds(ctx context.Context, ids []string) ([]model.AuctionBid, error) {
+	if len(ids) == 0 {
+		return []model.AuctionBid{}, nil
+	}
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("id"): ids})
+	return r.fetchInternal(ctx, stmt)
+}
+
+func (r *auctionBidRepository) FetchByAuctionIds(ctx context.Context, auctionIds []string) ([]model.AuctionBid, error) {
+	if len(auctionIds) == 0 {
+		return []model.AuctionBid{}, nil
+	}
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("auction_id"): auctionIds}).
+		OrderBy(r.f("amount") + " DESC")
 	return r.fetchInternal(ctx, stmt)
 }
 

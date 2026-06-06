@@ -30,6 +30,8 @@ type UserRepository interface {
 	Update(ctx context.Context, id string, fullname string, birth data_type.DateTime, gender *string) (*model.User, error)
 	UpdateIdentityInfo(ctx context.Context, id string, nik string, identityImagePath string, selfieIdentityImagePath string) error
 	UpdateBankAccountNumber(ctx context.Context, id string, bankAccountNumber string) error
+	DepositBalance(ctx context.Context, id string, amount float64) (*model.User, error)
+	WithdrawBalance(ctx context.Context, id string, amount float64) (*model.User, error)
 	SoftDelete(ctx context.Context, id string) error
 }
 
@@ -202,4 +204,49 @@ func (r *userRepository) UpdateBankAccountNumber(ctx context.Context, id string,
 		},
 		squirrel.Eq{"id": id},
 	)
+}
+
+func (r *userRepository) DepositBalance(ctx context.Context, id string, amount float64) (*model.User, error) {
+	if amount <= 0 {
+		return nil, fmt.Errorf("deposit amount must be positive")
+	}
+
+	stmt := stmtBuilder.Update(r.tableName()).Set("balance", squirrel.Expr("balance + ?", amount)).SetMap(map[string]interface{}{
+		"updated_at": util.CurrentDateTime(),
+	}).Where(squirrel.Eq{"id": id})
+
+	if err := exec(r.db, ctx, stmt); err != nil {
+		return nil, err
+	}
+
+	return r.GetById(ctx, id)
+}
+
+func (r *userRepository) WithdrawBalance(ctx context.Context, id string, amount float64) (*model.User, error) {
+	if amount <= 0 {
+		return nil, fmt.Errorf("withdraw amount must be positive")
+	}
+
+	stmt := stmtBuilder.Update(r.tableName()).Set("balance", squirrel.Expr("balance - ?", amount)).SetMap(map[string]interface{}{
+		"updated_at": util.CurrentDateTime(),
+	}).Where(squirrel.And{
+		squirrel.Eq{"id": id},
+		squirrel.Expr("balance >= ?", amount),
+	})
+
+	result := dbtx(r.db, ctx)
+	query, args, err := stmt.ToSql()
+	if err != nil {
+		return nil, translateSqlError(err)
+	}
+
+	res, err := result.ExecContext(ctx, query, args...)
+	if err != nil {
+		return nil, translateSqlError(err)
+	}
+	if rows, _ := res.RowsAffected(); rows == 0 {
+		return nil, fmt.Errorf("insufficient balance")
+	}
+
+	return r.GetById(ctx, id)
 }

@@ -25,6 +25,7 @@ type ShipmentRepository interface {
 	UpdateShipped(ctx context.Context, id string, trackingNumber string, courierCode string, serviceCode string, shippingCost float64, biteshipOrderId string) (*model.Shipment, error)
 	UpdateReceived(ctx context.Context, id string, deliveryProofImagePath string) (*model.Shipment, error)
 	UpdateBuyerAddress(ctx context.Context, id string, buyerAddressId string, snapshot string) (*model.Shipment, error)
+	UpdateSellerAddress(ctx context.Context, id string, sellerAddressId string, snapshot string) (*model.Shipment, error)
 	UpdateEstimatedCosts(ctx context.Context, id string, estimatedCosts string) (*model.Shipment, error)
 }
 
@@ -145,6 +146,21 @@ func (r *shipmentRepository) UpdateBuyerAddress(ctx context.Context, id string, 
 			"buyer_address_id":       buyerAddressId,
 			"buyer_address_snapshot": snapshot,
 			"updated_at":             now,
+		},
+		squirrel.Eq{"id": id},
+	); err != nil {
+		return nil, err
+	}
+	return r.GetById(ctx, id)
+}
+
+func (r *shipmentRepository) UpdateSellerAddress(ctx context.Context, id string, sellerAddressId string, snapshot string) (*model.Shipment, error) {
+	now := util.CurrentDateTime()
+	if err := update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"seller_address_id":       sellerAddressId,
+			"seller_address_snapshot": snapshot,
+			"updated_at":              now,
 		},
 		squirrel.Eq{"id": id},
 	); err != nil {

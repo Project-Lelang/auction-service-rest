@@ -114,3 +114,19 @@ type OwnBidFetchRequest struct {
 type OwnBidGetRequest struct {
 	BidId string `json:"-" swaggerignore:"true"`
 } // @name OwnBidGetRequest
+
+// OwnPaymentFetchSorts defines sortable fields for the own payment fetch endpoint.
+type OwnPaymentFetchSorts []struct {
+	Field     string `json:"field"     validate:"required,oneof=id amount status created_at updated_at" example:"created_at"`
+	Direction string `json:"direction" validate:"required,oneof=asc desc"                              example:"desc"`
+} // @name OwnPaymentFetchSorts
+
+type OwnPaymentFetchRequest struct {
+	PaginationRequest
+	Sorts  OwnPaymentFetchSorts `json:"sorts"  validate:"dive"`
+	Status *string              `json:"status" validate:"omitempty,oneof=WAITING_FOR_PAYMENT PAID FAILED EXPIRED CANCELLED" example:"WAITING_FOR_PAYMENT"`
+} // @name OwnPaymentFetchRequest
+
+type OwnPaymentGetRequest struct {
+	PaymentId string `json:"-" swaggerignore:"true"`
+} // @name OwnPaymentGetRequest

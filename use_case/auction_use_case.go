@@ -33,14 +33,14 @@ type AuctionUseCase interface {
 	Get(ctx context.Context, request dto_request.AuctionGetRequest) model.Auction
 
 	// own (seller)
-	OwnFetch(ctx context.Context, request dto_request.OwnAuctionFetchRequest) ([]model.Auction, int64)
-	OwnGet(ctx context.Context, request dto_request.OwnAuctionGetRequest) model.Auction
-	OwnCreate(ctx context.Context, request dto_request.OwnAuctionCreateRequest) model.Auction
-	OwnUpdate(ctx context.Context, request dto_request.OwnAuctionUpdateRequest) model.Auction
+	FetchOwn(ctx context.Context, request dto_request.OwnAuctionFetchRequest) ([]model.Auction, int64)
+	GetOwn(ctx context.Context, request dto_request.OwnAuctionGetRequest) model.Auction
+	CreateOwn(ctx context.Context, request dto_request.OwnAuctionCreateRequest) model.Auction
+	UpdateOwn(ctx context.Context, request dto_request.OwnAuctionUpdateRequest) model.Auction
 
 	// own seller-decision after winner failed to pay
-	OwnRelist(ctx context.Context, request dto_request.OwnAuctionRelistRequest) model.Auction
-	OwnSecondChance(ctx context.Context, request dto_request.OwnAuctionSecondChanceRequest) model.Auction
+	RelistOwn(ctx context.Context, request dto_request.OwnAuctionRelistRequest) model.Auction
+	SecondChanceOwn(ctx context.Context, request dto_request.OwnAuctionSecondChanceRequest) model.Auction
 
 	// task handlers — called by the asynq worker goroutine
 	HandleStartAuction(ctx context.Context, auctionId string) error
@@ -63,12 +63,43 @@ func NewAuctionUseCase(repositoryManager repository.RepositoryManager, taskQueue
 	}
 }
 
+// mustLoadAuctionData loads product and winner for public auction endpoints (no payment)
 func (u *auctionUseCase) mustLoadAuctionData(_ context.Context, auctions []*model.Auction) {
 	productLoader := loader.NewProductLoader(u.repositoryManager.ProductRepository())
+	winnerLoader := loader.NewWinnerLoader(
+		u.repositoryManager.AuctionWinnerRepository(),
+		u.repositoryManager.AuctionBidRepository(),
+		u.repositoryManager.UserRepository(),
+	)
 
 	panicIfErr(util.Await(func(group *errgroup.Group) {
 		for _, auction := range auctions {
 			group.Go(productLoader.AuctionFn(auction))
+			group.Go(winnerLoader.AuctionFn(auction))
+		}
+	}))
+}
+
+// mustLoadOwnAuctionData loads product, winner, payment, and bids for own auction endpoints
+func (u *auctionUseCase) mustLoadOwnAuctionData(_ context.Context, auctions []*model.Auction) {
+	productLoader := loader.NewProductLoader(u.repositoryManager.ProductRepository())
+	winnerLoader := loader.NewWinnerLoader(
+		u.repositoryManager.AuctionWinnerRepository(),
+		u.repositoryManager.AuctionBidRepository(),
+		u.repositoryManager.UserRepository(),
+	)
+	paymentLoader := loader.NewPaymentLoader(u.repositoryManager.PaymentRepository())
+	bidsLoader := loader.NewAuctionBidsLoader(
+		u.repositoryManager.AuctionBidRepository(),
+		u.repositoryManager.UserRepository(),
+	)
+
+	panicIfErr(util.Await(func(group *errgroup.Group) {
+		for _, auction := range auctions {
+			group.Go(productLoader.AuctionFn(auction))
+			group.Go(winnerLoader.AuctionFn(auction))
+			group.Go(paymentLoader.AuctionFn(auction))
+			group.Go(bidsLoader.AuctionFn(auction))
 		}
 	}))
 }
@@ -110,7 +141,7 @@ func (u *auctionUseCase) Get(ctx context.Context, request dto_request.AuctionGet
 	return auction
 }
 
-func (u *auctionUseCase) OwnFetch(ctx context.Context, request dto_request.OwnAuctionFetchRequest) ([]model.Auction, int64) {
+func (u *auctionUseCase) FetchOwn(ctx context.Context, request dto_request.OwnAuctionFetchRequest) ([]model.Auction, int64) {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	option := model.AuctionQueryOption{
@@ -129,21 +160,21 @@ func (u *auctionUseCase) OwnFetch(ctx context.Context, request dto_request.OwnAu
 	auctions, err := u.repositoryManager.AuctionRepository().Fetch(ctx, option)
 	panicIfErr(err)
 
-	u.mustLoadAuctionData(ctx, util.SliceValueToSlicePointer(auctions))
+	u.mustLoadOwnAuctionData(ctx, util.SliceValueToSlicePointer(auctions))
 
 	return auctions, total
 }
 
-func (u *auctionUseCase) OwnGet(ctx context.Context, request dto_request.OwnAuctionGetRequest) model.Auction {
+func (u *auctionUseCase) GetOwn(ctx context.Context, request dto_request.OwnAuctionGetRequest) model.Auction {
 	userClaims := model.MustGetUserCtx(ctx)
 	auction := u.mustGetOwnAuction(ctx, request.AuctionId, userClaims.UserId)
-	if auction.Product == nil {
-		u.mustLoadAuctionData(ctx, []*model.Auction{&auction})
-	}
+
+	u.mustLoadOwnAuctionData(ctx, []*model.Auction{&auction})
+
 	return auction
 }
 
-func (u *auctionUseCase) OwnCreate(ctx context.Context, request dto_request.OwnAuctionCreateRequest) model.Auction {
+func (u *auctionUseCase) CreateOwn(ctx context.Context, request dto_request.OwnAuctionCreateRequest) model.Auction {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	// verify user has SELLER role
@@ -190,7 +221,7 @@ func (u *auctionUseCase) OwnCreate(ctx context.Context, request dto_request.OwnA
 	return auction
 }
 
-func (u *auctionUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnAuctionUpdateRequest) model.Auction {
+func (u *auctionUseCase) UpdateOwn(ctx context.Context, request dto_request.OwnAuctionUpdateRequest) model.Auction {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	auction := u.mustGetOwnAuction(ctx, request.AuctionId, userClaims.UserId)
@@ -411,7 +442,7 @@ func (u *auctionUseCase) closeAuction(ctx context.Context, auction model.Auction
 
 // OwnRelist is called when the seller decides to relist the product after a
 // winner did not pay.  The auction is cancelled and the product reverts to VERIFIED.
-func (u *auctionUseCase) OwnRelist(ctx context.Context, request dto_request.OwnAuctionRelistRequest) model.Auction {
+func (u *auctionUseCase) RelistOwn(ctx context.Context, request dto_request.OwnAuctionRelistRequest) model.Auction {
 	userClaims := model.MustGetUserCtx(ctx)
 	auction := u.mustGetOwnAuction(ctx, request.AuctionId, userClaims.UserId)
 
@@ -441,7 +472,7 @@ func (u *auctionUseCase) OwnRelist(ctx context.Context, request dto_request.OwnA
 
 // OwnSecondChance offers the auction to the next-highest bidder after the
 // original winner did not pay.  Returns an error if no next bidder exists.
-func (u *auctionUseCase) OwnSecondChance(ctx context.Context, request dto_request.OwnAuctionSecondChanceRequest) model.Auction {
+func (u *auctionUseCase) SecondChanceOwn(ctx context.Context, request dto_request.OwnAuctionSecondChanceRequest) model.Auction {
 	userClaims := model.MustGetUserCtx(ctx)
 	auction := u.mustGetOwnAuction(ctx, request.AuctionId, userClaims.UserId)
 

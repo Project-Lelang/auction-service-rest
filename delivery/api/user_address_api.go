@@ -151,9 +151,6 @@ func RegisterUserAddressApi(router gin.IRouter, baseApi *api, useCaseManager use
 	}
 
 	addressGroup := router.Group("/user-addresses")
-	addressGroup.POST("", a.Create())
-	addressGroup.POST("/filter", a.Fetch())
+	// Keep only GET detail here; other CRUD actions moved to /own for owner-only operations
 	addressGroup.GET("/:userAddressId", a.Get())
-	addressGroup.PUT("/:userAddressId", a.Update())
-	addressGroup.DELETE("/:userAddressId", a.Delete())
 }

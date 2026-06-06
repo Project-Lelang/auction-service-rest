@@ -16,6 +16,7 @@ type OwnApi struct {
 	*api
 	productUseCase           use_case.ProductUseCase
 	userUseCase              use_case.UserUseCase
+	userAddressUseCase       use_case.UserAddressUseCase
 	roleRequestUseCase       use_case.RoleRequestUseCase
 	withdrawalRequestUseCase use_case.WithdrawalRequestUseCase
 	auctionUseCase           use_case.AuctionUseCase
@@ -38,7 +39,7 @@ func (a *OwnApi) Create() gin.HandlerFunc {
 		var request dto_request.OwnProductCreateRequest
 		ctx.mustBind(&request)
 
-		product := a.productUseCase.OwnCreate(ctx.context(), request)
+		product := a.productUseCase.CreateOwn(ctx.context(), request)
 
 		ctx.json(http.StatusCreated, dto_response.Response{
 			Data: dto_response.DataResponse{
@@ -63,7 +64,7 @@ func (a *OwnApi) FetchProducts() gin.HandlerFunc {
 		var request dto_request.OwnProductFetchRequest
 		ctx.mustBind(&request)
 
-		products, total := a.productUseCase.OwnFetch(ctx.context(), request)
+		products, total := a.productUseCase.FetchOwn(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.NewPaginationResponse(
@@ -114,7 +115,7 @@ func (a *OwnApi) Get() gin.HandlerFunc {
 		var request dto_request.OwnProductGetRequest
 		request.ProductId = ctx.getParam("productId")
 
-		product := a.productUseCase.OwnGet(ctx.context(), request)
+		product := a.productUseCase.GetOwn(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
@@ -141,7 +142,7 @@ func (a *OwnApi) Update() gin.HandlerFunc {
 		ctx.mustBind(&request)
 		request.ProductId = ctx.getParam("productId")
 
-		product := a.productUseCase.OwnUpdate(ctx.context(), request)
+		product := a.productUseCase.UpdateOwn(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
@@ -165,7 +166,7 @@ func (a *OwnApi) Request() gin.HandlerFunc {
 		var request dto_request.OwnProductRequestRequest
 		request.ProductId = ctx.getParam("productId")
 
-		product := a.productUseCase.OwnRequest(ctx.context(), request)
+		product := a.productUseCase.RequestOwn(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
@@ -185,7 +186,7 @@ func (a *OwnApi) Request() gin.HandlerFunc {
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{user=dto_response.UserResponse}}
 func (a *OwnApi) GetProfile() gin.HandlerFunc {
 	return a.Authorize(func(ctx apiContext) {
-		user := a.userUseCase.OwnGet(ctx.context())
+		user := a.userUseCase.GetOwn(ctx.context())
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
@@ -210,12 +211,113 @@ func (a *OwnApi) UpdateProfile() gin.HandlerFunc {
 		var request dto_request.OwnProfileUpdateRequest
 		ctx.mustBind(&request)
 
-		user := a.userUseCase.OwnUpdate(ctx.context(), request)
+		user := a.userUseCase.UpdateOwn(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
 				"user": dto_response.NewUserResponse(ctx.context(), user),
 			},
+		})
+	})
+}
+
+// CreateUserAddress godoc
+//
+// @Router     /own/user-addresses [post]
+// @Summary    Create a new user address for the authenticated user
+// @tags       Own
+// @Security   BearerAuth
+// @Accept     json
+// @Param      body    body    dto_request.UserAddressCreateRequest  true  "Body Request"
+// @Produce    json
+// @Success    201 {object} dto_response.Response{data=dto_response.DataResponse{user_address=dto_response.UserAddressResponse}}
+func (a *OwnApi) CreateUserAddress() gin.HandlerFunc {
+	return a.Authorize(func(ctx apiContext) {
+		var request dto_request.UserAddressCreateRequest
+		ctx.mustBind(&request)
+
+		address := a.userAddressUseCase.Create(ctx.context(), request)
+
+		ctx.json(http.StatusCreated, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"user_address": dto_response.NewUserAddressResponse(ctx.context(), address),
+			},
+		})
+	})
+}
+
+// FetchUserAddresses godoc
+//
+// @Router     /own/user-addresses/filter [post]
+// @Summary    List authenticated user's addresses (paginated)
+// @tags       Own
+// @Security   BearerAuth
+// @Accept     json
+// @Param      body    body    dto_request.UserAddressFetchRequest  true  "Body Request"
+// @Produce    json
+// @Success    200 {object} dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.UserAddressResponse}}
+func (a *OwnApi) FetchUserAddresses() gin.HandlerFunc {
+	return a.Authorize(func(ctx apiContext) {
+		var request dto_request.UserAddressFetchRequest
+		ctx.mustBind(&request)
+
+		addresses, total := a.userAddressUseCase.Fetch(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.NewPaginationResponse(
+				util.ConvertArray(ctx.context(), addresses, dto_response.NewUserAddressResponse),
+				total,
+				request.Page,
+				request.Limit,
+			),
+		})
+	})
+}
+
+// UpdateUserAddress godoc
+//
+// @Router     /own/user-addresses/{userAddressId} [put]
+// @Summary    Update authenticated user's address
+// @tags       Own
+// @Security   BearerAuth
+// @Accept     json
+// @Param      userAddressId  path  string  true  "User Address ID"
+// @Param      body           body  dto_request.UserAddressUpdateRequest true "Body Request"
+// @Produce    json
+// @Success    200 {object} dto_response.Response{data=dto_response.DataResponse{user_address=dto_response.UserAddressResponse}}
+func (a *OwnApi) UpdateUserAddress() gin.HandlerFunc {
+	return a.Authorize(func(ctx apiContext) {
+		var request dto_request.UserAddressUpdateRequest
+		ctx.mustBind(&request)
+		request.UserAddressId = ctx.getParam("userAddressId")
+
+		address := a.userAddressUseCase.Update(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"user_address": dto_response.NewUserAddressResponse(ctx.context(), address),
+			},
+		})
+	})
+}
+
+// DeleteUserAddress godoc
+//
+// @Router     /own/user-addresses/{userAddressId} [delete]
+// @Summary    Delete authenticated user's address
+// @tags       Own
+// @Security   BearerAuth
+// @Param      userAddressId  path  string  true  "User Address ID"
+// @Produce    json
+// @Success    200 {object} dto_response.Response{data=dto_response.SuccessResponse}
+func (a *OwnApi) DeleteUserAddress() gin.HandlerFunc {
+	return a.Authorize(func(ctx apiContext) {
+		request := dto_request.UserAddressDeleteRequest{UserAddressId: ctx.getParam("userAddressId")}
+
+		a.userAddressUseCase.Delete(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.SuccessResponse{Message: "deleted"},
 		})
 	})
 }
@@ -235,7 +337,7 @@ func (a *OwnApi) CreateRoleRequest() gin.HandlerFunc {
 		var request dto_request.OwnRoleRequestCreateRequest
 		ctx.mustBind(&request)
 
-		roleRequest := a.roleRequestUseCase.OwnCreate(ctx.context(), request)
+		roleRequest := a.roleRequestUseCase.CreateOwn(ctx.context(), request)
 
 		ctx.json(http.StatusCreated, dto_response.Response{
 			Data: dto_response.DataResponse{
@@ -260,7 +362,7 @@ func (a *OwnApi) CreateWithdrawalRequest() gin.HandlerFunc {
 		var request dto_request.OwnWithdrawalRequestCreateRequest
 		ctx.mustBind(&request)
 
-		withdrawalRequest := a.withdrawalRequestUseCase.OwnCreate(ctx.context(), request)
+		withdrawalRequest := a.withdrawalRequestUseCase.CreateOwn(ctx.context(), request)
 
 		ctx.json(http.StatusCreated, dto_response.Response{
 			Data: dto_response.DataResponse{
@@ -285,7 +387,7 @@ func (a *OwnApi) FetchAuctions() gin.HandlerFunc {
 		var request dto_request.OwnAuctionFetchRequest
 		ctx.mustBind(&request)
 
-		auctions, total := a.auctionUseCase.OwnFetch(ctx.context(), request)
+		auctions, total := a.auctionUseCase.FetchOwn(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.NewPaginationResponse(
@@ -312,7 +414,7 @@ func (a *OwnApi) GetAuction() gin.HandlerFunc {
 		var request dto_request.OwnAuctionGetRequest
 		request.AuctionId = ctx.getParam("auctionId")
 
-		auction := a.auctionUseCase.OwnGet(ctx.context(), request)
+		auction := a.auctionUseCase.GetOwn(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
@@ -337,7 +439,7 @@ func (a *OwnApi) CreateAuction() gin.HandlerFunc {
 		var request dto_request.OwnAuctionCreateRequest
 		ctx.mustBind(&request)
 
-		auction := a.auctionUseCase.OwnCreate(ctx.context(), request)
+		auction := a.auctionUseCase.CreateOwn(ctx.context(), request)
 
 		ctx.json(http.StatusCreated, dto_response.Response{
 			Data: dto_response.DataResponse{
@@ -364,7 +466,7 @@ func (a *OwnApi) UpdateAuction() gin.HandlerFunc {
 		ctx.mustBind(&request)
 		request.AuctionId = ctx.getParam("auctionId")
 
-		auction := a.auctionUseCase.OwnUpdate(ctx.context(), request)
+		auction := a.auctionUseCase.UpdateOwn(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
@@ -389,7 +491,7 @@ func (a *OwnApi) FetchBids() gin.HandlerFunc {
 		var request dto_request.OwnBidFetchRequest
 		ctx.mustBind(&request)
 
-		bids, total := a.bidUseCase.OwnFetch(ctx.context(), request)
+		bids, total := a.bidUseCase.FetchOwn(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.NewPaginationResponse(
@@ -416,11 +518,63 @@ func (a *OwnApi) GetBid() gin.HandlerFunc {
 		var request dto_request.OwnBidGetRequest
 		request.BidId = ctx.getParam("bidId")
 
-		bid := a.bidUseCase.OwnGet(ctx.context(), request)
+		bid := a.bidUseCase.GetOwn(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
 				"bid": dto_response.NewAuctionBidResponse(ctx.context(), bid),
+			},
+		})
+	})
+}
+
+// FetchPayments godoc
+//
+//	@Router		/own/payments/filter [post]
+//	@Summary	Get the authenticated user's own payments (paginated)
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		body	body	dto_request.OwnPaymentFetchRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.PaymentResponse}}
+func (a *OwnApi) FetchPayments() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+		var request dto_request.OwnPaymentFetchRequest
+		ctx.mustBind(&request)
+
+		payments, total := a.paymentUseCase.FetchOwn(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.NewPaginationResponse(
+				util.ConvertArray(ctx.context(), payments, dto_response.NewPaymentResponse),
+				int(total),
+				request.Page,
+				request.Limit,
+			),
+		})
+	})
+}
+
+// GetPayment godoc
+//
+//	@Router		/own/payments/{paymentId} [get]
+//	@Summary	Get the authenticated user's own payment by ID
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Param		paymentId	path	string	true	"Payment ID"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{payment=dto_response.PaymentResponse}}
+func (a *OwnApi) GetPayment() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+		var request dto_request.OwnPaymentGetRequest
+		request.PaymentId = ctx.getParam("paymentId")
+
+		payment := a.paymentUseCase.GetOwn(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"payment": dto_response.NewPaymentResponse(ctx.context(), payment),
 			},
 		})
 	})
@@ -440,7 +594,7 @@ func (a *OwnApi) RelistAuction() gin.HandlerFunc {
 		var request dto_request.OwnAuctionRelistRequest
 		request.AuctionId = ctx.getParam("auctionId")
 
-		auction := a.auctionUseCase.OwnRelist(ctx.context(), request)
+		auction := a.auctionUseCase.RelistOwn(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
@@ -464,7 +618,7 @@ func (a *OwnApi) SecondChanceAuction() gin.HandlerFunc {
 		var request dto_request.OwnAuctionSecondChanceRequest
 		request.AuctionId = ctx.getParam("auctionId")
 
-		auction := a.auctionUseCase.OwnSecondChance(ctx.context(), request)
+		auction := a.auctionUseCase.SecondChanceOwn(ctx.context(), request)
 		// Create the initial payment for the new winner (same as post-close flow).
 		if err := a.paymentUseCase.CreateInitialPaymentForWinner(ctx.context(), auction.Id); err != nil {
 			panic(err)
@@ -483,6 +637,7 @@ func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.Us
 		api:                      baseApi,
 		productUseCase:           useCaseManager.ProductUseCase(),
 		userUseCase:              useCaseManager.UserUseCase(),
+		userAddressUseCase:       useCaseManager.UserAddressUseCase(),
 		roleRequestUseCase:       useCaseManager.RoleRequestUseCase(),
 		withdrawalRequestUseCase: useCaseManager.WithdrawalRequestUseCase(),
 		auctionUseCase:           useCaseManager.AuctionUseCase(),
@@ -518,4 +673,15 @@ func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.Us
 	routerBidGroup := routerGroup.Group("/bids")
 	routerBidGroup.POST("/filter", api.FetchBids())
 	routerBidGroup.GET("/:bidId", api.GetBid())
+
+	routerPaymentGroup := routerGroup.Group("/payments")
+	routerPaymentGroup.POST("/filter", api.FetchPayments())
+	routerPaymentGroup.GET("/:paymentId", api.GetPayment())
+
+	// own user-addresses
+	routerUserAddressGroup := routerGroup.Group("/user-addresses")
+	routerUserAddressGroup.POST("", api.CreateUserAddress())
+	routerUserAddressGroup.POST("/filter", api.FetchUserAddresses())
+	routerUserAddressGroup.PUT("/:userAddressId", api.UpdateUserAddress())
+	routerUserAddressGroup.DELETE("/:userAddressId", api.DeleteUserAddress())
 }

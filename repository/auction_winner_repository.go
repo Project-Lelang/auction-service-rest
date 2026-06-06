@@ -21,6 +21,7 @@ type AuctionWinnerRepository interface {
 	GetActiveByAuctionIdForUpdate(ctx context.Context, auctionId string) (*model.AuctionWinner, error)
 	GetLatestByAuctionId(ctx context.Context, auctionId string) (*model.AuctionWinner, error)
 	Fetch(ctx context.Context, options ...model.AuctionWinnerQueryOption) ([]model.AuctionWinner, error)
+	FetchByAuctionIds(ctx context.Context, auctionIds []string) ([]model.AuctionWinner, error)
 	Count(ctx context.Context, options ...model.AuctionWinnerQueryOption) (int64, error)
 
 	// update
@@ -120,6 +121,17 @@ func (r *auctionWinnerRepository) Fetch(ctx context.Context, options ...model.Au
 	}
 	stmt := r.buildBaseStmt(option).Column(r.f("*"))
 	stmt = model.Prepare(stmt, &option)
+	return r.fetchInternal(ctx, stmt)
+}
+
+func (r *auctionWinnerRepository) FetchByAuctionIds(ctx context.Context, auctionIds []string) ([]model.AuctionWinner, error) {
+	if len(auctionIds) == 0 {
+		return []model.AuctionWinner{}, nil
+	}
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("auction_id"): auctionIds}).
+		Where(squirrel.NotEq{r.f("status"): "CANCELLED"})
 	return r.fetchInternal(ctx, stmt)
 }
 

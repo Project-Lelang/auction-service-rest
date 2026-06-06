@@ -21,6 +21,8 @@ type PaymentRepository interface {
 	GetById(ctx context.Context, id string) (*model.Payment, error)
 	GetActiveByAuctionId(ctx context.Context, auctionId string) (*model.Payment, error)
 	Fetch(ctx context.Context, options ...model.PaymentQueryOption) ([]model.Payment, error)
+	FetchByAuctionIds(ctx context.Context, auctionIds []string) ([]model.Payment, error)
+	Count(ctx context.Context, options ...model.PaymentQueryOption) (int64, error)
 	// FetchExpiredWaiting returns payments that are still WAITING_FOR_PAYMENT but
 	// whose expired_at has already passed. Used for startup recovery.
 	FetchExpiredWaiting(ctx context.Context) ([]model.Payment, error)
@@ -109,6 +111,33 @@ func (r *paymentRepository) Fetch(ctx context.Context, options ...model.PaymentQ
 	stmt := r.buildBaseStmt(option).Column(r.f("*"))
 	stmt = model.Prepare(stmt, &option)
 	return r.fetchInternal(ctx, stmt)
+}
+
+func (r *paymentRepository) FetchByAuctionIds(ctx context.Context, auctionIds []string) ([]model.Payment, error) {
+	if len(auctionIds) == 0 {
+		return []model.Payment{}, nil
+	}
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("auction_id"): auctionIds})
+	return r.fetchInternal(ctx, stmt)
+}
+
+func (r *paymentRepository) Count(ctx context.Context, options ...model.PaymentQueryOption) (int64, error) {
+	option := model.PaymentQueryOption{}
+	if len(options) > 0 {
+		option = options[0]
+	}
+	option.IsCount = true
+
+	stmt := r.buildBaseStmt(option)
+	stmt = model.Prepare(stmt, &option)
+
+	var count int64
+	if err := get(r.db, ctx, &count, stmt); err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func (r *paymentRepository) FetchExpiredWaiting(ctx context.Context) ([]model.Payment, error) {

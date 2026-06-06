@@ -18,6 +18,8 @@ import (
 // PaymentUseCase manages payment creation and notification handling.
 type PaymentUseCase interface {
 	GetByAuction(ctx context.Context, request dto_request.AuctionPaymentGetRequest) model.Payment
+	FetchOwn(ctx context.Context, request dto_request.OwnPaymentFetchRequest) ([]model.Payment, int64)
+	GetOwn(ctx context.Context, request dto_request.OwnPaymentGetRequest) model.Payment
 	HandleMidtransNotification(ctx context.Context, notification infrastructure.MidtransNotification)
 	// HandlePaymentExpiry is the safety-net task handler called by the asynq worker
 	// when a payment's expired_at window elapses without a Midtrans webhook.
@@ -67,6 +69,44 @@ func (u *paymentUseCase) GetByAuction(ctx context.Context, request dto_request.A
 
 	payment.Auction = &auction
 	return payment
+}
+
+func (u *paymentUseCase) FetchOwn(ctx context.Context, request dto_request.OwnPaymentFetchRequest) ([]model.Payment, int64) {
+	userClaims := model.MustGetUserCtx(ctx)
+
+	option := model.PaymentQueryOption{
+		QueryOption: model.NewQueryOptionWithPagination(
+			request.Page,
+			request.Limit,
+			model.Sorts(request.Sorts),
+		),
+		UserId: util.Pointer(userClaims.UserId),
+		Status: request.Status,
+	}
+
+	total, err := u.repositoryManager.PaymentRepository().Count(ctx, option)
+	panicIfErr(err)
+
+	payments, err := u.repositoryManager.PaymentRepository().Fetch(ctx, option)
+	panicIfErr(err)
+
+	return payments, total
+}
+
+func (u *paymentUseCase) GetOwn(ctx context.Context, request dto_request.OwnPaymentGetRequest) model.Payment {
+	userClaims := model.MustGetUserCtx(ctx)
+
+	payment, err := u.repositoryManager.PaymentRepository().GetById(ctx, request.PaymentId)
+	panicIfRepositoryError(err, constant.LanguagePaymentNotFound)
+
+	if payment.UserId != userClaims.UserId {
+		panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
+	}
+
+	auction := mustGetAuction(ctx, u.repositoryManager, payment.AuctionId)
+	payment.Auction = &auction
+
+	return *payment
 }
 
 // createPaymentForWinner creates a Midtrans Snap transaction for an auction
