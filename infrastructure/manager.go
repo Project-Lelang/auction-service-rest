@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"cloud.google.com/go/storage"
 	"github.com/jmoiron/sqlx"
+	storage_go "github.com/supabase-community/storage-go"
 )
 
 type DBTX interface {
@@ -22,9 +22,21 @@ type InfrastructureManager interface {
 	RefreshDB() error
 	CloseDB() error
 
-	// gcs
-	GetGcsClient() *storage.Client
+	// supabase storage
+	GetSupabaseStorageClient() *storage_go.Client
+
+	// midtrans
+	GetMidtransClient() MidtransClient
+
+	// biteship
+	GetBiteshipClient() BiteshipClient
+
+	// task queue
+	GetTaskQueueClient() TaskQueueClient
 
 	// logger
 	GetLoggerStack() LoggerStack
+
+	// lifecycle
+	Close() error
 }

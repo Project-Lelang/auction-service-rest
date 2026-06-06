@@ -15,7 +15,10 @@ type Auction struct {
 	Timestamp
 
 	// relations
-	Product *Product `db:"-"`
+	Product *Product       `db:"-"`
+	Winner  *AuctionWinner `db:"-"`
+	Payment *Payment       `db:"-"`
+	Bids    []*AuctionBid  `db:"-"`
 }
 
 func (a *Auction) TableName() string { return AuctionTableName }

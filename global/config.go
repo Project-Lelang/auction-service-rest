@@ -44,18 +44,26 @@ type FilesystemConfig struct {
 	PresignedUrlSecretKey string `yaml:"presigned_url_secret_key"`
 }
 
-type GcsConfig struct {
-	FileName   string `yaml:"file_name"`
-	ProjectId  string `yaml:"project_id"`
+type SupabaseConfig struct {
+	URL        string `yaml:"url"`
+	ServiceKey string `yaml:"service_key"`
 	BucketName string `yaml:"bucket_name"`
 }
 
-func (c GcsConfig) GcsDir() string {
-	return "./storage/gcp"
+type MidtransConfig struct {
+	ServerKey string `yaml:"server_key"`
+	IsSandbox bool   `yaml:"is_sandbox"`
 }
 
-func (c GcsConfig) ConfigFilepath() string {
-	return fmt.Sprintf("%s/%s", c.GcsDir(), c.FileName)
+type BiteshipConfig struct {
+	ApiKey string `yaml:"api_key"`
+}
+
+type RedisConfig struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Password string `yaml:"password"`
+	DB       int    `yaml:"db"`
 }
 
 type YamlConfig struct {
@@ -75,7 +83,10 @@ type YamlConfig struct {
 	JwtConfig          JwtConfig        `yaml:"jwt"`
 	SuperAdmin         SuperAdminConfig `yaml:"super_admin"`
 	Filesystem         FilesystemConfig `yaml:"filesystem"`
-	Gcs                *GcsConfig       `yaml:"gcs"`
+	Supabase           *SupabaseConfig  `yaml:"supabase"`
+	Midtrans           *MidtransConfig  `yaml:"midtrans"`
+	Biteship           *BiteshipConfig  `yaml:"biteship"`
+	Redis              RedisConfig      `yaml:"redis"`
 }
 
 var config YamlConfig
@@ -154,8 +165,8 @@ func GetFilesystem() FilesystemConfig {
 	return config.Filesystem
 }
 
-func GetGcsConfig() *GcsConfig {
-	return config.Gcs
+func GetSupabaseConfig() *SupabaseConfig {
+	return config.Supabase
 }
 
 func GetAppName() string {

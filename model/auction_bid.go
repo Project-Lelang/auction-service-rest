@@ -10,8 +10,10 @@ type AuctionBid struct {
 	Timestamp
 
 	// relations
-	User    *User    `db:"-"`
-	Auction *Auction `db:"-"`
+	User    *User          `db:"-"`
+	Auction *Auction       `db:"-"`
+	Winner  *AuctionWinner `db:"-"`
+	Payment *Payment       `db:"-"`
 }
 
 func (b *AuctionBid) TableName() string { return AuctionBidTableName }

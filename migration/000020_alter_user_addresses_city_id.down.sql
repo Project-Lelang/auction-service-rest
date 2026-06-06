@@ -1,0 +1,2 @@
+ALTER TABLE user_addresses
+    MODIFY COLUMN city_id VARCHAR(10) NOT NULL DEFAULT '';

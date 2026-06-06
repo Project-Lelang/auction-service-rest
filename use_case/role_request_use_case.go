@@ -18,7 +18,7 @@ import (
 )
 
 type RoleRequestUseCase interface {
-	OwnCreate(ctx context.Context, request dto_request.OwnRoleRequestCreateRequest) model.RoleRequest
+	CreateOwn(ctx context.Context, request dto_request.OwnRoleRequestCreateRequest) model.RoleRequest
 }
 
 type roleRequestUseCase struct {
@@ -44,7 +44,7 @@ func (u *roleRequestUseCase) mustLoadUserRoles(ctx context.Context, users []*mod
 	}))
 }
 
-func (u *roleRequestUseCase) OwnCreate(ctx context.Context, request dto_request.OwnRoleRequestCreateRequest) model.RoleRequest {
+func (u *roleRequestUseCase) CreateOwn(ctx context.Context, request dto_request.OwnRoleRequestCreateRequest) model.RoleRequest {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	// load user with roles

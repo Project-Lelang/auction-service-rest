@@ -16,6 +16,7 @@ type ProductResponse struct {
 	Condition       string                         `json:"condition"                example:"NEW"`
 	CoverImageLink  *string                        `json:"cover_image_link,omitempty"`
 	ImageLinks      []string                       `json:"image_links"`
+	WeightGram      int                            `json:"weight_gram"              example:"500"`
 	Status          string                         `json:"status"                   example:"DRAFT"`
 	User            *UserResponse                  `json:"user,omitempty"`
 	StatusHistories []ProductStatusHistoryResponse `json:"status_histories"`
@@ -40,6 +41,7 @@ func NewProductResponse(ctx context.Context, p model.Product) ProductResponse {
 		Condition:       p.Condition,
 		CoverImageLink:  p.CoverImageLink,
 		ImageLinks:      p.ImageLinks,
+		WeightGram:      p.WeightGram,
 		Status:          p.Status,
 		StatusHistories: []ProductStatusHistoryResponse{},
 		Timestamp:       Timestamp(p.Timestamp),

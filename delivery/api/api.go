@@ -184,6 +184,9 @@ func registerRoutes(router gin.IRouter, container *manager.Container) {
 	RegisterAuthApi(router, &baseApi, container.UseCaseManager())
 	RegisterProductApi(router, &baseApi, container.UseCaseManager())
 	RegisterOwnApi(router, &baseApi, container.UseCaseManager())
+	RegisterAuctionApi(router, &baseApi, container.UseCaseManager())
+	RegisterUserAddressApi(router, &baseApi, container.UseCaseManager())
+	RegisterBiteshipApi(router, &baseApi, container.UseCaseManager())
 
 	// file
 	RegisterFileApi(router, &baseApi, container.FilesystemManager(), container.BaseFileUseCase())

@@ -14,7 +14,11 @@ func main() {
 	defer infraManager.CloseDB()
 
 	if err := seeder.SeedSuperAdmin(infraManager.GetDB()); err != nil {
-		log.Fatalf("seeder failed: %v", err)
+		log.Fatalf("superadmin seeder failed: %v", err)
+	}
+
+	if err := seeder.SeedPaymentMethods(infraManager.GetDB()); err != nil {
+		log.Fatalf("payment methods seeder failed: %v", err)
 	}
 
 	fmt.Println("seeder completed successfully")
