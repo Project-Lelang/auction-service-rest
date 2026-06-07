@@ -1,14 +1,15 @@
-CREATE TABLE user_addresses (
+CREATE TABLE IF NOT EXISTS user_addresses (
     id             CHAR(36)     NOT NULL,
     user_id        CHAR(36)     NOT NULL,
     label          VARCHAR(100) NOT NULL,
     recipient_name VARCHAR(255) NOT NULL,
     phone          VARCHAR(20)  NOT NULL,
-    city_id        VARCHAR(10)  NOT NULL,
+    city_id VARCHAR(100) NOT NULL DEFAULT '',
     city_name      VARCHAR(100) NOT NULL,
     province_name  VARCHAR(100) NOT NULL,
     address        TEXT         NOT NULL,
     postal_code    VARCHAR(10)  NOT NULL,
+    biteship_area_id VARCHAR(100) NOT NULL DEFAULT '',
     is_default     TINYINT(1)   NOT NULL DEFAULT 0,
     created_at     DATETIME     NOT NULL,
     updated_at     DATETIME     NOT NULL,

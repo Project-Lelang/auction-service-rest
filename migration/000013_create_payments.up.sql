@@ -1,4 +1,4 @@
-CREATE TABLE payments (
+CREATE TABLE IF NOT EXISTS payments (
     id                CHAR(36)                                                             NOT NULL,
     auction_id        CHAR(36)                                                             NOT NULL,
     user_id           CHAR(36)                                                             NOT NULL,

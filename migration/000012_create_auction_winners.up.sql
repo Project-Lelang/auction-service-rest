@@ -1,4 +1,4 @@
-CREATE TABLE auction_winners (
+CREATE TABLE IF NOT EXISTS auction_winners (
     id             CHAR(36)                                                   NOT NULL,
     auction_id     CHAR(36)                                                   NOT NULL,
     auction_bid_id CHAR(36)                                                   NOT NULL,

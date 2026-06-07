@@ -1,4 +1,4 @@
-CREATE TABLE payment_methods (
+CREATE TABLE IF NOT EXISTS payment_methods (
     id         CHAR(36)                                             NOT NULL,
     code       VARCHAR(50)                                          NOT NULL,
     type       VARCHAR(50)                                          NOT NULL,

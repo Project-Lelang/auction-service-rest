@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS products (
     cover_image_path VARCHAR(512)   NULL,
     image_paths      JSON           NULL,
     status          VARCHAR(50)     NOT NULL DEFAULT 'DRAFT',
+    weight_gram INT NOT NULL DEFAULT 1000,
     created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
