@@ -5,6 +5,8 @@ import (
 	"auction-service/model"
 	"auction-service/repository"
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type PaymentMethodUseCase interface {
@@ -32,6 +34,7 @@ func (u *paymentMethodUseCase) Create(ctx context.Context, req dto_request.Payme
 	}
 
 	pm := model.PaymentMethod{
+		Id:       uuid.NewString(),
 		Name:     req.Name,
 		Code:     req.Code,
 		Type:     req.Type,
