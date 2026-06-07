@@ -20,8 +20,8 @@ import (
 
 type RoleRequestUseCase interface {
 	OwnCreate(ctx context.Context, request dto_request.OwnRoleRequestCreateRequest) model.RoleRequest
-	Fetch(ctx context.Context, req dto_request.RoleRequestFetchRequest) ([]model.RoleRequest, int64)
-	FetchByUserId(ctx context.Context, userId string) []model.RoleRequest
+	AdminFetch(ctx context.Context, req dto_request.RoleRequestFetchRequest) ([]model.RoleRequest, int64)
+	AdminFetchByUserId(ctx context.Context, userId string) []model.RoleRequest
 	Approve(ctx context.Context, id int64)
 	Reject(ctx context.Context, id int64, req dto_request.RoleRequestRejectRequest)
 	UserReRequest(ctx context.Context, id int64) model.RoleRequest
@@ -167,8 +167,8 @@ func (u *roleRequestUseCase) UserReRequest(ctx context.Context, id int64) model.
 
 // ------------------------------------------------------------------ admin operations
 
-// Fetch dipanggil Admin untuk melihat daftar request (Mendukung join user sesuai format data lengkap)
-func (u *roleRequestUseCase) Fetch(ctx context.Context, req dto_request.RoleRequestFetchRequest) ([]model.RoleRequest, int64) {
+// AdminFetch dipanggil Admin untuk melihat daftar request (Mendukung join user sesuai format data lengkap)
+func (u *roleRequestUseCase) AdminFetch(ctx context.Context, req dto_request.RoleRequestFetchRequest) ([]model.RoleRequest, int64) {
 	option := model.RoleRequestQueryOption{
 		QueryOption: model.NewQueryOptionWithPagination(req.Page, req.Limit, nil),
 		Status:      req.Status,
@@ -185,8 +185,8 @@ func (u *roleRequestUseCase) Fetch(ctx context.Context, req dto_request.RoleRequ
 	return requests, total
 }
 
-// FetchByUserId dipanggil Admin untuk memeriksa riwayat pengajuan dari 1 user spesifik
-func (u *roleRequestUseCase) FetchByUserId(ctx context.Context, userId string) []model.RoleRequest {
+// AdminFetchByUserId dipanggil Admin untuk memeriksa riwayat pengajuan dari 1 user spesifik
+func (u *roleRequestUseCase) AdminFetchByUserId(ctx context.Context, userId string) []model.RoleRequest {
 	res, err := u.repositoryManager.RoleRequestRepository().Fetch(ctx, model.RoleRequestQueryOption{
 		UserId: &userId,
 	})

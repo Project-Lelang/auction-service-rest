@@ -26,7 +26,7 @@ func RegisterAdminPaymentMethodApi(router gin.IRouter, baseApi *api, useCaseMana
 	adminPaymentGroup := router.Group("/admin/payment-methods")
 	{
 		adminPaymentGroup.POST("", api.CreatePaymentMethod())
-		adminPaymentGroup.GET("", api.ListPaymentMethods())
+		adminPaymentGroup.POST("/filter", api.ListPaymentMethods())
 		adminPaymentGroup.GET("/:id", api.GetPaymentMethodById())
 		adminPaymentGroup.PATCH("/:id", api.UpdatePaymentMethod())
 	}
@@ -57,24 +57,20 @@ func (a *AdminPaymentMethodApi) CreatePaymentMethod() gin.HandlerFunc {
 
 // ListPaymentMethods godoc
 //
-//	@Router		/admin/payment-methods [get]
+//	@Router		/admin/payment-methods/filter [post]
 //	@Summary	Admin — Get list of payment methods
 //	@tags		Admin Payment Methods
 //	@Security	BearerAuth
-//	@Param		name		query	string	false	"Filter by Name"
-//	@Param		code		query	string	false	"Filter by Code"
-//	@Param		type		query	string	false	"Filter by Type"
-//	@Param		is_active	query	bool	false	"Filter by Activation Status"
-//	@Param		page		query	int		false	"Page"
-//	@Param		limit		query	int		false	"Limit"
+//	@Accept		json
+//	@Param		body	body	dto_request.PaymentMethodFetchRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response
 func (a *AdminPaymentMethodApi) ListPaymentMethods() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
 		var request dto_request.PaymentMethodFetchRequest
-		ctx.mustBindQuery(&request)
+		ctx.mustBind(&request)
 
-		data, total := a.paymentMethodUseCase.Fetch(ctx.context(), request)
+		data, total := a.paymentMethodUseCase.AdminFetch(ctx.context(), request)
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.NewPaginationResponse(
 				data,

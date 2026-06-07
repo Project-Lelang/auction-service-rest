@@ -30,8 +30,8 @@ func RegisterAdminWithdrawalRequestApi(
 		withdrawalRequestUseCase: useCaseManager.WithdrawalRequestUseCase(),
 	}
 
-	router.GET(
-		"/admin/withdrawal-requests",
+	router.POST(
+		"/admin/withdrawal-requests/filter",
 		api.Fetch(),
 	)
 
@@ -47,30 +47,23 @@ func RegisterAdminWithdrawalRequestApi(
 
 // Fetch godoc
 //
-//	@Router		/admin/withdrawal-requests [get]
+//	@Router		/admin/withdrawal-requests/filter [post]
 //	@Summary	Admin — Get withdrawal requests by status
 //	@tags		Admin Withdrawal Requests
 //	@Security	BearerAuth
-//	@Param		status	query	string	false	"REQUESTED/COMPLETED"
-//	@Param		page	query	int		false	"Page"
-//	@Param		limit	query	int		false	"Limit"
+//	@Accept		json
+//	@Param		body	body	dto_request.WithdrawalRequestFetchRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response
 func (a *AdminWithdrawalRequestApi) Fetch() gin.HandlerFunc {
 
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
 
-		status := ctx.getParam("status")
-
 		var request dto_request.WithdrawalRequestFetchRequest
 
-		ctx.mustBindQuery(&request)
+		ctx.mustBind(&request)
 
-		if status != "" {
-			request.Status = &status
-		}
-
-		data, total := a.withdrawalRequestUseCase.Fetch(
+		data, total := a.withdrawalRequestUseCase.AdminFetch(
 			ctx.context(),
 			request,
 		)

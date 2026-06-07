@@ -10,6 +10,7 @@ import (
 type PaymentMethodUseCase interface {
 	Create(ctx context.Context, req dto_request.PaymentMethodCreateRequest) model.PaymentMethod
 	Fetch(ctx context.Context, req dto_request.PaymentMethodFetchRequest) ([]model.PaymentMethod, int64)
+	AdminFetch(ctx context.Context, req dto_request.PaymentMethodFetchRequest) ([]model.PaymentMethod, int64)
 	GetById(ctx context.Context, id int64) model.PaymentMethod
 	Update(ctx context.Context, id int64, req dto_request.PaymentMethodUpdateRequest) model.PaymentMethod
 }
@@ -69,6 +70,10 @@ func (u *paymentMethodUseCase) GetById(ctx context.Context, id int64) model.Paym
 	}
 
 	return *pm
+}
+
+func (u *paymentMethodUseCase) AdminFetch(ctx context.Context, req dto_request.PaymentMethodFetchRequest) ([]model.PaymentMethod, int64) {
+	return u.Fetch(ctx, req)
 }
 
 func (u *paymentMethodUseCase) Update(ctx context.Context, id int64, req dto_request.PaymentMethodUpdateRequest) model.PaymentMethod {

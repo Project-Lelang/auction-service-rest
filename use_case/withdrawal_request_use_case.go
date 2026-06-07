@@ -19,8 +19,8 @@ type WithdrawalRequestUseCase interface {
 	OwnCreate(ctx context.Context, request dto_request.OwnWithdrawalRequestCreateRequest) model.WithdrawalRequest
 
 	// ADMIN
-	Fetch(ctx context.Context, req dto_request.WithdrawalRequestFetchRequest) ([]model.WithdrawalRequest, int64)
-	FetchByUserId(ctx context.Context, userId string, req dto_request.WithdrawalRequestFetchRequest) ([]model.WithdrawalRequest, int64)
+	AdminFetch(ctx context.Context, req dto_request.WithdrawalRequestFetchRequest) ([]model.WithdrawalRequest, int64)
+	AdminFetchByUserId(ctx context.Context, userId string, req dto_request.WithdrawalRequestFetchRequest) ([]model.WithdrawalRequest, int64)
 	Complete(ctx context.Context, adminId string, userId string, withdrawalRequestId int64) model.WithdrawalRequest
 }
 
@@ -129,8 +129,8 @@ func (u *withdrawalRequestUseCase) OwnCreate(ctx context.Context, request dto_re
 
 // ------------------------------------------------------------------ admin operations
 
-// Fetch dipanggil Admin untuk melihat seluruh daftar pengajuan dana (Sesuai kebutuhan endpoint UI Frontend Anda)
-func (u *withdrawalRequestUseCase) Fetch(ctx context.Context, req dto_request.WithdrawalRequestFetchRequest) ([]model.WithdrawalRequest, int64) {
+// AdminFetch dipanggil Admin untuk melihat seluruh daftar pengajuan dana (Sesuai kebutuhan endpoint UI Frontend Anda)
+func (u *withdrawalRequestUseCase) AdminFetch(ctx context.Context, req dto_request.WithdrawalRequestFetchRequest) ([]model.WithdrawalRequest, int64) {
 	option := model.WithdrawalRequestQueryOption{
 		QueryOption: model.NewQueryOptionWithPagination(req.Page, req.Limit, nil),
 		Status:      req.Status,
@@ -147,8 +147,8 @@ func (u *withdrawalRequestUseCase) Fetch(ctx context.Context, req dto_request.Wi
 	return requests, total
 }
 
-// FetchByUserId digunakan Admin jika ingin memfilter history pengajuan berdasarkan 1 user spesifik
-func (u *withdrawalRequestUseCase) FetchByUserId(
+// AdminFetchByUserId digunakan Admin jika ingin memfilter history pengajuan berdasarkan 1 user spesifik
+func (u *withdrawalRequestUseCase) AdminFetchByUserId(
 	ctx context.Context,
 	userId string,
 	req dto_request.WithdrawalRequestFetchRequest,

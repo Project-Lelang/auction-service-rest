@@ -62,66 +62,6 @@ const docTemplate = `{
             }
         },
         "/admin/payment-methods": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Admin Payment Methods"
-                ],
-                "summary": "Admin — Get list of payment methods",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by Name",
-                        "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by Code",
-                        "name": "code",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by Type",
-                        "name": "type",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Filter by Activation Status",
-                        "name": "is_active",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Limit",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/Response"
-                        }
-                    }
-                }
-            },
             "post": {
                 "security": [
                     {
@@ -149,6 +89,44 @@ const docTemplate = `{
                 "responses": {
                     "201": {
                         "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/payment-methods/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Payment Methods"
+                ],
+                "summary": "Admin — Get list of payment methods",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto_request.PaymentMethodFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/Response"
                         }
@@ -355,11 +333,14 @@ const docTemplate = `{
             }
         },
         "/admin/role-requests/list/{role}": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
+                ],
+                "consumes": [
+                    "application/json"
                 ],
                 "produces": [
                     "application/json"
@@ -377,22 +358,13 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "string",
-                        "description": "Status Filter",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Limit",
-                        "name": "limit",
-                        "in": "query"
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto_request.RoleRequestFetchRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -443,12 +415,15 @@ const docTemplate = `{
                 }
             }
         },
-        "/admin/users/admins": {
-            "get": {
+        "/admin/users/admins/filter": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
+                ],
+                "consumes": [
+                    "application/json"
                 ],
                 "produces": [
                     "application/json"
@@ -459,24 +434,13 @@ const docTemplate = `{
                 "summary": "Get paginated list of admin users only",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "default": 1,
-                        "description": "Page number",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 1,
-                        "description": "Limit per page",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Sort profile (e.g. id:desc)",
-                        "name": "sorts",
-                        "in": "query"
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AdminUserFetchRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -944,12 +908,15 @@ const docTemplate = `{
                 }
             }
         },
-        "/admin/withdrawal-requests": {
-            "get": {
+        "/admin/withdrawal-requests/filter": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
+                ],
+                "consumes": [
+                    "application/json"
                 ],
                 "produces": [
                     "application/json"
@@ -960,22 +927,13 @@ const docTemplate = `{
                 "summary": "Admin — Get withdrawal requests by status",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "REQUESTED/COMPLETED",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Limit",
-                        "name": "limit",
-                        "in": "query"
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto_request.WithdrawalRequestFetchRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -3252,6 +3210,35 @@ const docTemplate = `{
                 }
             }
         },
+        "dto_request.PaymentMethodFetchRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "type": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            }
+        },
         "dto_request.PaymentMethodUpdateRequest": {
             "type": "object",
             "properties": {
@@ -3276,6 +3263,35 @@ const docTemplate = `{
                 }
             }
         },
+        "dto_request.RoleRequestFetchRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "BIDDER",
+                        "SELLER"
+                    ]
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "REQUESTED",
+                        "APPROVED",
+                        "REJECTED"
+                    ]
+                }
+            }
+        },
         "dto_request.RoleRequestRejectRequest": {
             "type": "object",
             "required": [
@@ -3286,6 +3302,27 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 255,
                     "example": "Dokumen pendukung kurang jelas atau blur"
+                }
+            }
+        },
+        "dto_request.WithdrawalRequestFetchRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "REQUESTED",
+                        "COMPLETED"
+                    ]
                 }
             }
         }

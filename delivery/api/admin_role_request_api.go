@@ -27,7 +27,7 @@ func RegisterAdminRoleRequestApi(router gin.IRouter, baseApi *api, useCaseManage
 		userRoleUseCase:    useCaseManager.UserRoleUseCase(),
 	}
 
-	router.GET("/admin/role-requests/list/:role", api.ListRoleRequests())
+	router.POST("/admin/role-requests/list/:role", api.ListRoleRequests())
 
 	userRequestGroup := router.Group("/admin/users/:userId")
 	{
@@ -40,14 +40,13 @@ func RegisterAdminRoleRequestApi(router gin.IRouter, baseApi *api, useCaseManage
 
 // ListRoleRequests godoc
 //
-//	@Router		/admin/role-requests/list/{role} [get]
+//	@Router		/admin/role-requests/list/{role} [post]
 //	@Summary	Admin — Get list of role requests by role
 //	@tags		Admin Role Requests
 //	@Security	BearerAuth
 //	@Param		role	path	string	true	"Role (BIDDER/SELLER)"
-//	@Param		status	query	string	false	"Status Filter"
-//	@Param		page	query	int		false	"Page"
-//	@Param		limit	query	int		false	"Limit"
+//	@Accept		json
+//	@Param		body	body	dto_request.RoleRequestFetchRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response
 func (a *AdminRoleRequestApi) ListRoleRequests() gin.HandlerFunc {
@@ -57,11 +56,11 @@ func (a *AdminRoleRequestApi) ListRoleRequests() gin.HandlerFunc {
 
 		var request dto_request.RoleRequestFetchRequest
 
-		ctx.mustBindQuery(&request)
+		ctx.mustBind(&request)
 
 		request.Role = &role
 
-		data, total := a.roleRequestUseCase.Fetch(
+		data, total := a.roleRequestUseCase.AdminFetch(
 			ctx.context(),
 			request,
 		)
@@ -114,7 +113,7 @@ func (a *AdminRoleRequestApi) GetUserRoleRequests() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
 		userId := ctx.getParam("userId")
 
-		data := a.roleRequestUseCase.FetchByUserId(ctx.context(), userId)
+		data := a.roleRequestUseCase.AdminFetchByUserId(ctx.context(), userId)
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
 				"role_requests": data,
