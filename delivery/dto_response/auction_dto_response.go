@@ -10,14 +10,17 @@ import (
 
 // AuctionResponse represents a single auction in API responses.
 type AuctionResponse struct {
-	Id            string             `json:"id"             example:"550e8400-e29b-41d4-a716-446655440000"`
-	ProductId     string             `json:"product_id"     example:"550e8400-e29b-41d4-a716-446655440001"`
-	StartingPrice float64            `json:"starting_price" example:"100000"`
-	StartTime     data_type.DateTime `json:"start_time"`
-	EndTime       data_type.DateTime `json:"end_time"`
-	Status        string             `json:"status"         example:"SCHEDULED"`
-	Fee           float64            `json:"fee"            example:"5000"`
-	Product       *ProductResponse   `json:"product,omitempty"`
+	Id            string                 `json:"id"             example:"550e8400-e29b-41d4-a716-446655440000"`
+	ProductId     string                 `json:"product_id"     example:"550e8400-e29b-41d4-a716-446655440001"`
+	StartingPrice float64                `json:"starting_price" example:"100000"`
+	StartTime     data_type.DateTime     `json:"start_time"`
+	EndTime       data_type.DateTime     `json:"end_time"`
+	Status        string                 `json:"status"         example:"SCHEDULED"`
+	Fee           float64                `json:"fee"            example:"5000"`
+	Product       *ProductResponse       `json:"product,omitempty"`
+	Winner        *AuctionWinnerResponse `json:"winner,omitempty"`
+	Payment       *PaymentResponse       `json:"payment,omitempty"`
+	Bids          []AuctionBidResponse   `json:"bids,omitempty"`
 	Timestamp
 } // @name AuctionResponse
 
@@ -35,6 +38,21 @@ func NewAuctionResponse(ctx context.Context, a model.Auction) AuctionResponse {
 
 	if a.Product != nil {
 		r.Product = util.Pointer(NewProductResponse(ctx, *a.Product))
+	}
+
+	if a.Winner != nil {
+		r.Winner = util.Pointer(NewAuctionWinnerResponse(ctx, *a.Winner))
+	}
+
+	if a.Payment != nil {
+		r.Payment = util.Pointer(NewPaymentResponse(ctx, *a.Payment))
+	}
+
+	if len(a.Bids) > 0 {
+		r.Bids = make([]AuctionBidResponse, len(a.Bids))
+		for i, bid := range a.Bids {
+			r.Bids[i] = NewAuctionBidResponse(ctx, *bid)
+		}
 	}
 
 	return r

@@ -39,13 +39,40 @@ const (
 	LanguageWithdrawalRequestNotFound            = "WITHDRAWAL_REQUEST.NOT_FOUND"
 
 	// auction
-	LanguageAuctionNotFound           = "AUCTION.NOT_FOUND"
-	LanguageAuctionProductNotVerified = "AUCTION.PRODUCT_NOT_VERIFIED"
-	LanguageAuctionNotScheduled       = "AUCTION.NOT_SCHEDULED"
-	LanguageAuctionInvalidTimeRange   = "AUCTION.INVALID_TIME_RANGE"
+	LanguageAuctionNotFound                    = "AUCTION.NOT_FOUND"
+	LanguageAuctionProductNotVerified          = "AUCTION.PRODUCT_NOT_VERIFIED"
+	LanguageAuctionNotScheduled                = "AUCTION.NOT_SCHEDULED"
+	LanguageAuctionInvalidTimeRange            = "AUCTION.INVALID_TIME_RANGE"
+	LanguageAuctionStartTimeTooSoon            = "AUCTION.START_TIME_TOO_SOON"
+	LanguageAuctionNotWaitingForSellerDecision = "AUCTION.NOT_WAITING_FOR_SELLER_DECISION"
+	LanguageAuctionNoNextBidder                = "AUCTION.NO_NEXT_BIDDER"
+	LanguageAuctionNotWaitingForBuyerAddress   = "AUCTION.NOT_WAITING_FOR_BUYER_ADDRESS"
+	LanguageAuctionAddressNotConfirmed         = "AUCTION.ADDRESS_NOT_CONFIRMED"
 
 	// bid
-	LanguageBidNotFound = "BID.NOT_FOUND"
+	LanguageBidNotFound            = "BID.NOT_FOUND"
+	LanguageBidAuctionNotOnGoing   = "BID.AUCTION_NOT_ON_GOING"
+	LanguageBidAmountTooLow        = "BID.AMOUNT_TOO_LOW"
+	LanguageBidCannotBidOwnAuction = "BID.CANNOT_BID_OWN_AUCTION"
+
+	// winner
+	LanguageWinnerNotFound = "WINNER.NOT_FOUND"
+
+	// payment
+	LanguagePaymentNotFound = "PAYMENT.NOT_FOUND"
+
+	// shipment
+	LanguageShipmentNotFound         = "SHIPMENT.NOT_FOUND"
+	LanguageShipmentAlreadyShipped   = "SHIPMENT.ALREADY_SHIPPED"
+	LanguageShipmentNotShippedYet    = "SHIPMENT.NOT_SHIPPED_YET"
+	LanguageShipmentAlreadyReceived  = "SHIPMENT.ALREADY_RECEIVED"
+	LanguageShipmentNoTrackingNumber = "SHIPMENT.NO_TRACKING_NUMBER"
+	LanguageShipmentAddressLocked    = "SHIPMENT.ADDRESS_LOCKED_AFTER_SHIP"
+
+	// user address
+	LanguageUserAddressNotFound  = "USER_ADDRESS.NOT_FOUND"
+	LanguageUserAddressNotOwned  = "USER_ADDRESS.NOT_OWNED"
+	LanguageUserAddressIsDefault = "USER_ADDRESS.IS_DEFAULT"
 
 	// system
 	LanguageSystemUnauthorized          = "SYSTEM.UNAUTHORIZED"

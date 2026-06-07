@@ -10,6 +10,11 @@ type UseCaseManager interface {
 	AuctionUseCase() AuctionUseCase
 	BidUseCase() BidUseCase
 	PaymentMethodUseCase() PaymentMethodUseCase
+	WinnerUseCase() WinnerUseCase
+	PaymentUseCase() PaymentUseCase
+	ShipmentUseCase() ShipmentUseCase
+	UserAddressUseCase() UserAddressUseCase
+	BiteshipUseCase() BiteshipUseCase
 }
 
 type useCaseManager struct {
@@ -22,6 +27,11 @@ type useCaseManager struct {
 	auctionUseCase           AuctionUseCase
 	bidUseCase               BidUseCase
 	paymentMethodUseCase     PaymentMethodUseCase
+	winnerUseCase            WinnerUseCase
+	paymentUseCase           PaymentUseCase
+	shipmentUseCase          ShipmentUseCase
+	userAddressUseCase       UserAddressUseCase
+	biteshipUseCase          BiteshipUseCase
 }
 
 func NewUseCaseManager(
@@ -34,6 +44,11 @@ func NewUseCaseManager(
 	auctionUseCase AuctionUseCase,
 	bidUseCase BidUseCase,
 	paymentMethodUseCase PaymentMethodUseCase,
+	winnerUseCase WinnerUseCase,
+	paymentUseCase PaymentUseCase,
+	shipmentUseCase ShipmentUseCase,
+	userAddressUseCase UserAddressUseCase,
+	biteshipUseCase BiteshipUseCase,
 ) UseCaseManager {
 	return &useCaseManager{
 		authUseCase:              authUseCase,
@@ -45,6 +60,11 @@ func NewUseCaseManager(
 		auctionUseCase:           auctionUseCase,
 		bidUseCase:               bidUseCase,
 		paymentMethodUseCase:     paymentMethodUseCase,
+		winnerUseCase:            winnerUseCase,
+		paymentUseCase:           paymentUseCase,
+		shipmentUseCase:          shipmentUseCase,
+		userAddressUseCase:       userAddressUseCase,
+		biteshipUseCase:          biteshipUseCase,
 	}
 }
 
@@ -81,4 +101,23 @@ func (u *useCaseManager) BidUseCase() BidUseCase {
 }
 func (u *useCaseManager) PaymentMethodUseCase() PaymentMethodUseCase {
 	return u.paymentMethodUseCase
+
+func (u *useCaseManager) WinnerUseCase() WinnerUseCase {
+	return u.winnerUseCase
+}
+
+func (u *useCaseManager) PaymentUseCase() PaymentUseCase {
+	return u.paymentUseCase
+}
+
+func (u *useCaseManager) ShipmentUseCase() ShipmentUseCase {
+	return u.shipmentUseCase
+}
+
+func (u *useCaseManager) UserAddressUseCase() UserAddressUseCase {
+	return u.userAddressUseCase
+}
+
+func (u *useCaseManager) BiteshipUseCase() BiteshipUseCase {
+	return u.biteshipUseCase
 }

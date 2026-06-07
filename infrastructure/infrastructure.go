@@ -5,27 +5,43 @@ import (
 
 	"auction-service/global"
 
-	"cloud.google.com/go/storage"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
+	storage_go "github.com/supabase-community/storage-go"
 )
 
 type infrastructureManager struct {
-	sqlDB       *sqlx.DB
-	gcsClient   *storage.Client
-	loggerStack LoggerStack
+	sqlDB                 *sqlx.DB
+	supabaseStorageClient *storage_go.Client
+	midtransClient        MidtransClient
+	biteshipClient        BiteshipClient
+	taskQueueClient       TaskQueueClient
+	loggerStack           LoggerStack
 }
 
 func NewInfrastructureManager(configuration global.YamlConfig) InfrastructureManager {
 	sqlDB := NewMysqlDB(configuration.Mysql)
-	gcsClient := NewGcsClient(configuration.Gcs)
+	supabaseClient := NewSupabaseStorageClient(configuration.Supabase)
+
+	var midtransClient MidtransClient
+	if configuration.Midtrans != nil {
+		midtransClient = NewMidtransClient(configuration.Midtrans.ServerKey, configuration.Midtrans.IsSandbox)
+	}
+
+	var biteshipClient BiteshipClient
+	if configuration.Biteship != nil {
+		biteshipClient = NewBiteshipClient(configuration.Biteship.ApiKey)
+	}
 
 	return &infrastructureManager{
-		sqlDB:       sqlDB,
-		gcsClient:   gcsClient,
-		loggerStack: NewLoggerStack(configuration.LogChannel),
+		sqlDB:                 sqlDB,
+		supabaseStorageClient: supabaseClient,
+		midtransClient:        midtransClient,
+		biteshipClient:        biteshipClient,
+		taskQueueClient:       NewTaskQueueClient(configuration.Redis),
+		loggerStack:           NewLoggerStack(configuration.LogChannel),
 	}
 }
 
@@ -33,8 +49,20 @@ func (i *infrastructureManager) GetDB() *sqlx.DB {
 	return i.sqlDB
 }
 
-func (i *infrastructureManager) GetGcsClient() *storage.Client {
-	return i.gcsClient
+func (i *infrastructureManager) GetSupabaseStorageClient() *storage_go.Client {
+	return i.supabaseStorageClient
+}
+
+func (i *infrastructureManager) GetMidtransClient() MidtransClient {
+	return i.midtransClient
+}
+
+func (i *infrastructureManager) GetBiteshipClient() BiteshipClient {
+	return i.biteshipClient
+}
+
+func (i *infrastructureManager) GetTaskQueueClient() TaskQueueClient {
+	return i.taskQueueClient
 }
 
 func (i *infrastructureManager) migrationDSN() string {
@@ -94,5 +122,8 @@ func (i *infrastructureManager) GetLoggerStack() LoggerStack {
 }
 
 func (i *infrastructureManager) Close() error {
+	if i.taskQueueClient != nil {
+		_ = i.taskQueueClient.Close()
+	}
 	return i.CloseDB()
 }

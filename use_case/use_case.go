@@ -46,3 +46,27 @@ func mustGetAuction(ctx context.Context, repositoryManager repository.Repository
 	panicIfRepositoryError(err, constant.LanguageAuctionNotFound)
 	return *auction
 }
+
+func mustGetAuctionWinner(ctx context.Context, repositoryManager repository.RepositoryManager, id string) model.AuctionWinner {
+	winner, err := repositoryManager.AuctionWinnerRepository().GetById(ctx, id)
+	panicIfRepositoryError(err, constant.LanguageWinnerNotFound)
+	return *winner
+}
+
+func mustGetPayment(ctx context.Context, repositoryManager repository.RepositoryManager, id string) model.Payment {
+	payment, err := repositoryManager.PaymentRepository().GetById(ctx, id)
+	panicIfRepositoryError(err, constant.LanguagePaymentNotFound)
+	return *payment
+}
+
+func mustGetShipment(ctx context.Context, repositoryManager repository.RepositoryManager, id string) model.Shipment {
+	shipment, err := repositoryManager.ShipmentRepository().GetById(ctx, id)
+	panicIfRepositoryError(err, constant.LanguageShipmentNotFound)
+	return *shipment
+}
+
+func mustGetAuctionBid(ctx context.Context, repositoryManager repository.RepositoryManager, id string) model.AuctionBid {
+	bid, err := repositoryManager.AuctionBidRepository().GetById(ctx, id)
+	panicIfRepositoryError(err, constant.LanguageBidNotFound)
+	return *bid
+}

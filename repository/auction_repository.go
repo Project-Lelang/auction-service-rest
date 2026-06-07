@@ -19,11 +19,15 @@ type AuctionRepository interface {
 
 	// read
 	GetById(ctx context.Context, id string) (*model.Auction, error)
+	GetByIdForUpdate(ctx context.Context, id string) (*model.Auction, error)
 	Fetch(ctx context.Context, options ...model.AuctionQueryOption) ([]model.Auction, error)
 	Count(ctx context.Context, options ...model.AuctionQueryOption) (int64, error)
+	FetchStartable(ctx context.Context) ([]model.Auction, error)
+	FetchCloseable(ctx context.Context) ([]model.Auction, error)
 
 	// update
 	Update(ctx context.Context, id string, startingPrice float64, startTime, endTime data_type.DateTime, fee float64) (*model.Auction, error)
+	UpdateStatus(ctx context.Context, id string, status string) (*model.Auction, error)
 }
 
 type auctionRepository struct {
@@ -76,6 +80,15 @@ func (r *auctionRepository) fetchInternal(ctx context.Context, stmt squirrel.Sel
 	return auctions, nil
 }
 
+// FetchCloseable returns all ON_GOING auctions whose end_time has passed.
+func (r *auctionRepository) FetchCloseable(ctx context.Context) ([]model.Auction, error) {
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("status"): "ON_GOING"}).
+		Where(squirrel.Expr(r.f("end_time") + " <= UTC_TIMESTAMP()"))
+	return r.fetchInternal(ctx, stmt)
+}
+
 // ------------------------------------------------------------------ create
 
 func (r *auctionRepository) Insert(ctx context.Context, auction *model.Auction) error {
@@ -84,12 +97,36 @@ func (r *auctionRepository) Insert(ctx context.Context, auction *model.Auction) 
 
 // ------------------------------------------------------------------ read
 
+// FetchStartable returns all SCHEDULED auctions whose start_time has passed.
+func (r *auctionRepository) FetchStartable(ctx context.Context) ([]model.Auction, error) {
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("status"): "SCHEDULED"}).
+		Where(squirrel.Expr(r.f("start_time") + " <= UTC_TIMESTAMP()"))
+	return r.fetchInternal(ctx, stmt)
+}
+
 func (r *auctionRepository) GetById(ctx context.Context, id string) (*model.Auction, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("id"): id}).
 		Limit(1)
 	return r.getInternal(ctx, stmt)
+}
+
+// GetByIdForUpdate acquires a row-level lock on the auction row (SELECT … FOR UPDATE).
+// Must be called inside a transaction.
+func (r *auctionRepository) GetByIdForUpdate(ctx context.Context, id string) (*model.Auction, error) {
+	query := fmt.Sprintf(
+		"SELECT %s.* FROM %s WHERE %s.id = ? LIMIT 1 FOR UPDATE",
+		r.alias(), r.fromTable(), r.alias(),
+	)
+	a := model.Auction{}
+	dt := dbtx(r.db, ctx)
+	if err := dt.GetContext(ctx, &a, query, id); err != nil {
+		return nil, translateSqlError(err)
+	}
+	return &a, nil
 }
 
 func (r *auctionRepository) Fetch(ctx context.Context, options ...model.AuctionQueryOption) ([]model.Auction, error) {
@@ -131,6 +168,19 @@ func (r *auctionRepository) Update(ctx context.Context, id string, startingPrice
 			"end_time":       endTime,
 			"fee":            fee,
 			"updated_at":     util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	); err != nil {
+		return nil, err
+	}
+	return r.GetById(ctx, id)
+}
+
+func (r *auctionRepository) UpdateStatus(ctx context.Context, id string, status string) (*model.Auction, error) {
+	if err := update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"status":     status,
+			"updated_at": util.CurrentDateTime(),
 		},
 		squirrel.Eq{"id": id},
 	); err != nil {

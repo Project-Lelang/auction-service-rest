@@ -9,6 +9,63 @@ import (
 	"github.com/graph-gophers/dataloader"
 )
 
+type ProductLoader struct {
+	loader dataloader.Loader
+}
+
+func (l *ProductLoader) load(id string) (*model.Product, error) {
+	thunk := l.loader.Load(context.TODO(), dataloader.StringKey(id))
+	result, err := thunk()
+	if err != nil {
+		return nil, err
+	}
+	return result.(*model.Product), nil
+}
+
+func (l *ProductLoader) AuctionFn(auction *model.Auction) func() error {
+	return func() error {
+		product, err := l.load(auction.ProductId)
+		if err != nil {
+			return err
+		}
+		auction.Product = product
+		return nil
+	}
+}
+
+func NewProductLoader(productRepository repository.ProductRepository) *ProductLoader {
+	batchFn := func(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
+		ids := make([]string, len(keys))
+		for idx, k := range keys {
+			ids[idx] = k.String()
+		}
+
+		products, err := productRepository.FetchByIds(ctx, ids)
+		if err != nil {
+			panic(err)
+		}
+
+		productById := map[string]model.Product{}
+		for _, p := range products {
+			productById[p.Id] = p
+		}
+
+		results := make([]*dataloader.Result, len(keys))
+		for idx, k := range keys {
+			var product *model.Product
+			if v, ok := productById[k.String()]; ok {
+				product = &v
+			}
+			results[idx] = &dataloader.Result{Data: product, Error: nil}
+		}
+		return results
+	}
+
+	return &ProductLoader{
+		loader: NewDataloader(batchFn),
+	}
+}
+
 type UserRolesLoader struct {
 	loader dataloader.Loader
 }

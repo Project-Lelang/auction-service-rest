@@ -20,6 +20,12 @@ type RepositoryManager interface {
 	WithdrawalRequestRepository() WithdrawalRequestRepository
 	AuctionRepository() AuctionRepository
 	AuctionBidRepository() AuctionBidRepository
+	AuctionWinnerRepository() AuctionWinnerRepository
+	PaymentRepository() PaymentRepository
+	ShipmentRepository() ShipmentRepository
+	PaymentMethodRepository() PaymentMethodRepository
+	UserAddressRepository() UserAddressRepository
+
 	Transaction(ctx context.Context, fn func(ctx context.Context) error) error
 	PaymentMethodRepository() PaymentMethodRepository
 }
@@ -35,7 +41,11 @@ type repositoryManager struct {
 	withdrawalRequestRepository    WithdrawalRequestRepository
 	auctionRepository              AuctionRepository
 	auctionBidRepository           AuctionBidRepository
+	auctionWinnerRepository        AuctionWinnerRepository
+	paymentRepository              PaymentRepository
+	shipmentRepository             ShipmentRepository
 	paymentMethodRepository        PaymentMethodRepository
+	userAddressRepository          UserAddressRepository
 }
 
 func NewRepositoryManager(
@@ -49,7 +59,11 @@ func NewRepositoryManager(
 	withdrawalRequestRepository WithdrawalRequestRepository,
 	auctionRepository AuctionRepository,
 	auctionBidRepository AuctionBidRepository,
+	auctionWinnerRepository AuctionWinnerRepository,
+	paymentRepository PaymentRepository,
+	shipmentRepository ShipmentRepository,
 	paymentMethodRepository PaymentMethodRepository,
+	userAddressRepository UserAddressRepository,
 ) RepositoryManager {
 	return &repositoryManager{
 		db:                             db,
@@ -62,7 +76,11 @@ func NewRepositoryManager(
 		withdrawalRequestRepository:    withdrawalRequestRepository,
 		auctionRepository:              auctionRepository,
 		auctionBidRepository:           auctionBidRepository,
+		auctionWinnerRepository:        auctionWinnerRepository,
+		paymentRepository:              paymentRepository,
+		shipmentRepository:             shipmentRepository,
 		paymentMethodRepository:        paymentMethodRepository,
+		userAddressRepository:          userAddressRepository,
 	}
 }
 
@@ -133,6 +151,22 @@ func (r *repositoryManager) AuctionBidRepository() AuctionBidRepository {
 	return r.auctionBidRepository
 }
 
+func (r *repositoryManager) AuctionWinnerRepository() AuctionWinnerRepository {
+	return r.auctionWinnerRepository
+}
+
+func (r *repositoryManager) PaymentRepository() PaymentRepository {
+	return r.paymentRepository
+}
+
+func (r *repositoryManager) ShipmentRepository() ShipmentRepository {
+	return r.shipmentRepository
+}
+
 func (r *repositoryManager) PaymentMethodRepository() PaymentMethodRepository {
 	return r.paymentMethodRepository
+}
+
+func (r *repositoryManager) UserAddressRepository() UserAddressRepository {
+	return r.userAddressRepository
 }

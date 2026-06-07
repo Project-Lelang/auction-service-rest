@@ -1,9 +1,6 @@
 package manager
 
 import (
-	"encoding/json"
-	"os"
-
 	"auction-service/global"
 	"auction-service/infrastructure"
 	internalFilesystem "auction-service/internal/filesystem"
@@ -38,47 +35,27 @@ func NewContainer() *Container {
 	paymentMethodRepo := repository.NewPaymentMethodRepository(db)
 	auctionRepo := repository.NewAuctionRepository(db)
 	auctionBidRepo := repository.NewAuctionBidRepository(db)
+	auctionWinnerRepo := repository.NewAuctionWinnerRepository(db)
+	paymentRepo := repository.NewPaymentRepository(db)
+	shipmentRepo := repository.NewShipmentRepository(db)
+	paymentMethodRepo := repository.NewPaymentMethodRepository(db)
+	userAddressRepo := repository.NewUserAddressRepository(db)
 
-	// FIX: Urutan disesuaikan dengan parameter constructor RepositoryManager (auctionRepo, auctionBidRepo, baru paymentMethodRepo)
-	repoManager := repository.NewRepositoryManager(
-		db,
-		userRepo,
-		userRoleRepo,
-		otpRepo,
-		productRepo,
-		productStatusHistoryRepo,
-		roleRequestRepo,
-		withdrawalRequestRepo,
-		auctionRepo,
-		auctionBidRepo,
-		paymentMethodRepo,
-	)
-
+	repoManager := repository.NewRepositoryManager(db, userRepo, userRoleRepo, otpRepo, productRepo, productStatusHistoryRepo, roleRequestRepo, withdrawalRequestRepo, auctionRepo, auctionBidRepo, auctionWinnerRepo, paymentRepo, shipmentRepo, paymentMethodRepo, userAddressRepo)
 	jwtInstance := internalJwt.NewJwt([]byte(config.JwtConfig.SecretKey))
 
 	// filesystem
 	fsConfig := internalFilesystem.Config{
 		Filesystem: config.Filesystem.Type,
 	}
-	gcsClient := infraManager.GetGcsClient()
-	if gcsClient != nil && config.Gcs != nil {
-		gcsClientConfig := &internalFilesystem.GcsClientConfig{
-			Client:     gcsClient,
-			ProjectId:  config.Gcs.ProjectId,
-			BucketName: config.Gcs.BucketName,
+	supabaseClient := infraManager.GetSupabaseStorageClient()
+	if supabaseClient != nil && config.Supabase != nil {
+		fsConfig.SupabaseClientConfig = &internalFilesystem.SupabaseClientConfig{
+			Client:     supabaseClient,
+			ProjectURL: config.Supabase.URL,
+			ServiceKey: config.Supabase.ServiceKey,
+			BucketName: config.Supabase.BucketName,
 		}
-		// Load service account credentials for signed URL generation
-		if jsonBytes, err := os.ReadFile(config.Gcs.ConfigFilepath()); err == nil {
-			var sa struct {
-				ClientEmail string `json:"client_email"`
-				PrivateKey  string `json:"private_key"`
-			}
-			if err := json.Unmarshal(jsonBytes, &sa); err == nil {
-				gcsClientConfig.ClientEmail = sa.ClientEmail
-				gcsClientConfig.PrivateKey = sa.PrivateKey
-			}
-		}
-		fsConfig.GcsClientConfig = gcsClientConfig
 	}
 	filesystemManager := internalFilesystem.NewFilesystemManager(fsConfig)
 
@@ -90,23 +67,18 @@ func NewContainer() *Container {
 	roleRequestUseCase := use_case.NewRoleRequestUseCase(repoManager, filesystemManager)
 	withdrawalRequestUseCase := use_case.NewWithdrawalRequestUseCase(repoManager)
 	paymentMethodUseCase := use_case.NewPaymentMethodUseCase(repoManager)
-	auctionUseCase := use_case.NewAuctionUseCase(repoManager)
+	auctionUseCase := use_case.NewAuctionUseCase(repoManager, infraManager.GetTaskQueueClient())
 	bidUseCase := use_case.NewBidUseCase(repoManager)
+	winnerUseCase := use_case.NewWinnerUseCase(repoManager)
+	paymentUseCase := use_case.NewPaymentUseCase(repoManager, infraManager.GetMidtransClient(), infraManager.GetTaskQueueClient(), infraManager.GetBiteshipClient())
+	shipmentUseCase := use_case.NewShipmentUseCase(repoManager, infraManager.GetBiteshipClient())
+	userAddressUseCase := use_case.NewUserAddressUseCase(repoManager)
+	biteshipUseCase := use_case.NewBiteshipUseCase(infraManager.GetBiteshipClient())
 
 	baseFileUseCase := use_case.NewBaseFileUseCase(filesystemManager.Main(), filesystemManager.Tmp())
 
 	// FIX: Urutan disesuaikan dengan parameter constructor UseCaseManager (auctionUseCase, bidUseCase, baru paymentMethodUseCase)
-	ucManager := use_case.NewUseCaseManager(
-		authUseCase,
-		userUseCase,
-		userRoleUseCase,
-		productUseCase,
-		roleRequestUseCase,
-		withdrawalRequestUseCase,
-		auctionUseCase,
-		bidUseCase,
-		paymentMethodUseCase,
-	)
+	ucManager := use_case.NewUseCaseManager(authUseCase, userUseCase, userRoleUseCase, productUseCase, roleRequestUseCase, withdrawalRequestUseCase, auctionUseCase, bidUseCase, paymentMethodUseCase, winnerUseCase, paymentUseCase, shipmentUseCase, userAddressUseCase, biteshipUseCase)
 
 	return &Container{
 		infrastructureManager: infraManager,
@@ -138,5 +110,5 @@ func (c *Container) BaseFileUseCase() use_case.BaseFileUseCase {
 }
 
 func (c *Container) Close() error {
-	return c.infrastructureManager.CloseDB()
+	return c.infrastructureManager.Close()
 }
