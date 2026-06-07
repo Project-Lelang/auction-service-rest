@@ -23,7 +23,6 @@ type RepositoryManager interface {
 	AuctionWinnerRepository() AuctionWinnerRepository
 	PaymentRepository() PaymentRepository
 	ShipmentRepository() ShipmentRepository
-	PaymentMethodRepository() PaymentMethodRepository
 	UserAddressRepository() UserAddressRepository
 
 	Transaction(ctx context.Context, fn func(ctx context.Context) error) error

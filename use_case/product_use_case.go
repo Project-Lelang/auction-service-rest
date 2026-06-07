@@ -21,19 +21,19 @@ import (
 // ProductUseCase covers all product and product-status-history operations.
 type ProductUseCase interface {
 	// products
-	CreateOwn(ctx context.Context, request dto_request.OwnProductCreateRequest) model.Product
-	GetOwn(ctx context.Context, request dto_request.OwnProductGetRequest) model.Product
-	UpdateOwn(ctx context.Context, request dto_request.OwnProductUpdateRequest) model.Product
-	RequestOwn(ctx context.Context, request dto_request.OwnProductRequestRequest) model.Product
+	OwnCreate(ctx context.Context, request dto_request.OwnProductCreateRequest) model.Product
+	OwnGet(ctx context.Context, request dto_request.OwnProductGetRequest) model.Product
+	OwnUpdate(ctx context.Context, request dto_request.OwnProductUpdateRequest) model.Product
+	OwnRequest(ctx context.Context, request dto_request.OwnProductRequestRequest) model.Product
 	Fetch(ctx context.Context, request dto_request.ProductFetchRequest) ([]model.Product, int64)
-	FetchOwn(ctx context.Context, request dto_request.OwnProductFetchRequest) ([]model.Product, int64)
+	OwnFetch(ctx context.Context, request dto_request.OwnProductFetchRequest) ([]model.Product, int64)
 	Get(ctx context.Context, request dto_request.ProductGetRequest) model.Product
 	AdminFetch(ctx context.Context, request dto_request.AdminProductFetchRequest) ([]model.Product, int64)
 	AdminApprove(ctx context.Context, request dto_request.AdminProductApproveRequest) model.Product
 	AdminReject(ctx context.Context, request dto_request.AdminProductRejectRequest) model.Product
 
 	// histories
-	FetchStatusHistories(ctx context.Context, request dto_request.OwnProductFetchStatusHistoriesRequest) []model.ProductStatusHistory
+	OwnFetchStatusHistories(ctx context.Context, request dto_request.OwnProductFetchStatusHistoriesRequest) []model.ProductStatusHistory
 	AdminFetchStatusHistories(ctx context.Context, request dto_request.AdminProductFetchStatusHistoriesRequest) []model.ProductStatusHistory
 }
 
@@ -103,7 +103,7 @@ func (u *productUseCase) fetchPaginated(ctx context.Context, option model.Produc
 	return products, total
 }
 
-func (u *productUseCase) CreateOwn(ctx context.Context, request dto_request.OwnProductCreateRequest) model.Product {
+func (u *productUseCase) OwnCreate(ctx context.Context, request dto_request.OwnProductCreateRequest) model.Product {
 	userClaims := model.MustGetUserCtx(ctx)
 	productId := util.NewUuid()
 
@@ -163,7 +163,7 @@ func (u *productUseCase) Fetch(ctx context.Context, request dto_request.ProductF
 	})
 }
 
-func (u *productUseCase) FetchOwn(ctx context.Context, request dto_request.OwnProductFetchRequest) ([]model.Product, int64) {
+func (u *productUseCase) OwnFetch(ctx context.Context, request dto_request.OwnProductFetchRequest) ([]model.Product, int64) {
 	userClaims := model.MustGetUserCtx(ctx)
 	return u.fetchPaginated(ctx, model.ProductQueryOption{
 		QueryOption: model.NewQueryOptionWithPagination(request.Page, request.Limit, model.Sorts(request.Sorts)),
@@ -252,7 +252,7 @@ func (u *productUseCase) AdminReject(ctx context.Context, request dto_request.Ad
 	return *updated
 }
 
-func (u *productUseCase) FetchStatusHistories(ctx context.Context, request dto_request.OwnProductFetchStatusHistoriesRequest) []model.ProductStatusHistory {
+func (u *productUseCase) OwnFetchStatusHistories(ctx context.Context, request dto_request.OwnProductFetchStatusHistoriesRequest) []model.ProductStatusHistory {
 	mustGetProduct(ctx, u.repositoryManager, request.ProductId)
 
 	histories, err := u.repositoryManager.ProductStatusHistoryRepository().FetchByProductId(ctx, request.ProductId)
@@ -270,7 +270,7 @@ func (u *productUseCase) AdminFetchStatusHistories(ctx context.Context, request 
 	return histories
 }
 
-func (u *productUseCase) GetOwn(ctx context.Context, request dto_request.OwnProductGetRequest) model.Product {
+func (u *productUseCase) OwnGet(ctx context.Context, request dto_request.OwnProductGetRequest) model.Product {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	product := mustGetProduct(ctx, u.repositoryManager, request.ProductId)
@@ -283,7 +283,7 @@ func (u *productUseCase) GetOwn(ctx context.Context, request dto_request.OwnProd
 	return product
 }
 
-func (u *productUseCase) UpdateOwn(ctx context.Context, request dto_request.OwnProductUpdateRequest) model.Product {
+func (u *productUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnProductUpdateRequest) model.Product {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	product := mustGetProduct(ctx, u.repositoryManager, request.ProductId)
@@ -352,7 +352,7 @@ func (u *productUseCase) UpdateOwn(ctx context.Context, request dto_request.OwnP
 	return *updated
 }
 
-func (u *productUseCase) RequestOwn(ctx context.Context, request dto_request.OwnProductRequestRequest) model.Product {
+func (u *productUseCase) OwnRequest(ctx context.Context, request dto_request.OwnProductRequestRequest) model.Product {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	product := mustGetProduct(ctx, u.repositoryManager, request.ProductId)

@@ -12,11 +12,11 @@ import (
 
 type PaymentMethodRepository interface {
 	Insert(ctx context.Context, pm *model.PaymentMethod) error
-	GetById(ctx context.Context, id int64) (*model.PaymentMethod, error)
+	GetById(ctx context.Context, id string) (*model.PaymentMethod, error)
 	Fetch(ctx context.Context, options ...model.PaymentMethodQueryOption) ([]model.PaymentMethod, error)
-	Update(ctx context.Context, id int64, payload map[string]interface{}) error
+	Update(ctx context.Context, pm *model.PaymentMethod) (*model.PaymentMethod, error)
 	Count(ctx context.Context, options ...model.PaymentMethodQueryOption) (int64, error)
-  GetByCode(ctx context.Context, code string) (*model.PaymentMethod, error)
+	GetByCode(ctx context.Context, code string) (*model.PaymentMethod, error)
 }
 
 type paymentMethodRepository struct {
@@ -69,7 +69,7 @@ func (r *paymentMethodRepository) Insert(ctx context.Context, pm *model.PaymentM
 	return defaultInsert(r.db, ctx, pm)
 }
 
-func (r *paymentMethodRepository) GetById(ctx context.Context, id int64) (*model.PaymentMethod, error) {
+func (r *paymentMethodRepository) GetById(ctx context.Context, id string) (*model.PaymentMethod, error) {
 	stmt := stmtBuilder.Select("*").From(r.tableName()).Where(squirrel.Eq{"id": id}).Limit(1)
 	res := model.PaymentMethod{}
 	if err := get(r.db, ctx, &res, stmt); err != nil {
@@ -141,15 +141,20 @@ func (r *paymentMethodRepository) Fetch(ctx context.Context, options ...model.Pa
 	return res, err
 }
 
-func (r *paymentMethodRepository) Update(ctx context.Context, id int64, payload map[string]interface{}) error {
-	payload["updated_at"] = util.CurrentDateTime()
-	return update(r.db, ctx, r.tableName(), payload, squirrel.Eq{"id": id})
-}
-
-// ------------------------------------------------------------------ create
-
-func (r *paymentMethodRepository) Insert(ctx context.Context, pm *model.PaymentMethod) error {
-	return defaultInsert(r.db, ctx, pm)
+func (r *paymentMethodRepository) Update(ctx context.Context, pm *model.PaymentMethod) (*model.PaymentMethod, error) {
+	if err := update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"name":       pm.Name,
+			"code":       pm.Code,
+			"type":       pm.Type,
+			"is_active":  pm.IsActive,
+			"updated_at": util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": pm.Id},
+	); err != nil {
+		return nil, err
+	}
+	return r.GetById(ctx, pm.Id)
 }
 
 // ------------------------------------------------------------------ extra reads

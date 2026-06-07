@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"strconv"
 
 	"auction-service/constant"
 	"auction-service/delivery/dto_request"
@@ -93,7 +92,7 @@ func (a *AdminPaymentMethodApi) ListPaymentMethods() gin.HandlerFunc {
 //	@Success	200	{object}	dto_response.Response
 func (a *AdminPaymentMethodApi) GetPaymentMethodById() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
-		id, _ := strconv.ParseInt(ctx.getParam("id"), 10, 64)
+		id := ctx.getParam("id")
 
 		data := a.paymentMethodUseCase.GetById(ctx.context(), id)
 		ctx.json(http.StatusOK, dto_response.Response{
@@ -116,7 +115,7 @@ func (a *AdminPaymentMethodApi) GetPaymentMethodById() gin.HandlerFunc {
 //	@Success	200	{object}	dto_response.Response
 func (a *AdminPaymentMethodApi) UpdatePaymentMethod() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
-		id, _ := strconv.ParseInt(ctx.getParam("id"), 10, 64)
+		id := ctx.getParam("id")
 
 		var request dto_request.PaymentMethodUpdateRequest
 		ctx.mustBind(&request)

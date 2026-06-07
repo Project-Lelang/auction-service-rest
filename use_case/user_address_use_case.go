@@ -13,11 +13,11 @@ import (
 
 // UserAddressUseCase manages CRUD operations for user addresses.
 type UserAddressUseCase interface {
-	Create(ctx context.Context, request dto_request.UserAddressCreateRequest) model.UserAddress
-	Fetch(ctx context.Context, request dto_request.UserAddressFetchRequest) ([]model.UserAddress, int)
+	OwnCreate(ctx context.Context, request dto_request.UserAddressCreateRequest) model.UserAddress
+	OwnFetch(ctx context.Context, request dto_request.UserAddressFetchRequest) ([]model.UserAddress, int)
 	Get(ctx context.Context, request dto_request.UserAddressGetRequest) model.UserAddress
-	Update(ctx context.Context, request dto_request.UserAddressUpdateRequest) model.UserAddress
-	Delete(ctx context.Context, request dto_request.UserAddressDeleteRequest)
+	OwnUpdate(ctx context.Context, request dto_request.UserAddressUpdateRequest) model.UserAddress
+	OwnDelete(ctx context.Context, request dto_request.UserAddressDeleteRequest)
 }
 
 type userAddressUseCase struct {
@@ -38,7 +38,7 @@ func (u *userAddressUseCase) mustGetOwned(ctx context.Context, id string) model.
 	return *address
 }
 
-func (u *userAddressUseCase) Create(ctx context.Context, request dto_request.UserAddressCreateRequest) model.UserAddress {
+func (u *userAddressUseCase) OwnCreate(ctx context.Context, request dto_request.UserAddressCreateRequest) model.UserAddress {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	var err error
@@ -66,7 +66,7 @@ func (u *userAddressUseCase) Create(ctx context.Context, request dto_request.Use
 	return address
 }
 
-func (u *userAddressUseCase) Fetch(ctx context.Context, request dto_request.UserAddressFetchRequest) ([]model.UserAddress, int) {
+func (u *userAddressUseCase) OwnFetch(ctx context.Context, request dto_request.UserAddressFetchRequest) ([]model.UserAddress, int) {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	option := model.UserAddressQueryOption{
@@ -91,7 +91,7 @@ func (u *userAddressUseCase) Get(ctx context.Context, request dto_request.UserAd
 	return u.mustGetOwned(ctx, request.UserAddressId)
 }
 
-func (u *userAddressUseCase) Update(ctx context.Context, request dto_request.UserAddressUpdateRequest) model.UserAddress {
+func (u *userAddressUseCase) OwnUpdate(ctx context.Context, request dto_request.UserAddressUpdateRequest) model.UserAddress {
 	address := u.mustGetOwned(ctx, request.UserAddressId)
 	userClaims := model.MustGetUserCtx(ctx)
 
@@ -115,7 +115,7 @@ func (u *userAddressUseCase) Update(ctx context.Context, request dto_request.Use
 	return *updated
 }
 
-func (u *userAddressUseCase) Delete(ctx context.Context, request dto_request.UserAddressDeleteRequest) {
+func (u *userAddressUseCase) OwnDelete(ctx context.Context, request dto_request.UserAddressDeleteRequest) {
 	address := u.mustGetOwned(ctx, request.UserAddressId)
 	if address.IsDefault {
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageUserAddressIsDefault))

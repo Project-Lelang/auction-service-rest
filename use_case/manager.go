@@ -99,8 +99,10 @@ func (u *useCaseManager) AuctionUseCase() AuctionUseCase {
 func (u *useCaseManager) BidUseCase() BidUseCase {
 	return u.bidUseCase
 }
+
 func (u *useCaseManager) PaymentMethodUseCase() PaymentMethodUseCase {
 	return u.paymentMethodUseCase
+}
 
 func (u *useCaseManager) WinnerUseCase() WinnerUseCase {
 	return u.winnerUseCase

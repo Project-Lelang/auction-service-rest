@@ -38,7 +38,6 @@ func NewContainer() *Container {
 	auctionWinnerRepo := repository.NewAuctionWinnerRepository(db)
 	paymentRepo := repository.NewPaymentRepository(db)
 	shipmentRepo := repository.NewShipmentRepository(db)
-	paymentMethodRepo := repository.NewPaymentMethodRepository(db)
 	userAddressRepo := repository.NewUserAddressRepository(db)
 
 	repoManager := repository.NewRepositoryManager(db, userRepo, userRoleRepo, otpRepo, productRepo, productStatusHistoryRepo, roleRequestRepo, withdrawalRequestRepo, auctionRepo, auctionBidRepo, auctionWinnerRepo, paymentRepo, shipmentRepo, paymentMethodRepo, userAddressRepo)

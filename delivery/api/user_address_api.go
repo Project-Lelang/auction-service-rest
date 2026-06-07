@@ -6,7 +6,6 @@ import (
 	"auction-service/delivery/dto_request"
 	"auction-service/delivery/dto_response"
 	"auction-service/use_case"
-	"auction-service/util"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,40 +30,12 @@ func (a *UserAddressApi) Create() gin.HandlerFunc {
 		var request dto_request.UserAddressCreateRequest
 		ctx.mustBind(&request)
 
-		address := a.userAddressUseCase.Create(ctx.context(), request)
+		address := a.userAddressUseCase.OwnCreate(ctx.context(), request)
 
 		ctx.json(http.StatusCreated, dto_response.Response{
 			Data: dto_response.DataResponse{
 				"user_address": dto_response.NewUserAddressResponse(ctx.context(), address),
 			},
-		})
-	})
-}
-
-// FetchUserAddresses godoc
-//
-//	@Router		/user-addresses/filter [post]
-//	@Summary	List current user's addresses (paginated)
-//	@tags		UserAddress
-//	@Security	BearerAuth
-//	@Accept		json
-//	@Param		body	body	dto_request.UserAddressFetchRequest	true	"Body Request"
-//	@Produce	json
-//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.UserAddressResponse}}
-func (a *UserAddressApi) Fetch() gin.HandlerFunc {
-	return a.Authorize(func(ctx apiContext) {
-		var request dto_request.UserAddressFetchRequest
-		ctx.mustBind(&request)
-
-		addresses, total := a.userAddressUseCase.Fetch(ctx.context(), request)
-
-		ctx.json(http.StatusOK, dto_response.Response{
-			Data: dto_response.NewPaginationResponse(
-				util.ConvertArray(ctx.context(), addresses, dto_response.NewUserAddressResponse),
-				total,
-				request.Page,
-				request.Limit,
-			),
 		})
 	})
 }
@@ -111,7 +82,7 @@ func (a *UserAddressApi) Update() gin.HandlerFunc {
 		ctx.mustBind(&request)
 		request.UserAddressId = ctx.getParam("userAddressId")
 
-		address := a.userAddressUseCase.Update(ctx.context(), request)
+		address := a.userAddressUseCase.OwnUpdate(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
@@ -136,7 +107,7 @@ func (a *UserAddressApi) Delete() gin.HandlerFunc {
 			UserAddressId: ctx.getParam("userAddressId"),
 		}
 
-		a.userAddressUseCase.Delete(ctx.context(), request)
+		a.userAddressUseCase.OwnDelete(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.SuccessResponse{Message: "deleted"},

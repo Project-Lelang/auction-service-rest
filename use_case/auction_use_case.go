@@ -33,14 +33,14 @@ type AuctionUseCase interface {
 	Get(ctx context.Context, request dto_request.AuctionGetRequest) model.Auction
 
 	// own (seller)
-	FetchOwn(ctx context.Context, request dto_request.OwnAuctionFetchRequest) ([]model.Auction, int64)
-	GetOwn(ctx context.Context, request dto_request.OwnAuctionGetRequest) model.Auction
-	CreateOwn(ctx context.Context, request dto_request.OwnAuctionCreateRequest) model.Auction
-	UpdateOwn(ctx context.Context, request dto_request.OwnAuctionUpdateRequest) model.Auction
+	OwnFetch(ctx context.Context, request dto_request.OwnAuctionFetchRequest) ([]model.Auction, int64)
+	OwnGet(ctx context.Context, request dto_request.OwnAuctionGetRequest) model.Auction
+	OwnCreate(ctx context.Context, request dto_request.OwnAuctionCreateRequest) model.Auction
+	OwnUpdate(ctx context.Context, request dto_request.OwnAuctionUpdateRequest) model.Auction
 
 	// own seller-decision after winner failed to pay
-	RelistOwn(ctx context.Context, request dto_request.OwnAuctionRelistRequest) model.Auction
-	SecondChanceOwn(ctx context.Context, request dto_request.OwnAuctionSecondChanceRequest) model.Auction
+	OwnRelist(ctx context.Context, request dto_request.OwnAuctionRelistRequest) model.Auction
+	OwnSecondChance(ctx context.Context, request dto_request.OwnAuctionSecondChanceRequest) model.Auction
 
 	// task handlers — called by the asynq worker goroutine
 	HandleStartAuction(ctx context.Context, auctionId string) error
@@ -141,7 +141,7 @@ func (u *auctionUseCase) Get(ctx context.Context, request dto_request.AuctionGet
 	return auction
 }
 
-func (u *auctionUseCase) FetchOwn(ctx context.Context, request dto_request.OwnAuctionFetchRequest) ([]model.Auction, int64) {
+func (u *auctionUseCase) OwnFetch(ctx context.Context, request dto_request.OwnAuctionFetchRequest) ([]model.Auction, int64) {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	option := model.AuctionQueryOption{
@@ -165,7 +165,7 @@ func (u *auctionUseCase) FetchOwn(ctx context.Context, request dto_request.OwnAu
 	return auctions, total
 }
 
-func (u *auctionUseCase) GetOwn(ctx context.Context, request dto_request.OwnAuctionGetRequest) model.Auction {
+func (u *auctionUseCase) OwnGet(ctx context.Context, request dto_request.OwnAuctionGetRequest) model.Auction {
 	userClaims := model.MustGetUserCtx(ctx)
 	auction := u.mustGetOwnAuction(ctx, request.AuctionId, userClaims.UserId)
 
@@ -174,7 +174,7 @@ func (u *auctionUseCase) GetOwn(ctx context.Context, request dto_request.OwnAuct
 	return auction
 }
 
-func (u *auctionUseCase) CreateOwn(ctx context.Context, request dto_request.OwnAuctionCreateRequest) model.Auction {
+func (u *auctionUseCase) OwnCreate(ctx context.Context, request dto_request.OwnAuctionCreateRequest) model.Auction {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	// verify user has SELLER role
@@ -221,7 +221,7 @@ func (u *auctionUseCase) CreateOwn(ctx context.Context, request dto_request.OwnA
 	return auction
 }
 
-func (u *auctionUseCase) UpdateOwn(ctx context.Context, request dto_request.OwnAuctionUpdateRequest) model.Auction {
+func (u *auctionUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnAuctionUpdateRequest) model.Auction {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	auction := u.mustGetOwnAuction(ctx, request.AuctionId, userClaims.UserId)
@@ -442,7 +442,7 @@ func (u *auctionUseCase) closeAuction(ctx context.Context, auction model.Auction
 
 // OwnRelist is called when the seller decides to relist the product after a
 // winner did not pay.  The auction is cancelled and the product reverts to VERIFIED.
-func (u *auctionUseCase) RelistOwn(ctx context.Context, request dto_request.OwnAuctionRelistRequest) model.Auction {
+func (u *auctionUseCase) OwnRelist(ctx context.Context, request dto_request.OwnAuctionRelistRequest) model.Auction {
 	userClaims := model.MustGetUserCtx(ctx)
 	auction := u.mustGetOwnAuction(ctx, request.AuctionId, userClaims.UserId)
 
@@ -472,7 +472,7 @@ func (u *auctionUseCase) RelistOwn(ctx context.Context, request dto_request.OwnA
 
 // OwnSecondChance offers the auction to the next-highest bidder after the
 // original winner did not pay.  Returns an error if no next bidder exists.
-func (u *auctionUseCase) SecondChanceOwn(ctx context.Context, request dto_request.OwnAuctionSecondChanceRequest) model.Auction {
+func (u *auctionUseCase) OwnSecondChance(ctx context.Context, request dto_request.OwnAuctionSecondChanceRequest) model.Auction {
 	userClaims := model.MustGetUserCtx(ctx)
 	auction := u.mustGetOwnAuction(ctx, request.AuctionId, userClaims.UserId)
 

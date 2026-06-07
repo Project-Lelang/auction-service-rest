@@ -215,8 +215,7 @@ func (u *withdrawalRequestUseCase) Complete(
 			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageWithdrawalRequestInsufficientBalance))
 		}
 
-		newBalance := user.Balance - wr.Amount
-		if err := u.repositoryManager.UserRepository().UpdateBalance(ctx, user.Id, newBalance); err != nil {
+		if _, err := u.repositoryManager.UserRepository().WithdrawBalance(ctx, user.Id, wr.Amount); err != nil {
 			return err
 		}
 

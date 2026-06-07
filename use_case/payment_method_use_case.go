@@ -11,8 +11,8 @@ type PaymentMethodUseCase interface {
 	Create(ctx context.Context, req dto_request.PaymentMethodCreateRequest) model.PaymentMethod
 	Fetch(ctx context.Context, req dto_request.PaymentMethodFetchRequest) ([]model.PaymentMethod, int64)
 	AdminFetch(ctx context.Context, req dto_request.PaymentMethodFetchRequest) ([]model.PaymentMethod, int64)
-	GetById(ctx context.Context, id int64) model.PaymentMethod
-	Update(ctx context.Context, id int64, req dto_request.PaymentMethodUpdateRequest) model.PaymentMethod
+	GetById(ctx context.Context, id string) model.PaymentMethod
+	Update(ctx context.Context, id string, req dto_request.PaymentMethodUpdateRequest) model.PaymentMethod
 }
 
 type paymentMethodUseCase struct {
@@ -61,7 +61,7 @@ func (u *paymentMethodUseCase) Fetch(ctx context.Context, req dto_request.Paymen
 	return paymentMethods, total
 }
 
-func (u *paymentMethodUseCase) GetById(ctx context.Context, id int64) model.PaymentMethod {
+func (u *paymentMethodUseCase) GetById(ctx context.Context, id string) model.PaymentMethod {
 	pm, err := u.repoManager.PaymentMethodRepository().GetById(ctx, id)
 	panicIfErr(err)
 
@@ -76,7 +76,7 @@ func (u *paymentMethodUseCase) AdminFetch(ctx context.Context, req dto_request.P
 	return u.Fetch(ctx, req)
 }
 
-func (u *paymentMethodUseCase) Update(ctx context.Context, id int64, req dto_request.PaymentMethodUpdateRequest) model.PaymentMethod {
+func (u *paymentMethodUseCase) Update(ctx context.Context, id string, req dto_request.PaymentMethodUpdateRequest) model.PaymentMethod {
 	pm, err := u.repoManager.PaymentMethodRepository().GetById(ctx, id)
 	panicIfErr(err)
 
@@ -84,32 +84,24 @@ func (u *paymentMethodUseCase) Update(ctx context.Context, id int64, req dto_req
 		panic("not found: payment method not found")
 	}
 
-	payload := make(map[string]interface{})
-
 	if req.Name != nil {
-		payload["name"] = *req.Name
+		pm.Name = *req.Name
 	}
 
 	if req.Code != nil {
-		payload["code"] = *req.Code
+		pm.Code = *req.Code
 	}
 
 	if req.Type != nil {
-		payload["type"] = *req.Type
+		pm.Type = *req.Type
 	}
 
 	if req.IsActive != nil {
-		payload["is_active"] = *req.IsActive
+		pm.IsActive = *req.IsActive
 	}
 
-	if len(payload) == 0 {
-		return *pm
-	}
-
-	panicIfErr(u.repoManager.PaymentMethodRepository().Update(ctx, id, payload))
-
-	updatedPm, err := u.repoManager.PaymentMethodRepository().GetById(ctx, id)
+	pm, err = u.repoManager.PaymentMethodRepository().Update(ctx, pm)
 	panicIfErr(err)
 
-	return *updatedPm
+	return *pm
 }

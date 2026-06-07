@@ -18,8 +18,8 @@ import (
 // PaymentUseCase manages payment creation and notification handling.
 type PaymentUseCase interface {
 	GetByAuction(ctx context.Context, request dto_request.AuctionPaymentGetRequest) model.Payment
-	FetchOwn(ctx context.Context, request dto_request.OwnPaymentFetchRequest) ([]model.Payment, int64)
-	GetOwn(ctx context.Context, request dto_request.OwnPaymentGetRequest) model.Payment
+	OwnFetch(ctx context.Context, request dto_request.OwnPaymentFetchRequest) ([]model.Payment, int64)
+	OwnGet(ctx context.Context, request dto_request.OwnPaymentGetRequest) model.Payment
 	HandleMidtransNotification(ctx context.Context, notification infrastructure.MidtransNotification)
 	// HandlePaymentExpiry is the safety-net task handler called by the asynq worker
 	// when a payment's expired_at window elapses without a Midtrans webhook.
@@ -71,7 +71,7 @@ func (u *paymentUseCase) GetByAuction(ctx context.Context, request dto_request.A
 	return payment
 }
 
-func (u *paymentUseCase) FetchOwn(ctx context.Context, request dto_request.OwnPaymentFetchRequest) ([]model.Payment, int64) {
+func (u *paymentUseCase) OwnFetch(ctx context.Context, request dto_request.OwnPaymentFetchRequest) ([]model.Payment, int64) {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	option := model.PaymentQueryOption{
@@ -93,7 +93,7 @@ func (u *paymentUseCase) FetchOwn(ctx context.Context, request dto_request.OwnPa
 	return payments, total
 }
 
-func (u *paymentUseCase) GetOwn(ctx context.Context, request dto_request.OwnPaymentGetRequest) model.Payment {
+func (u *paymentUseCase) OwnGet(ctx context.Context, request dto_request.OwnPaymentGetRequest) model.Payment {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	payment, err := u.repositoryManager.PaymentRepository().GetById(ctx, request.PaymentId)

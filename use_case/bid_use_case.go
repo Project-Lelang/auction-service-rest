@@ -13,8 +13,8 @@ import (
 
 // BidUseCase covers bid operations for the own (bidder) scope.
 type BidUseCase interface {
-	FetchOwn(ctx context.Context, request dto_request.OwnBidFetchRequest) ([]model.AuctionBid, int64)
-	GetOwn(ctx context.Context, request dto_request.OwnBidGetRequest) model.AuctionBid
+	OwnFetch(ctx context.Context, request dto_request.OwnBidFetchRequest) ([]model.AuctionBid, int64)
+	OwnGet(ctx context.Context, request dto_request.OwnBidGetRequest) model.AuctionBid
 	PlaceBid(ctx context.Context, request dto_request.AuctionBidCreateRequest) model.AuctionBid
 }
 
@@ -78,7 +78,7 @@ func (u *bidUseCase) mustLoadOwnBidData(ctx context.Context, bids []*model.Aucti
 	}
 }
 
-func (u *bidUseCase) FetchOwn(ctx context.Context, request dto_request.OwnBidFetchRequest) ([]model.AuctionBid, int64) {
+func (u *bidUseCase) OwnFetch(ctx context.Context, request dto_request.OwnBidFetchRequest) ([]model.AuctionBid, int64) {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	option := model.AuctionBidQueryOption{
@@ -107,7 +107,7 @@ func (u *bidUseCase) FetchOwn(ctx context.Context, request dto_request.OwnBidFet
 	return bids, total
 }
 
-func (u *bidUseCase) GetOwn(ctx context.Context, request dto_request.OwnBidGetRequest) model.AuctionBid {
+func (u *bidUseCase) OwnGet(ctx context.Context, request dto_request.OwnBidGetRequest) model.AuctionBid {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	bid, err := u.repositoryManager.AuctionBidRepository().GetById(ctx, request.BidId)
