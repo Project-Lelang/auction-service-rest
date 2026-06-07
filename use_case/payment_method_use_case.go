@@ -4,6 +4,7 @@ import (
 	"auction-service/delivery/dto_request"
 	"auction-service/model"
 	"auction-service/repository"
+	"auction-service/util"
 	"context"
 )
 
@@ -32,6 +33,7 @@ func (u *paymentMethodUseCase) Create(ctx context.Context, req dto_request.Payme
 	}
 
 	pm := model.PaymentMethod{
+		Id:       util.NewUuid(),
 		Name:     req.Name,
 		Code:     req.Code,
 		Type:     req.Type,
