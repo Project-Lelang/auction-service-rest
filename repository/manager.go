@@ -27,6 +27,7 @@ type RepositoryManager interface {
 	UserAddressRepository() UserAddressRepository
 
 	Transaction(ctx context.Context, fn func(ctx context.Context) error) error
+	PaymentMethodRepository() PaymentMethodRepository
 }
 
 type repositoryManager struct {

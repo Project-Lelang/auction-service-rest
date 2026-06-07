@@ -39,6 +39,40 @@ func (a *AdminUserApi) Create() gin.HandlerFunc {
 	})
 }
 
+// FetchAdmin godoc
+//
+//	@Router		/admin/users/admins/filter [post]
+//	@Summary	Get paginated list of admin users only
+//	@tags		Admin Users
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		body	body	dto_request.AdminUserFetchRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.UserResponse}}
+func (a *AdminUserApi) FetchAdmin() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
+		var request dto_request.AdminUserFetchRequest
+
+		ctx.mustBind(&request)
+
+		// FORCE role agar hanya mengambil data Admin
+		adminRole := constant.RoleAdmin
+		request.Role = &adminRole
+
+		// Panggil use-case seperti biasa
+		users, total := a.userUseCase.AdminFetch(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.NewPaginationResponse(
+				util.ConvertArray(ctx.context(), users, dto_response.NewUserResponse),
+				int(total),
+				request.Page,
+				request.Limit,
+			),
+		})
+	})
+}
+
 // Fetch godoc
 //
 //	@Router		/admin/users/filter [post]
@@ -120,6 +154,7 @@ func RegisterAdminUserApi(router gin.IRouter, baseApi *api, useCaseManager use_c
 	routerGroup := router.Group("/admin/users")
 	routerGroup.POST("", api.Create())
 	routerGroup.POST("/filter", api.Fetch())
+	routerGroup.POST("/admins/filter", api.FetchAdmin())
 	routerGroup.GET("/:userId", api.Get())
 	routerGroup.DELETE("/:userId", api.Delete())
 }

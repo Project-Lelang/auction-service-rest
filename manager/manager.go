@@ -32,6 +32,7 @@ func NewContainer() *Container {
 	productStatusHistoryRepo := repository.NewProductStatusHistoryRepository(db)
 	roleRequestRepo := repository.NewRoleRequestRepository(db)
 	withdrawalRequestRepo := repository.NewWithdrawalRequestRepository(db)
+	paymentMethodRepo := repository.NewPaymentMethodRepository(db)
 	auctionRepo := repository.NewAuctionRepository(db)
 	auctionBidRepo := repository.NewAuctionBidRepository(db)
 	auctionWinnerRepo := repository.NewAuctionWinnerRepository(db)
@@ -65,6 +66,7 @@ func NewContainer() *Container {
 	productUseCase := use_case.NewProductUseCase(repoManager, filesystemManager)
 	roleRequestUseCase := use_case.NewRoleRequestUseCase(repoManager, filesystemManager)
 	withdrawalRequestUseCase := use_case.NewWithdrawalRequestUseCase(repoManager)
+	paymentMethodUseCase := use_case.NewPaymentMethodUseCase(repoManager)
 	auctionUseCase := use_case.NewAuctionUseCase(repoManager, infraManager.GetTaskQueueClient())
 	bidUseCase := use_case.NewBidUseCase(repoManager)
 	winnerUseCase := use_case.NewWinnerUseCase(repoManager)
@@ -75,7 +77,8 @@ func NewContainer() *Container {
 
 	baseFileUseCase := use_case.NewBaseFileUseCase(filesystemManager.Main(), filesystemManager.Tmp())
 
-	ucManager := use_case.NewUseCaseManager(authUseCase, userUseCase, userRoleUseCase, productUseCase, roleRequestUseCase, withdrawalRequestUseCase, auctionUseCase, bidUseCase, winnerUseCase, paymentUseCase, shipmentUseCase, userAddressUseCase, biteshipUseCase)
+	// FIX: Urutan disesuaikan dengan parameter constructor UseCaseManager (auctionUseCase, bidUseCase, baru paymentMethodUseCase)
+	ucManager := use_case.NewUseCaseManager(authUseCase, userUseCase, userRoleUseCase, productUseCase, roleRequestUseCase, withdrawalRequestUseCase, auctionUseCase, bidUseCase, paymentMethodUseCase, winnerUseCase, paymentUseCase, shipmentUseCase, userAddressUseCase, biteshipUseCase)
 
 	return &Container{
 		infrastructureManager: infraManager,

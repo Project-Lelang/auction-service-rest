@@ -11,6 +11,8 @@ type User struct {
 	Nik                     *string            `db:"nik"`
 	Birth                   data_type.DateTime `db:"birth"`
 	Gender                  *string            `db:"gender"`
+	BankName                *string            `db:"bank_name"`         // TAMBAHKAN INI
+	BankAccountName         *string            `db:"bank_account_name"` // TAMBAHKAN INI
 	BankAccountNumber       *string            `db:"bank_account_number"`
 	IdentityImagePath       *string            `db:"identity_image_path"`
 	SelfieIdentityImagePath *string            `db:"selfie_identity_image_path"`
@@ -38,6 +40,8 @@ func (u *User) ToMap() map[string]interface{} {
 		"nik":                        u.Nik,
 		"birth":                      u.Birth,
 		"gender":                     u.Gender,
+		"bank_name":                  u.BankName,        // TAMBAHKAN INI
+		"bank_account_name":          u.BankAccountName, // TAMBAHKAN INI
 		"bank_account_number":        u.BankAccountNumber,
 		"identity_image_path":        u.IdentityImagePath,
 		"selfie_identity_image_path": u.SelfieIdentityImagePath,

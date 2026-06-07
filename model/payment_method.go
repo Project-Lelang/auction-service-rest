@@ -3,22 +3,24 @@ package model
 const PaymentMethodTableName = "payment_methods"
 
 type PaymentMethod struct {
-	Id       string `db:"id"`
-	Code     string `db:"code"`
-	Type     string `db:"type"`
-	Name     string `db:"name"`
-	IsActive bool   `db:"is_active"`
+	Id       int64  `db:"id" json:"id"`
+	Name     string `db:"name" json:"name"`
+	Code     string `db:"code" json:"code"`
+	Type     string `db:"type" json:"type"`
+	IsActive bool   `db:"is_active" json:"is_active"`
 	Timestamp
 }
 
-func (p *PaymentMethod) TableName() string { return PaymentMethodTableName }
+func (p *PaymentMethod) TableName() string {
+	return PaymentMethodTableName
+}
 
 func (p *PaymentMethod) ToMap() map[string]interface{} {
 	return map[string]interface{}{
 		"id":         p.Id,
+		"name":       p.Name,
 		"code":       p.Code,
 		"type":       p.Type,
-		"name":       p.Name,
 		"is_active":  p.IsActive,
 		"created_at": p.CreatedAt,
 		"updated_at": p.UpdatedAt,
@@ -28,22 +30,8 @@ func (p *PaymentMethod) ToMap() map[string]interface{} {
 type PaymentMethodQueryOption struct {
 	QueryOption
 
-	IsActive *bool
-	Type     *string
-}
-
-var _ PrepareOption = &PaymentMethodQueryOption{}
-
-func (o *PaymentMethodQueryOption) SetDefaultSorts() {
-	if len(o.Sorts) == 0 {
-		o.Sorts = Sorts{{Field: "created_at", Direction: "desc"}}
-	}
-}
-
-func (o *PaymentMethodQueryOption) TranslateSorts() {
-	translated := make(Sorts, len(o.Sorts))
-	for i, s := range o.Sorts {
-		translated[i] = struct{ Field, Direction string }{"pm." + s.Field, s.Direction}
-	}
-	o.Sorts = translated
+	Name     *string `json:"name"`
+	Code     *string `json:"code"`
+	Type     *string `json:"type"`
+	IsActive *bool   `json:"is_active"`
 }

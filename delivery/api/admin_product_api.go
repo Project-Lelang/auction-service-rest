@@ -17,6 +17,60 @@ type AdminProductApi struct {
 	productUseCase use_case.ProductUseCase
 }
 
+// Approve godoc
+//
+//	@Router		/admin/users/{userId}/products/{productId}/approve [patch]
+//	@Summary	Admin — Approve/Verify a product
+//	@tags		Admin Products
+//	@Security	BearerAuth
+//	@Param		userId		path	string	true	"User ID"
+//	@Param		productId	path	string	true	"Product ID"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.ProductResponse}
+func (a *AdminProductApi) Approve() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
+		// Extract URL parameters manually using the existing ctx.getParam tool
+		var request dto_request.AdminProductApproveRequest
+		request.UserId = ctx.getParam("userId")
+		request.ProductId = ctx.getParam("productId")
+
+		product := a.productUseCase.AdminApprove(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.NewProductResponse(ctx.context(), product),
+		})
+	})
+}
+
+// Reject godoc
+//
+//	@Router		/admin/users/{userId}/products/{productId}/reject [patch]
+//	@Summary	Admin — Reject a product with feedback message
+//	@tags		Admin Products
+//	@Security	BearerAuth
+//	@Param		userId		path	string									true	"User ID"
+//	@Param		productId	path	string									true	"Product ID"
+//	@Param		body		body	dto_request.AdminProductRejectRequest	true	"Rejection details"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.ProductResponse}
+func (a *AdminProductApi) Reject() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
+		var request dto_request.AdminProductRejectRequest
+		// Extract URL parameters manually
+		request.UserId = ctx.getParam("userId")
+		request.ProductId = ctx.getParam("productId")
+
+		// Bind the JSON body parameter ("message") safely
+		ctx.mustBind(&request)
+
+		product := a.productUseCase.AdminReject(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.NewProductResponse(ctx.context(), product),
+		})
+	})
+}
+
 // Fetch godoc
 //
 //	@Router		/admin/products/filter [post]
@@ -74,6 +128,10 @@ func RegisterAdminProductApi(router gin.IRouter, baseApi *api, useCaseManager us
 		api:            baseApi,
 		productUseCase: useCaseManager.ProductUseCase(),
 	}
+
+	// Dynamic RESTful matching parameters matching specified requirements
+	router.PATCH("/admin/users/:userId/products/:productId/approve", api.Approve())
+	router.PATCH("/admin/users/:userId/products/:productId/reject", api.Reject())
 
 	routerGroup := router.Group("/admin/products")
 	routerGroup.POST("/filter", api.Fetch())

@@ -9,6 +9,7 @@ type UseCaseManager interface {
 	WithdrawalRequestUseCase() WithdrawalRequestUseCase
 	AuctionUseCase() AuctionUseCase
 	BidUseCase() BidUseCase
+	PaymentMethodUseCase() PaymentMethodUseCase
 	WinnerUseCase() WinnerUseCase
 	PaymentUseCase() PaymentUseCase
 	ShipmentUseCase() ShipmentUseCase
@@ -25,6 +26,7 @@ type useCaseManager struct {
 	withdrawalRequestUseCase WithdrawalRequestUseCase
 	auctionUseCase           AuctionUseCase
 	bidUseCase               BidUseCase
+	paymentMethodUseCase     PaymentMethodUseCase
 	winnerUseCase            WinnerUseCase
 	paymentUseCase           PaymentUseCase
 	shipmentUseCase          ShipmentUseCase
@@ -41,6 +43,7 @@ func NewUseCaseManager(
 	withdrawalRequestUseCase WithdrawalRequestUseCase,
 	auctionUseCase AuctionUseCase,
 	bidUseCase BidUseCase,
+	paymentMethodUseCase PaymentMethodUseCase,
 	winnerUseCase WinnerUseCase,
 	paymentUseCase PaymentUseCase,
 	shipmentUseCase ShipmentUseCase,
@@ -56,6 +59,7 @@ func NewUseCaseManager(
 		withdrawalRequestUseCase: withdrawalRequestUseCase,
 		auctionUseCase:           auctionUseCase,
 		bidUseCase:               bidUseCase,
+		paymentMethodUseCase:     paymentMethodUseCase,
 		winnerUseCase:            winnerUseCase,
 		paymentUseCase:           paymentUseCase,
 		shipmentUseCase:          shipmentUseCase,
@@ -95,6 +99,8 @@ func (u *useCaseManager) AuctionUseCase() AuctionUseCase {
 func (u *useCaseManager) BidUseCase() BidUseCase {
 	return u.bidUseCase
 }
+func (u *useCaseManager) PaymentMethodUseCase() PaymentMethodUseCase {
+	return u.paymentMethodUseCase
 
 func (u *useCaseManager) WinnerUseCase() WinnerUseCase {
 	return u.winnerUseCase

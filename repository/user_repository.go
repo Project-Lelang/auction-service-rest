@@ -27,6 +27,8 @@ type UserRepository interface {
 	Count(ctx context.Context, options ...model.UserQueryOption) (int64, error)
 
 	// update
+	Update(ctx context.Context, id string, fullname string, phone string, nik *string, birth data_type.DateTime, gender *string, bankAccountNumber *string) (*model.User, error)
+	UpdateBalance(ctx context.Context, id string, balance float64) error
 	Update(ctx context.Context, id string, fullname string, birth data_type.DateTime, gender *string) (*model.User, error)
 	UpdateIdentityInfo(ctx context.Context, id string, nik string, identityImagePath string, selfieIdentityImagePath string) error
 	UpdateBankAccountNumber(ctx context.Context, id string, bankAccountNumber string) error
@@ -60,7 +62,7 @@ func (r *userRepository) buildBaseStmt(option model.UserQueryOption) squirrel.Se
 		LeftJoin("user_roles ur ON ur.user_id = u.id")
 
 	if option.Role != nil {
-		stmt = stmt.Where(squirrel.ILike{"ur.role": *option.Role})
+		stmt = stmt.Where(squirrel.Eq{"ur.role": *option.Role})
 	}
 
 	return stmt
@@ -206,6 +208,14 @@ func (r *userRepository) UpdateBankAccountNumber(ctx context.Context, id string,
 	)
 }
 
+func (r *userRepository) UpdateBalance(ctx context.Context, id string, balance float64) error {
+	return update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"balance":    balance,
+			"updated_at": util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	)
 func (r *userRepository) DepositBalance(ctx context.Context, id string, amount float64) (*model.User, error) {
 	if amount <= 0 {
 		return nil, fmt.Errorf("deposit amount must be positive")

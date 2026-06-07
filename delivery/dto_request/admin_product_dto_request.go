@@ -19,3 +19,14 @@ type AdminProductFetchRequest struct {
 type AdminProductFetchStatusHistoriesRequest struct {
 	ProductId string `json:"-" swaggerignore:"true"`
 } // @name AdminProductFetchStatusHistoriesRequest
+
+type AdminProductApproveRequest struct {
+	UserId    string `uri:"userId"`
+	ProductId string `uri:"productId"`
+}
+
+type AdminProductRejectRequest struct {
+	UserId    string  `uri:"userId"`
+	ProductId string  `uri:"productId"`
+	Message   *string `json:"message" binding:"required"` // Mandatory rejection reason
+}
