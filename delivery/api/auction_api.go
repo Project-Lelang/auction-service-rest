@@ -99,6 +99,33 @@ func (a *AuctionApi) PlaceBid() gin.HandlerFunc {
 	})
 }
 
+// PlaceBidNoLocking godoc
+//
+//	@Router		/auctions/{auctionId}/bids/no-locking [post]
+//	@Summary	Place a bid on an active auction (BIDDER only)
+//	@tags		Auction
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		auctionId	path	string								true	"Auction ID"
+//	@Param		body		body	dto_request.AuctionBidCreateRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	201	{object}	dto_response.Response{data=dto_response.DataResponse{bid=dto_response.AuctionBidResponse}}
+func (a *AuctionApi) PlaceBidNoLocking() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+		var request dto_request.AuctionBidCreateRequest
+		ctx.mustBind(&request)
+		request.AuctionId = ctx.getParam("auctionId")
+
+		bid := a.bidUseCase.PlaceBidNoLocking(ctx.context(), request)
+
+		ctx.json(http.StatusCreated, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"bid": dto_response.NewAuctionBidResponse(ctx.context(), bid),
+			},
+		})
+	})
+}
+
 // FetchWinners godoc
 //
 //	@Router		/auctions/{auctionId}/winners/filter [post]
@@ -348,16 +375,16 @@ func (a *AuctionApi) GetTracking() gin.HandlerFunc {
 	})
 }
 
-//	@Router		/auctions/{auctionId}/shipments/{shipmentId}/receive [post]
-//	@Summary	Mark a shipment as received with delivery proof (BIDDER only)
-//	@tags		Auction
-//	@Security	BearerAuth
-//	@Accept		json
-//	@Param		auctionId	path	string										true	"Auction ID"
-//	@Param		shipmentId	path	string										true	"Shipment ID"
-//	@Param		body		body	dto_request.AuctionShipmentReceiveRequest	true	"Body Request"
-//	@Produce	json
-//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{shipment=dto_response.ShipmentResponse}}
+// @Router		/auctions/{auctionId}/shipments/{shipmentId}/receive [post]
+// @Summary	Mark a shipment as received with delivery proof (BIDDER only)
+// @tags		Auction
+// @Security	BearerAuth
+// @Accept		json
+// @Param		auctionId	path	string										true	"Auction ID"
+// @Param		shipmentId	path	string										true	"Shipment ID"
+// @Param		body		body	dto_request.AuctionShipmentReceiveRequest	true	"Body Request"
+// @Produce	json
+// @Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{shipment=dto_response.ShipmentResponse}}
 func (a *AuctionApi) Receive() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
 		var request dto_request.AuctionShipmentReceiveRequest
@@ -410,6 +437,7 @@ func RegisterAuctionApi(router gin.IRouter, baseApi *api, useCaseManager use_cas
 	auctionsGroup.POST("/filter", a.FetchAuctions())
 	auctionsGroup.GET("/:auctionId", a.GetAuction())
 	auctionsGroup.POST("/:auctionId/bids", a.PlaceBid())
+	auctionsGroup.POST("/:auctionId/bids/no-locking", a.PlaceBidNoLocking())
 	auctionsGroup.POST("/:auctionId/winners/filter", a.FetchWinners())
 	auctionsGroup.GET("/:auctionId/winners/:winnerId", a.GetWinner())
 	auctionsGroup.GET("/:auctionId/payments/:paymentId", a.GetPayment())

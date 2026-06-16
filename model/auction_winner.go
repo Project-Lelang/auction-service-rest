@@ -3,10 +3,10 @@ package model
 const AuctionWinnerTableName = "auction_winners"
 
 type AuctionWinner struct {
-	Id           string `db:"id"`
-	AuctionId    string `db:"auction_id"`
-	AuctionBidId string `db:"auction_bid_id"`
-	Status       string `db:"status"`
+	Id           string  `db:"id"`
+	AuctionId    string  `db:"auction_id"`
+	AuctionBidId *string `db:"auction_bid_id"`
+	Status       string  `db:"status"`
 	Timestamp
 
 	// relations
