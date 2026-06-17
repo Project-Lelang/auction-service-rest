@@ -14,6 +14,7 @@ type UserResponse struct {
 	Phone                   string             `json:"phone"                       example:"+6281234567890"`
 	Nik                     *string            `json:"nik,omitempty"`
 	Birth                   data_type.DateTime `json:"birth"                       example:"1990-01-15T00:00:00Z"`
+	Balance                 float64            `json:"balance"                     example:"100000.00"`
 	Gender                  *string            `json:"gender,omitempty"            example:"MALE"`
 	BankAccountNumber       *string            `json:"bank_account_number,omitempty"`
 	IdentityImageLink       *string            `json:"identity_image_link,omitempty"`
@@ -40,6 +41,7 @@ func NewUserResponse(_ context.Context, u model.User) UserResponse {
 		Nik:                     u.Nik,
 		Birth:                   u.Birth,
 		Gender:                  u.Gender,
+		Balance:                 u.Balance,
 		BankAccountNumber:       u.BankAccountNumber,
 		IdentityImageLink:       u.IdentityImageLink,
 		SelfieIdentityImageLink: u.SelfieIdentityImageLink,

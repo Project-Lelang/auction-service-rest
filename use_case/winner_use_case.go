@@ -6,10 +6,25 @@ import (
 	"auction-service/constant"
 	"auction-service/delivery/dto_request"
 	"auction-service/delivery/dto_response"
+	"auction-service/loader"
 	"auction-service/model"
 	"auction-service/repository"
 	"auction-service/util"
+
+	"golang.org/x/sync/errgroup"
 )
+
+func mustLoadAuctionWinnerData(_ context.Context, repositoryManager repository.RepositoryManager, auctionWinners []*model.AuctionWinner) {
+	bidLoader := loader.NewBidLoader(
+		repositoryManager.AuctionBidRepository(),
+	)
+
+	panicIfErr(util.Await(func(group *errgroup.Group) {
+		for _, auctionWinner := range auctionWinners {
+			group.Go(bidLoader.WinnerFn(auctionWinner))
+		}
+	}))
+}
 
 // WinnerUseCase manages auction winner operations.
 type WinnerUseCase interface {
@@ -65,7 +80,10 @@ func (u *winnerUseCase) GetByAuction(ctx context.Context, request dto_request.Au
 	}
 
 	// The winner's bid holds the user_id of the actual buyer
-	bid, err := u.repositoryManager.AuctionBidRepository().GetById(ctx, winner.AuctionBidId)
+	if winner.AuctionBidId == nil {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageBidNotFound))
+	}
+	bid, err := u.repositoryManager.AuctionBidRepository().GetById(ctx, *winner.AuctionBidId)
 	panicIfRepositoryError(err, constant.LanguageBidNotFound)
 
 	// Only the seller, the buyer themselves, or superadmin may view a winner

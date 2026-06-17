@@ -210,12 +210,34 @@ func (u *auctionUseCase) OwnCreate(ctx context.Context, request dto_request.OwnA
 		Status:        constant.AuctionStatusScheduled,
 		Fee:           constant.AuctionFee,
 	}
-	panicIfErr(u.repositoryManager.AuctionRepository().Insert(ctx, &auction))
 
-	// Schedule the start task; EnqueueScheduledTasks on startup recovers if this fails.
-	if err := u.taskQueue.EnqueueAuctionStart(auction.Id, auction.StartTime.Time()); err != nil {
-		log.Printf("[auction worker] enqueue start for %s failed: %v", auction.Id, err)
+	winner := model.AuctionWinner{
+		Id:           util.NewUuid(),
+		AuctionId:    auction.Id,
+		AuctionBidId: nil,
+		Status:       constant.AuctionWinnerStatusOnGoing,
 	}
+
+	err := u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+		err := u.repositoryManager.AuctionRepository().Insert(ctx, &auction)
+		if err != nil {
+			return err
+		}
+
+		errWinner := u.repositoryManager.AuctionWinnerRepository().Insert(ctx, &winner)
+		if errWinner != nil {
+			return errWinner
+		}
+
+		// Schedule the start task; EnqueueScheduledTasks on startup recovers if this fails.
+		if errRedis := u.taskQueue.EnqueueAuctionStart(auction.Id, auction.StartTime.Time()); errRedis != nil {
+			log.Printf("[auction worker] enqueue start for %s failed: %v", auction.Id, errRedis)
+			return errRedis
+		}
+
+		return nil
+	})
+	panicIfErr(err)
 
 	auction.Product = &product
 	return auction
@@ -493,7 +515,10 @@ func (u *auctionUseCase) OwnSecondChance(ctx context.Context, request dto_reques
 
 	seenUsers := make(map[string]struct{}, len(cancelledWinners))
 	for _, w := range cancelledWinners {
-		bid, err := u.repositoryManager.AuctionBidRepository().GetById(ctx, w.AuctionBidId)
+		if w.AuctionBidId == nil {
+			continue
+		}
+		bid, err := u.repositoryManager.AuctionBidRepository().GetById(ctx, *w.AuctionBidId)
 		panicIfErr(err)
 		seenUsers[bid.UserId] = struct{}{}
 	}
@@ -512,7 +537,7 @@ func (u *auctionUseCase) OwnSecondChance(ctx context.Context, request dto_reques
 		newWinner := model.AuctionWinner{
 			Id:           util.NewUuid(),
 			AuctionId:    auction.Id,
-			AuctionBidId: nextBid.Id,
+			AuctionBidId: &nextBid.Id,
 			Status:       constant.AuctionWinnerStatusOnGoing,
 		}
 		if err := u.repositoryManager.AuctionWinnerRepository().Insert(ctx, &newWinner); err != nil {

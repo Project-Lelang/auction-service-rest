@@ -280,7 +280,7 @@ func (u *paymentUseCase) onPaymentCompleted(ctx context.Context, payment model.P
 	// Create shipment for the winning bid
 	shipment := model.Shipment{
 		Id:                    util.NewUuid(),
-		AuctionBidId:          winner.AuctionBidId,
+		AuctionBidId:          *winner.AuctionBidId,
 		UserId:                payment.UserId,
 		BuyerAddressId:        buyerAddressId,
 		SellerAddressId:       sellerAddressId,
@@ -294,7 +294,7 @@ func (u *paymentUseCase) onPaymentCompleted(ctx context.Context, payment model.P
 	// Best-effort: compute Biteship estimated costs and store on shipment
 	if u.biteshipClient != nil && buyerAddr != nil && sellerAddr != nil &&
 		buyerAddr.BiteshipAreaId != "" && sellerAddr.BiteshipAreaId != "" {
-		winnerBidId := winner.AuctionBidId
+		winnerBidId := *winner.AuctionBidId
 		shipmentId := shipment.Id
 		biteshipClient := u.biteshipClient
 		repoMgr := u.repositoryManager
@@ -414,7 +414,7 @@ func (u *paymentUseCase) CreateInitialPaymentForWinner(ctx context.Context, auct
 		return nil
 	}
 
-	bid, err := u.repositoryManager.AuctionBidRepository().GetById(ctx, winner.AuctionBidId)
+	bid, err := u.repositoryManager.AuctionBidRepository().GetById(ctx, *winner.AuctionBidId)
 	if err != nil {
 		return err
 	}

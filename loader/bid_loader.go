@@ -24,7 +24,10 @@ func (l *BidLoader) load(id string) (*model.AuctionBid, error) {
 
 func (l *BidLoader) WinnerFn(winner *model.AuctionWinner) func() error {
 	return func() error {
-		bid, err := l.load(winner.AuctionBidId)
+		if winner.AuctionBidId == nil {
+			return nil
+		}
+		bid, err := l.load(*winner.AuctionBidId)
 		if err != nil {
 			return err
 		}

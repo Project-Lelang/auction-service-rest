@@ -19,6 +19,7 @@ type AuctionWinnerRepository interface {
 	// read
 	GetById(ctx context.Context, id string) (*model.AuctionWinner, error)
 	GetActiveByAuctionIdForUpdate(ctx context.Context, auctionId string) (*model.AuctionWinner, error)
+	GetActiveByAuctionIdNoLocking(ctx context.Context, auctionId string) (*model.AuctionWinner, error)
 	GetLatestByAuctionId(ctx context.Context, auctionId string) (*model.AuctionWinner, error)
 	Fetch(ctx context.Context, options ...model.AuctionWinnerQueryOption) ([]model.AuctionWinner, error)
 	FetchByAuctionIds(ctx context.Context, auctionIds []string) ([]model.AuctionWinner, error)
@@ -95,6 +96,19 @@ func (r *auctionWinnerRepository) GetById(ctx context.Context, id string) (*mode
 func (r *auctionWinnerRepository) GetActiveByAuctionIdForUpdate(ctx context.Context, auctionId string) (*model.AuctionWinner, error) {
 	query := fmt.Sprintf(
 		"SELECT %s.* FROM %s WHERE %s.auction_id = ? AND %s.status != 'CANCELLED' LIMIT 1 FOR UPDATE",
+		r.alias(), r.fromTable(), r.alias(), r.alias(),
+	)
+	w := model.AuctionWinner{}
+	dt := dbtx(r.db, ctx)
+	if err := dt.GetContext(ctx, &w, query, auctionId); err != nil {
+		return nil, translateSqlError(err)
+	}
+	return &w, nil
+}
+
+func (r *auctionWinnerRepository) GetActiveByAuctionIdNoLocking(ctx context.Context, auctionId string) (*model.AuctionWinner, error) {
+	query := fmt.Sprintf(
+		"SELECT %s.* FROM %s WHERE %s.auction_id = ? AND %s.status != 'CANCELLED' LIMIT 1",
 		r.alias(), r.fromTable(), r.alias(), r.alias(),
 	)
 	w := model.AuctionWinner{}

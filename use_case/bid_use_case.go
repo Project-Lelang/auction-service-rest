@@ -16,6 +16,7 @@ type BidUseCase interface {
 	OwnFetch(ctx context.Context, request dto_request.OwnBidFetchRequest) ([]model.AuctionBid, int64)
 	OwnGet(ctx context.Context, request dto_request.OwnBidGetRequest) model.AuctionBid
 	PlaceBid(ctx context.Context, request dto_request.AuctionBidCreateRequest) model.AuctionBid
+	PlaceBidNoLocking(ctx context.Context, request dto_request.AuctionBidCreateRequest) model.AuctionBid
 }
 
 type bidUseCase struct {
@@ -49,7 +50,7 @@ func (u *bidUseCase) mustLoadOwnBidData(ctx context.Context, bids []*model.Aucti
 	auctionIdsForPayment := make([]string, 0)
 	for _, winner := range winners {
 		if bid, ok := bidByAuctionId[winner.AuctionId]; ok {
-			if bid.Id == winner.AuctionBidId {
+			if winner.AuctionBidId != nil && bid.Id == *winner.AuctionBidId {
 				bid.Winner = &winner
 				winningBidIds[bid.Id] = true
 				auctionIdsForPayment = append(auctionIdsForPayment, winner.AuctionId)
@@ -151,23 +152,24 @@ func (u *bidUseCase) PlaceBid(ctx context.Context, request dto_request.AuctionBi
 
 	err := u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
 		// Lock the auction row to serialise concurrent bids
-		lockedAuction, err := u.repositoryManager.AuctionRepository().GetByIdForUpdate(ctx, request.AuctionId)
+		auction, err := u.repositoryManager.AuctionRepository().GetById(ctx, request.AuctionId)
 		if err != nil {
 			return err
 		}
-		if lockedAuction.Status != constant.AuctionStatusOnGoing {
+		if auction.Status != constant.AuctionStatusOnGoing {
 			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageBidAuctionNotOnGoing))
 		}
 
-		// Determine the minimum valid bid amount
-		highestBid, err := u.repositoryManager.AuctionBidRepository().GetHighestByAuctionId(ctx, request.AuctionId)
-		if err != nil && err != constant.ErrNoData {
+		// Lock the current active winner row (gap lock if none exists)
+		currentWinner, err := u.repositoryManager.AuctionWinnerRepository().GetActiveByAuctionIdForUpdate(ctx, request.AuctionId)
+		if err != nil {
 			return err
 		}
+		mustLoadAuctionWinnerData(ctx, u.repositoryManager, []*model.AuctionWinner{currentWinner})
 
-		minAmount := lockedAuction.StartingPrice
-		if highestBid != nil {
-			minAmount = highestBid.Amount
+		minAmount := auction.StartingPrice
+		if currentWinner.AuctionBid != nil {
+			minAmount = currentWinner.AuctionBid.Amount
 		}
 		if request.Amount <= minAmount {
 			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageBidAmountTooLow))
@@ -185,23 +187,69 @@ func (u *bidUseCase) PlaceBid(ctx context.Context, request dto_request.AuctionBi
 		}
 		createdBid = bid
 
-		// Lock the current active winner row (gap lock if none exists)
-		currentWinner, err := u.repositoryManager.AuctionWinnerRepository().GetActiveByAuctionIdForUpdate(ctx, request.AuctionId)
-		if err == constant.ErrNoData {
-			// No winner yet – create the first one
-			winner := model.AuctionWinner{
-				Id:           util.NewUuid(),
-				AuctionId:    request.AuctionId,
-				AuctionBidId: bid.Id,
-				Status:       constant.AuctionWinnerStatusOnGoing,
-			}
-			return u.repositoryManager.AuctionWinnerRepository().Insert(ctx, &winner)
-		}
+		// Update the existing winner to point to the new highest bid
+		_, err = u.repositoryManager.AuctionWinnerRepository().UpdateBidId(ctx, currentWinner.Id, bid.Id)
+		return err
+	})
+	panicIfErr(err)
+
+	createdBid.Auction = &auction
+	return createdBid
+}
+
+func (u *bidUseCase) PlaceBidNoLocking(ctx context.Context, request dto_request.AuctionBidCreateRequest) model.AuctionBid {
+	userClaims := model.MustGetUserCtx(ctx)
+
+	if !userClaims.HasRole(constant.RoleBidder) {
+		panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
+	}
+
+	auction := mustGetAuction(ctx, u.repositoryManager, request.AuctionId)
+	if auction.Status != constant.AuctionStatusOnGoing {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageBidAuctionNotOnGoing))
+	}
+
+	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
+	if product.UserId == userClaims.UserId {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageBidCannotBidOwnAuction))
+	}
+
+	var createdBid model.AuctionBid
+
+	err := u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+		auction, err := u.repositoryManager.AuctionRepository().GetById(ctx, request.AuctionId)
 		if err != nil {
 			return err
 		}
+		if auction.Status != constant.AuctionStatusOnGoing {
+			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageBidAuctionNotOnGoing))
+		}
 
-		// Update the existing winner to point to the new highest bid
+		currentWinner, err := u.repositoryManager.AuctionWinnerRepository().GetActiveByAuctionIdNoLocking(ctx, request.AuctionId)
+		if err != nil {
+			return err
+		}
+		mustLoadAuctionWinnerData(ctx, u.repositoryManager, []*model.AuctionWinner{currentWinner})
+
+		minAmount := auction.StartingPrice
+		if currentWinner.AuctionBid != nil {
+			minAmount = currentWinner.AuctionBid.Amount
+		}
+		if request.Amount <= minAmount {
+			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageBidAmountTooLow))
+		}
+
+		bid := model.AuctionBid{
+			Id:        util.NewUuid(),
+			UserId:    userClaims.UserId,
+			AuctionId: request.AuctionId,
+			Amount:    request.Amount,
+		}
+		if err := u.repositoryManager.AuctionBidRepository().Insert(ctx, &bid); err != nil {
+			return err
+		}
+		createdBid = bid
+
 		_, err = u.repositoryManager.AuctionWinnerRepository().UpdateBidId(ctx, currentWinner.Id, bid.Id)
 		return err
 	})

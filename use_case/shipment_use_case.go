@@ -69,7 +69,10 @@ func (u *shipmentUseCase) FetchByAuction(ctx context.Context, request dto_reques
 
 	var shipments []model.Shipment
 	for _, w := range winners {
-		s, err := u.repositoryManager.ShipmentRepository().GetByAuctionBidId(ctx, w.AuctionBidId)
+		if w.AuctionBidId == nil {
+			continue
+		}
+		s, err := u.repositoryManager.ShipmentRepository().GetByAuctionBidId(ctx, *w.AuctionBidId)
 		if err == constant.ErrNoData {
 			continue
 		}
