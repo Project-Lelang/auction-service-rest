@@ -40,7 +40,6 @@ func SeedSuperAdmin(db infrastructure.DBTX) error {
 
 	birth := data_type.NewDateTime(time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC))
 	user := &model.User{
-		Id:         util.NewUuid(),
 		Fullname:   "Super Admin",
 		Phone:      config.Phone,
 		Birth:      birth,
@@ -54,7 +53,6 @@ func SeedSuperAdmin(db infrastructure.DBTX) error {
 	}
 
 	if err := userRoleRepo.Insert(ctx, &model.UserRole{
-		Id:     util.NewUuid(),
 		UserId: user.Id,
 		Role:   constant.RoleSuperAdmin,
 	}); err != nil {

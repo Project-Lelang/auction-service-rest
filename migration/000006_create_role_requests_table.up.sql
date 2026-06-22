@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS role_requests (
     id          BIGINT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    user_id     CHAR(36)        NOT NULL,
+    user_id     BIGINT          NOT NULL,
     status      VARCHAR(100)    NOT NULL DEFAULT 'REQUESTED', -- REQUESTED, APPROVED, REJECTED
     role        VARCHAR(100)    NOT NULL,                     -- BIDDER, SELLER
     message     VARCHAR(255)    NULL,                         -- Alasan reject dari admin

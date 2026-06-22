@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS user_addresses (
-    id             CHAR(36)     NOT NULL,
-    user_id        CHAR(36)     NOT NULL,
+    id             BIGINT       NOT NULL AUTO_INCREMENT,
+    user_id        BIGINT       NOT NULL,
     label          VARCHAR(100) NOT NULL,
     recipient_name VARCHAR(255) NOT NULL,
     phone          VARCHAR(20)  NOT NULL,

@@ -5,7 +5,7 @@ import "auction-service/data_type"
 const OtpTableName = "otps"
 
 type Otp struct {
-	Id        string             `db:"id"`
+	Id        int64              `db:"id"`
 	Phone     string             `db:"phone"`
 	Otp       string             `db:"otp"`
 	ExpiresAt data_type.DateTime `db:"expires_at"`

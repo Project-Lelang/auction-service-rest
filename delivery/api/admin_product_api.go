@@ -31,8 +31,8 @@ func (a *AdminProductApi) Approve() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
 		// Extract URL parameters manually using the existing ctx.getParam tool
 		var request dto_request.AdminProductApproveRequest
-		request.UserId = ctx.getParam("userId")
-		request.ProductId = ctx.getParam("productId")
+		request.UserId = ctx.mustGetParamInt64("userId")
+		request.ProductId = ctx.mustGetParamInt64("productId")
 
 		product := a.productUseCase.AdminApprove(ctx.context(), request)
 
@@ -57,8 +57,8 @@ func (a *AdminProductApi) Reject() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
 		var request dto_request.AdminProductRejectRequest
 		// Extract URL parameters manually
-		request.UserId = ctx.getParam("userId")
-		request.ProductId = ctx.getParam("productId")
+		request.UserId = ctx.mustGetParamInt64("userId")
+		request.ProductId = ctx.mustGetParamInt64("productId")
 
 		// Bind the JSON body parameter ("message") safely
 		ctx.mustBind(&request)
@@ -111,7 +111,7 @@ func (a *AdminProductApi) Fetch() gin.HandlerFunc {
 func (a *AdminProductApi) FetchStatusHistories() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
 		var request dto_request.AdminProductFetchStatusHistoriesRequest
-		request.ProductId = ctx.getParam("productId")
+		request.ProductId = ctx.mustGetParamInt64("productId")
 
 		histories := a.productUseCase.AdminFetchStatusHistories(ctx.context(), request)
 

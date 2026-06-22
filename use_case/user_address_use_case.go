@@ -8,7 +8,6 @@ import (
 	"auction-service/delivery/dto_response"
 	"auction-service/model"
 	"auction-service/repository"
-	"auction-service/util"
 )
 
 // UserAddressUseCase manages CRUD operations for user addresses.
@@ -28,7 +27,7 @@ func NewUserAddressUseCase(repositoryManager repository.RepositoryManager) UserA
 	return &userAddressUseCase{repositoryManager: repositoryManager}
 }
 
-func (u *userAddressUseCase) mustGetOwned(ctx context.Context, id string) model.UserAddress {
+func (u *userAddressUseCase) mustGetOwned(ctx context.Context, id int64) model.UserAddress {
 	userClaims := model.MustGetUserCtx(ctx)
 	address, err := u.repositoryManager.UserAddressRepository().GetById(ctx, id)
 	panicIfRepositoryError(err, constant.LanguageUserAddressNotFound)
@@ -49,7 +48,6 @@ func (u *userAddressUseCase) OwnCreate(ctx context.Context, request dto_request.
 	}
 
 	address := model.UserAddress{
-		Id:             util.NewUuid(),
 		UserId:         userClaims.UserId,
 		Label:          request.Label,
 		RecipientName:  request.RecipientName,

@@ -20,19 +20,19 @@ type UserRepository interface {
 
 	// read
 	GetByPhone(ctx context.Context, phone string) (*model.User, error)
-	GetById(ctx context.Context, id string) (*model.User, error)
+	GetById(ctx context.Context, id int64) (*model.User, error)
 	FindAdminByPhone(ctx context.Context, phone string) (*model.User, error)
-	FetchByIds(ctx context.Context, ids []string) ([]model.User, error)
+	FetchByIds(ctx context.Context, ids []int64) ([]model.User, error)
 	Fetch(ctx context.Context, options ...model.UserQueryOption) ([]model.User, error)
 	Count(ctx context.Context, options ...model.UserQueryOption) (int64, error)
 
 	// update
-	Update(ctx context.Context, id string, fullname string, birth data_type.DateTime, gender *string) (*model.User, error)
-	UpdateIdentityInfo(ctx context.Context, id string, nik string, identityImagePath string, selfieIdentityImagePath string) error
-	UpdateBankAccountNumber(ctx context.Context, id string, bankAccountNumber string) error
-	DepositBalance(ctx context.Context, id string, amount float64) (*model.User, error)
-	WithdrawBalance(ctx context.Context, id string, amount float64) (*model.User, error)
-	SoftDelete(ctx context.Context, id string) error
+	Update(ctx context.Context, id int64, fullname string, birth data_type.DateTime, gender *string) (*model.User, error)
+	UpdateIdentityInfo(ctx context.Context, id int64, nik string, identityImagePath string, selfieIdentityImagePath string) error
+	UpdateBankAccountNumber(ctx context.Context, id int64, bankAccountNumber string) error
+	DepositBalance(ctx context.Context, id int64, amount float64) (*model.User, error)
+	WithdrawBalance(ctx context.Context, id int64, amount float64) (*model.User, error)
+	SoftDelete(ctx context.Context, id int64) error
 }
 
 type userRepository struct {
@@ -98,7 +98,7 @@ func (r *userRepository) GetByPhone(ctx context.Context, phone string) (*model.U
 	return r.getInternal(ctx, stmt)
 }
 
-func (r *userRepository) GetById(ctx context.Context, id string) (*model.User, error) {
+func (r *userRepository) GetById(ctx context.Context, id int64) (*model.User, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("id"): id}).
@@ -132,7 +132,7 @@ func (r *userRepository) Fetch(ctx context.Context, options ...model.UserQueryOp
 	return r.fetchInternal(ctx, stmt)
 }
 
-func (r *userRepository) FetchByIds(ctx context.Context, ids []string) ([]model.User, error) {
+func (r *userRepository) FetchByIds(ctx context.Context, ids []int64) ([]model.User, error) {
 	if len(ids) == 0 {
 		return []model.User{}, nil
 	}
@@ -159,7 +159,7 @@ func (r *userRepository) Count(ctx context.Context, options ...model.UserQueryOp
 
 // ------------------------------------------------------------------ update
 
-func (r *userRepository) Update(ctx context.Context, id string, fullname string, birth data_type.DateTime, gender *string) (*model.User, error) {
+func (r *userRepository) Update(ctx context.Context, id int64, fullname string, birth data_type.DateTime, gender *string) (*model.User, error) {
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
 			"fullname":   fullname,
@@ -174,7 +174,7 @@ func (r *userRepository) Update(ctx context.Context, id string, fullname string,
 	return r.GetById(ctx, id)
 }
 
-func (r *userRepository) SoftDelete(ctx context.Context, id string) error {
+func (r *userRepository) SoftDelete(ctx context.Context, id int64) error {
 	return update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
 			"is_deleted": true,
@@ -184,7 +184,7 @@ func (r *userRepository) SoftDelete(ctx context.Context, id string) error {
 	)
 }
 
-func (r *userRepository) UpdateIdentityInfo(ctx context.Context, id string, nik string, identityImagePath string, selfieIdentityImagePath string) error {
+func (r *userRepository) UpdateIdentityInfo(ctx context.Context, id int64, nik string, identityImagePath string, selfieIdentityImagePath string) error {
 	return update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
 			"nik":                        nik,
@@ -196,7 +196,7 @@ func (r *userRepository) UpdateIdentityInfo(ctx context.Context, id string, nik 
 	)
 }
 
-func (r *userRepository) UpdateBankAccountNumber(ctx context.Context, id string, bankAccountNumber string) error {
+func (r *userRepository) UpdateBankAccountNumber(ctx context.Context, id int64, bankAccountNumber string) error {
 	return update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
 			"bank_account_number": bankAccountNumber,
@@ -206,7 +206,7 @@ func (r *userRepository) UpdateBankAccountNumber(ctx context.Context, id string,
 	)
 }
 
-func (r *userRepository) DepositBalance(ctx context.Context, id string, amount float64) (*model.User, error) {
+func (r *userRepository) DepositBalance(ctx context.Context, id int64, amount float64) (*model.User, error) {
 	if amount <= 0 {
 		return nil, fmt.Errorf("deposit amount must be positive")
 	}
@@ -215,14 +215,14 @@ func (r *userRepository) DepositBalance(ctx context.Context, id string, amount f
 		"updated_at": util.CurrentDateTime(),
 	}).Where(squirrel.Eq{"id": id})
 
-	if err := exec(r.db, ctx, stmt); err != nil {
+	if _, err := exec(r.db, ctx, stmt); err != nil {
 		return nil, err
 	}
 
 	return r.GetById(ctx, id)
 }
 
-func (r *userRepository) WithdrawBalance(ctx context.Context, id string, amount float64) (*model.User, error) {
+func (r *userRepository) WithdrawBalance(ctx context.Context, id int64, amount float64) (*model.User, error) {
 	if amount <= 0 {
 		return nil, fmt.Errorf("withdraw amount must be positive")
 	}

@@ -77,6 +77,26 @@ func (a *AuthApi) Register() gin.HandlerFunc {
 	})
 }
 
+// Save Fcm Token godoc
+//
+//	@Router		/auth/save-fcm-token [post]
+//	@Summary	Save FCM token for a user
+//	@tags		Auth
+//	@Accept		json
+//	@Param		body	body	dto_request.AuthFcmTokenRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	201	{object}	dto_response.SuccessResponse
+func (a *AuthApi) SaveFcmToken() gin.HandlerFunc {
+	return a.Authorize(func(ctx apiContext) {
+		var request dto_request.AuthFcmTokenRequest
+		ctx.mustBind(&request)
+
+		a.authUseCase.SaveFcmToken(ctx.context(), request)
+
+		ctx.json(http.StatusCreated, dto_response.SuccessResponse{Message: "Success"})
+	})
+}
+
 func RegisterAuthApi(router gin.IRouter, baseApi *api, useCaseManager use_case.UseCaseManager) {
 	api := AuthApi{
 		api:         baseApi,
@@ -87,4 +107,5 @@ func RegisterAuthApi(router gin.IRouter, baseApi *api, useCaseManager use_case.U
 	routerGroup.POST("/login", api.Login())
 	routerGroup.POST("/request-otp", api.RequestOtp())
 	routerGroup.POST("/register", api.Register())
+	routerGroup.POST("/save-fcm-token", api.SaveFcmToken())
 }

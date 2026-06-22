@@ -60,7 +60,7 @@ func (a *AuctionApi) FetchAuctions() gin.HandlerFunc {
 func (a *AuctionApi) GetAuction() gin.HandlerFunc {
 	return a.Guest(func(ctx apiContext) {
 		var request dto_request.AuctionGetRequest
-		request.AuctionId = ctx.getParam("auctionId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
 
 		auction := a.auctionUseCase.Get(ctx.context(), request)
 
@@ -87,7 +87,7 @@ func (a *AuctionApi) PlaceBid() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
 		var request dto_request.AuctionBidCreateRequest
 		ctx.mustBind(&request)
-		request.AuctionId = ctx.getParam("auctionId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
 
 		bid := a.bidUseCase.PlaceBid(ctx.context(), request)
 
@@ -114,7 +114,7 @@ func (a *AuctionApi) PlaceBidNoLocking() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
 		var request dto_request.AuctionBidCreateRequest
 		ctx.mustBind(&request)
-		request.AuctionId = ctx.getParam("auctionId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
 
 		bid := a.bidUseCase.PlaceBidNoLocking(ctx.context(), request)
 
@@ -141,7 +141,7 @@ func (a *AuctionApi) FetchWinners() gin.HandlerFunc {
 	return a.Authorize(func(ctx apiContext) {
 		var request dto_request.AuctionWinnerFetchRequest
 		ctx.mustBind(&request)
-		request.AuctionId = ctx.getParam("auctionId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
 
 		winners, total := a.winnerUseCase.FetchByAuction(ctx.context(), request)
 
@@ -169,8 +169,8 @@ func (a *AuctionApi) FetchWinners() gin.HandlerFunc {
 func (a *AuctionApi) GetWinner() gin.HandlerFunc {
 	return a.Authorize(func(ctx apiContext) {
 		var request dto_request.AuctionWinnerGetRequest
-		request.AuctionId = ctx.getParam("auctionId")
-		request.WinnerId = ctx.getParam("winnerId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
+		request.WinnerId = ctx.mustGetParamInt64("winnerId")
 
 		winner := a.winnerUseCase.GetByAuction(ctx.context(), request)
 
@@ -195,8 +195,8 @@ func (a *AuctionApi) GetWinner() gin.HandlerFunc {
 func (a *AuctionApi) GetPayment() gin.HandlerFunc {
 	return a.Authorize(func(ctx apiContext) {
 		var request dto_request.AuctionPaymentGetRequest
-		request.AuctionId = ctx.getParam("auctionId")
-		request.PaymentId = ctx.getParam("paymentId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
+		request.PaymentId = ctx.mustGetParamInt64("paymentId")
 
 		payment := a.paymentUseCase.GetByAuction(ctx.context(), request)
 
@@ -223,7 +223,7 @@ func (a *AuctionApi) FetchShipments() gin.HandlerFunc {
 	return a.Authorize(func(ctx apiContext) {
 		var request dto_request.AuctionShipmentFetchRequest
 		ctx.mustBind(&request)
-		request.AuctionId = ctx.getParam("auctionId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
 
 		shipments := a.shipmentUseCase.FetchByAuction(ctx.context(), request)
 
@@ -248,8 +248,8 @@ func (a *AuctionApi) FetchShipments() gin.HandlerFunc {
 func (a *AuctionApi) GetShipment() gin.HandlerFunc {
 	return a.Authorize(func(ctx apiContext) {
 		var request dto_request.AuctionShipmentGetRequest
-		request.AuctionId = ctx.getParam("auctionId")
-		request.ShipmentId = ctx.getParam("shipmentId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
+		request.ShipmentId = ctx.mustGetParamInt64("shipmentId")
 
 		shipment := a.shipmentUseCase.GetByAuction(ctx.context(), request)
 
@@ -277,8 +277,8 @@ func (a *AuctionApi) Ship() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.AuctionShipmentShipRequest
 		ctx.mustBind(&request)
-		request.AuctionId = ctx.getParam("auctionId")
-		request.ShipmentId = ctx.getParam("shipmentId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
+		request.ShipmentId = ctx.mustGetParamInt64("shipmentId")
 
 		shipment := a.shipmentUseCase.Ship(ctx.context(), request)
 
@@ -306,8 +306,8 @@ func (a *AuctionApi) UpdateBuyerAddress() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
 		var request dto_request.AuctionShipmentUpdateAddressRequest
 		ctx.mustBind(&request)
-		request.AuctionId = ctx.getParam("auctionId")
-		request.ShipmentId = ctx.getParam("shipmentId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
+		request.ShipmentId = ctx.mustGetParamInt64("shipmentId")
 
 		shipment := a.shipmentUseCase.UpdateBuyerAddress(ctx.context(), request)
 
@@ -335,8 +335,8 @@ func (a *AuctionApi) UpdateSellerAddress() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.AuctionShipmentUpdateAddressRequest
 		ctx.mustBind(&request)
-		request.AuctionId = ctx.getParam("auctionId")
-		request.ShipmentId = ctx.getParam("shipmentId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
+		request.ShipmentId = ctx.mustGetParamInt64("shipmentId")
 
 		shipment := a.shipmentUseCase.UpdateSellerAddress(ctx.context(), request)
 
@@ -361,8 +361,8 @@ func (a *AuctionApi) UpdateSellerAddress() gin.HandlerFunc {
 func (a *AuctionApi) GetTracking() gin.HandlerFunc {
 	return a.Authorize(func(ctx apiContext) {
 		request := dto_request.AuctionShipmentGetTrackingRequest{
-			AuctionId:  ctx.getParam("auctionId"),
-			ShipmentId: ctx.getParam("shipmentId"),
+			AuctionId:  ctx.mustGetParamInt64("auctionId"),
+			ShipmentId: ctx.mustGetParamInt64("shipmentId"),
 		}
 
 		result := a.shipmentUseCase.GetTracking(ctx.context(), request)
@@ -389,8 +389,8 @@ func (a *AuctionApi) Receive() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
 		var request dto_request.AuctionShipmentReceiveRequest
 		ctx.mustBind(&request)
-		request.AuctionId = ctx.getParam("auctionId")
-		request.ShipmentId = ctx.getParam("shipmentId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
+		request.ShipmentId = ctx.mustGetParamInt64("shipmentId")
 
 		shipment := a.shipmentUseCase.Receive(ctx.context(), request)
 

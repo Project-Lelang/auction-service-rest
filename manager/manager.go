@@ -39,8 +39,10 @@ func NewContainer() *Container {
 	paymentRepo := repository.NewPaymentRepository(db)
 	shipmentRepo := repository.NewShipmentRepository(db)
 	userAddressRepo := repository.NewUserAddressRepository(db)
+	notificationRepo := repository.NewNotificationRepository(db)
+	userFcmTokenRepo := repository.NewUserFcmTokenRepository(db)
 
-	repoManager := repository.NewRepositoryManager(db, userRepo, userRoleRepo, otpRepo, productRepo, productStatusHistoryRepo, roleRequestRepo, withdrawalRequestRepo, auctionRepo, auctionBidRepo, auctionWinnerRepo, paymentRepo, shipmentRepo, paymentMethodRepo, userAddressRepo)
+	repoManager := repository.NewRepositoryManager(db, userRepo, userRoleRepo, otpRepo, productRepo, productStatusHistoryRepo, roleRequestRepo, withdrawalRequestRepo, auctionRepo, auctionBidRepo, auctionWinnerRepo, paymentRepo, shipmentRepo, paymentMethodRepo, userAddressRepo, notificationRepo, userFcmTokenRepo)
 	jwtInstance := internalJwt.NewJwt([]byte(config.JwtConfig.SecretKey))
 
 	// filesystem
@@ -66,18 +68,20 @@ func NewContainer() *Container {
 	roleRequestUseCase := use_case.NewRoleRequestUseCase(repoManager, filesystemManager)
 	withdrawalRequestUseCase := use_case.NewWithdrawalRequestUseCase(repoManager)
 	paymentMethodUseCase := use_case.NewPaymentMethodUseCase(repoManager)
-	auctionUseCase := use_case.NewAuctionUseCase(repoManager, infraManager.GetTaskQueueClient())
-	bidUseCase := use_case.NewBidUseCase(repoManager)
+	notificationQueue := infraManager.GetNotificationQueueClient()
+	auctionUseCase := use_case.NewAuctionUseCase(repoManager, infraManager.GetTaskQueueClient(), notificationQueue)
+	bidUseCase := use_case.NewBidUseCase(repoManager, notificationQueue)
 	winnerUseCase := use_case.NewWinnerUseCase(repoManager)
-	paymentUseCase := use_case.NewPaymentUseCase(repoManager, infraManager.GetMidtransClient(), infraManager.GetTaskQueueClient(), infraManager.GetBiteshipClient())
+	paymentUseCase := use_case.NewPaymentUseCase(repoManager, infraManager.GetMidtransClient(), infraManager.GetTaskQueueClient(), infraManager.GetBiteshipClient(), notificationQueue)
 	shipmentUseCase := use_case.NewShipmentUseCase(repoManager, infraManager.GetBiteshipClient())
 	userAddressUseCase := use_case.NewUserAddressUseCase(repoManager)
 	biteshipUseCase := use_case.NewBiteshipUseCase(infraManager.GetBiteshipClient())
+	notificationUseCase := use_case.NewNotificationUseCase(repoManager)
 
 	baseFileUseCase := use_case.NewBaseFileUseCase(filesystemManager.Main(), filesystemManager.Tmp())
 
 	// FIX: Urutan disesuaikan dengan parameter constructor UseCaseManager (auctionUseCase, bidUseCase, baru paymentMethodUseCase)
-	ucManager := use_case.NewUseCaseManager(authUseCase, userUseCase, userRoleUseCase, productUseCase, roleRequestUseCase, withdrawalRequestUseCase, auctionUseCase, bidUseCase, paymentMethodUseCase, winnerUseCase, paymentUseCase, shipmentUseCase, userAddressUseCase, biteshipUseCase)
+	ucManager := use_case.NewUseCaseManager(authUseCase, userUseCase, userRoleUseCase, productUseCase, roleRequestUseCase, withdrawalRequestUseCase, auctionUseCase, bidUseCase, paymentMethodUseCase, winnerUseCase, paymentUseCase, shipmentUseCase, userAddressUseCase, biteshipUseCase, notificationUseCase)
 
 	return &Container{
 		infrastructureManager: infraManager,

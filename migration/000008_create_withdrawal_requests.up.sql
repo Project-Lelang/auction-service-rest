@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS withdrawal_requests (
-    id                CHAR(36)       NOT NULL PRIMARY KEY,
-    user_id           CHAR(36)       NOT NULL,
-    validator_user_id CHAR(36)       DEFAULT NULL,
+    id                BIGINT         NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    user_id           BIGINT         NOT NULL,
+    validator_user_id BIGINT         DEFAULT NULL,
     amount            DECIMAL(15, 2) NOT NULL,
     status            VARCHAR(20)    NOT NULL DEFAULT 'REQUESTED',
     created_at        DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,

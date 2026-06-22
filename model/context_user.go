@@ -8,7 +8,7 @@ import (
 
 // UserClaims holds the claims extracted from a JWT token.
 type UserClaims struct {
-	UserId string
+	UserId int64
 	Phone  string
 	Roles  []string
 }

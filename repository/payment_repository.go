@@ -18,18 +18,18 @@ type PaymentRepository interface {
 	Insert(ctx context.Context, payment *model.Payment) error
 
 	// read
-	GetById(ctx context.Context, id string) (*model.Payment, error)
-	GetActiveByAuctionId(ctx context.Context, auctionId string) (*model.Payment, error)
+	GetById(ctx context.Context, id int64) (*model.Payment, error)
+	GetActiveByAuctionId(ctx context.Context, auctionId int64) (*model.Payment, error)
 	Fetch(ctx context.Context, options ...model.PaymentQueryOption) ([]model.Payment, error)
-	FetchByAuctionIds(ctx context.Context, auctionIds []string) ([]model.Payment, error)
+	FetchByAuctionIds(ctx context.Context, auctionIds []int64) ([]model.Payment, error)
 	Count(ctx context.Context, options ...model.PaymentQueryOption) (int64, error)
 	// FetchExpiredWaiting returns payments that are still WAITING_FOR_PAYMENT but
 	// whose expired_at has already passed. Used for startup recovery.
 	FetchExpiredWaiting(ctx context.Context) ([]model.Payment, error)
 
 	// update
-	UpdateStatus(ctx context.Context, id string, status string) (*model.Payment, error)
-	UpdateSnapInfo(ctx context.Context, id string, snapUrl string, snapToken string) (*model.Payment, error)
+	UpdateStatus(ctx context.Context, id int64, status string) (*model.Payment, error)
+	UpdateSnapInfo(ctx context.Context, id int64, snapUrl string, snapToken string) (*model.Payment, error)
 }
 
 type paymentRepository struct {
@@ -85,7 +85,7 @@ func (r *paymentRepository) Insert(ctx context.Context, payment *model.Payment) 
 	return defaultInsert(r.db, ctx, payment)
 }
 
-func (r *paymentRepository) GetById(ctx context.Context, id string) (*model.Payment, error) {
+func (r *paymentRepository) GetById(ctx context.Context, id int64) (*model.Payment, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("id"): id}).
@@ -93,7 +93,7 @@ func (r *paymentRepository) GetById(ctx context.Context, id string) (*model.Paym
 	return r.getInternal(ctx, stmt)
 }
 
-func (r *paymentRepository) GetActiveByAuctionId(ctx context.Context, auctionId string) (*model.Payment, error) {
+func (r *paymentRepository) GetActiveByAuctionId(ctx context.Context, auctionId int64) (*model.Payment, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("auction_id"): auctionId}).
@@ -113,7 +113,7 @@ func (r *paymentRepository) Fetch(ctx context.Context, options ...model.PaymentQ
 	return r.fetchInternal(ctx, stmt)
 }
 
-func (r *paymentRepository) FetchByAuctionIds(ctx context.Context, auctionIds []string) ([]model.Payment, error) {
+func (r *paymentRepository) FetchByAuctionIds(ctx context.Context, auctionIds []int64) ([]model.Payment, error) {
 	if len(auctionIds) == 0 {
 		return []model.Payment{}, nil
 	}
@@ -148,7 +148,7 @@ func (r *paymentRepository) FetchExpiredWaiting(ctx context.Context) ([]model.Pa
 	return r.fetchInternal(ctx, stmt)
 }
 
-func (r *paymentRepository) UpdateStatus(ctx context.Context, id string, status string) (*model.Payment, error) {
+func (r *paymentRepository) UpdateStatus(ctx context.Context, id int64, status string) (*model.Payment, error) {
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
 			"status":     status,
@@ -161,7 +161,7 @@ func (r *paymentRepository) UpdateStatus(ctx context.Context, id string, status 
 	return r.GetById(ctx, id)
 }
 
-func (r *paymentRepository) UpdateSnapInfo(ctx context.Context, id string, snapUrl string, snapToken string) (*model.Payment, error) {
+func (r *paymentRepository) UpdateSnapInfo(ctx context.Context, id int64, snapUrl string, snapToken string) (*model.Payment, error) {
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
 			"snap_url":   snapUrl,

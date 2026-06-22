@@ -2,10 +2,12 @@ package use_case
 
 import (
 	"context"
+	"fmt"
 
 	"auction-service/constant"
 	"auction-service/delivery/dto_request"
 	"auction-service/delivery/dto_response"
+	"auction-service/internal/notification"
 	"auction-service/model"
 	"auction-service/repository"
 	"auction-service/util"
@@ -21,17 +23,25 @@ type BidUseCase interface {
 
 type bidUseCase struct {
 	repositoryManager repository.RepositoryManager
+	notificationQueue NotificationPublisher
 }
 
-func NewBidUseCase(repositoryManager repository.RepositoryManager) BidUseCase {
-	return &bidUseCase{repositoryManager: repositoryManager}
+func NewBidUseCase(repositoryManager repository.RepositoryManager, notificationQueue NotificationPublisher) BidUseCase {
+	return &bidUseCase{repositoryManager: repositoryManager, notificationQueue: notificationQueue}
+}
+
+func ensureAuctionOpenForBid(auction *model.Auction) {
+	if auction.Status != constant.AuctionStatusOnGoing ||
+		auction.EndTime.IsLessThanOrEqual(util.CurrentDateTime()) {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageBidAuctionNotOnGoing))
+	}
 }
 
 // mustLoadOwnBidData loads winner and payment for own bids
 func (u *bidUseCase) mustLoadOwnBidData(ctx context.Context, bids []*model.AuctionBid) {
 	// First, get all auction IDs from bids
-	auctionIds := make([]string, 0, len(bids))
-	bidByAuctionId := make(map[string]*model.AuctionBid)
+	auctionIds := make([]int64, 0, len(bids))
+	bidByAuctionId := make(map[int64]*model.AuctionBid)
 	for _, bid := range bids {
 		auctionIds = append(auctionIds, bid.AuctionId)
 		bidByAuctionId[bid.AuctionId] = bid
@@ -46,8 +56,8 @@ func (u *bidUseCase) mustLoadOwnBidData(ctx context.Context, bids []*model.Aucti
 	panicIfErr(err)
 
 	// Map winners to bids and collect payment auction IDs
-	winningBidIds := make(map[string]bool)
-	auctionIdsForPayment := make([]string, 0)
+	winningBidIds := make(map[int64]bool)
+	auctionIdsForPayment := make([]int64, 0)
 	for _, winner := range winners {
 		if bid, ok := bidByAuctionId[winner.AuctionId]; ok {
 			if winner.AuctionBidId != nil && bid.Id == *winner.AuctionBidId {
@@ -63,7 +73,7 @@ func (u *bidUseCase) mustLoadOwnBidData(ctx context.Context, bids []*model.Aucti
 		payments, err := u.repositoryManager.PaymentRepository().FetchByAuctionIds(ctx, auctionIdsForPayment)
 		panicIfErr(err)
 
-		paymentByAuctionId := make(map[string]*model.Payment)
+		paymentByAuctionId := make(map[int64]*model.Payment)
 		for i := range payments {
 			paymentByAuctionId[payments[i].AuctionId] = &payments[i]
 		}
@@ -138,9 +148,7 @@ func (u *bidUseCase) PlaceBid(ctx context.Context, request dto_request.AuctionBi
 
 	// Pre-check auction status (no lock yet – just an early guard)
 	auction := mustGetAuction(ctx, u.repositoryManager, request.AuctionId)
-	if auction.Status != constant.AuctionStatusOnGoing {
-		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageBidAuctionNotOnGoing))
-	}
+	ensureAuctionOpenForBid(&auction)
 
 	// Ensure bidder is not the product owner
 	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
@@ -149,6 +157,7 @@ func (u *bidUseCase) PlaceBid(ctx context.Context, request dto_request.AuctionBi
 	}
 
 	var createdBid model.AuctionBid
+	var outbidUserId int64
 
 	err := u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
 		// Lock the auction row to serialise concurrent bids
@@ -156,9 +165,7 @@ func (u *bidUseCase) PlaceBid(ctx context.Context, request dto_request.AuctionBi
 		if err != nil {
 			return err
 		}
-		if auction.Status != constant.AuctionStatusOnGoing {
-			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageBidAuctionNotOnGoing))
-		}
+		ensureAuctionOpenForBid(auction)
 
 		// Lock the current active winner row (gap lock if none exists)
 		currentWinner, err := u.repositoryManager.AuctionWinnerRepository().GetActiveByAuctionIdForUpdate(ctx, request.AuctionId)
@@ -170,6 +177,9 @@ func (u *bidUseCase) PlaceBid(ctx context.Context, request dto_request.AuctionBi
 		minAmount := auction.StartingPrice
 		if currentWinner.AuctionBid != nil {
 			minAmount = currentWinner.AuctionBid.Amount
+			if currentWinner.AuctionBid.UserId != userClaims.UserId {
+				outbidUserId = currentWinner.AuctionBid.UserId
+			}
 		}
 		if request.Amount <= minAmount {
 			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageBidAmountTooLow))
@@ -177,7 +187,6 @@ func (u *bidUseCase) PlaceBid(ctx context.Context, request dto_request.AuctionBi
 
 		// Insert the new bid
 		bid := model.AuctionBid{
-			Id:        util.NewUuid(),
 			UserId:    userClaims.UserId,
 			AuctionId: request.AuctionId,
 			Amount:    request.Amount,
@@ -194,6 +203,20 @@ func (u *bidUseCase) PlaceBid(ctx context.Context, request dto_request.AuctionBi
 	panicIfErr(err)
 
 	createdBid.Auction = &auction
+	if outbidUserId != 0 {
+		publishAuctionNotification(ctx, u.notificationQueue, notification.Payload{
+			UserId:    outbidUserId,
+			Role:      notification.RoleBuyer,
+			EventType: notification.EventOutbid,
+			AuctionId: auction.Id,
+			Title:     "Outbid!",
+			Body:      "Your bid has been outbid.",
+			DataPayload: map[string]string{
+				"auction_url":         auctionURL(auction.Id),
+				"current_highest_bid": fmt.Sprintf("%.0f", createdBid.Amount),
+			},
+		})
+	}
 	return createdBid
 }
 
@@ -205,9 +228,7 @@ func (u *bidUseCase) PlaceBidNoLocking(ctx context.Context, request dto_request.
 	}
 
 	auction := mustGetAuction(ctx, u.repositoryManager, request.AuctionId)
-	if auction.Status != constant.AuctionStatusOnGoing {
-		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageBidAuctionNotOnGoing))
-	}
+	ensureAuctionOpenForBid(&auction)
 
 	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
 	if product.UserId == userClaims.UserId {
@@ -215,15 +236,14 @@ func (u *bidUseCase) PlaceBidNoLocking(ctx context.Context, request dto_request.
 	}
 
 	var createdBid model.AuctionBid
+	var outbidUserId int64
 
 	err := u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
 		auction, err := u.repositoryManager.AuctionRepository().GetById(ctx, request.AuctionId)
 		if err != nil {
 			return err
 		}
-		if auction.Status != constant.AuctionStatusOnGoing {
-			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageBidAuctionNotOnGoing))
-		}
+		ensureAuctionOpenForBid(auction)
 
 		currentWinner, err := u.repositoryManager.AuctionWinnerRepository().GetActiveByAuctionIdNoLocking(ctx, request.AuctionId)
 		if err != nil {
@@ -234,13 +254,15 @@ func (u *bidUseCase) PlaceBidNoLocking(ctx context.Context, request dto_request.
 		minAmount := auction.StartingPrice
 		if currentWinner.AuctionBid != nil {
 			minAmount = currentWinner.AuctionBid.Amount
+			if currentWinner.AuctionBid.UserId != userClaims.UserId {
+				outbidUserId = currentWinner.AuctionBid.UserId
+			}
 		}
 		if request.Amount <= minAmount {
 			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageBidAmountTooLow))
 		}
 
 		bid := model.AuctionBid{
-			Id:        util.NewUuid(),
 			UserId:    userClaims.UserId,
 			AuctionId: request.AuctionId,
 			Amount:    request.Amount,
@@ -256,5 +278,19 @@ func (u *bidUseCase) PlaceBidNoLocking(ctx context.Context, request dto_request.
 	panicIfErr(err)
 
 	createdBid.Auction = &auction
+	if outbidUserId != 0 {
+		publishAuctionNotification(ctx, u.notificationQueue, notification.Payload{
+			UserId:    outbidUserId,
+			Role:      notification.RoleBuyer,
+			EventType: notification.EventOutbid,
+			AuctionId: auction.Id,
+			Title:     "Outbid!",
+			Body:      "Your bid has been outbid.",
+			DataPayload: map[string]string{
+				"auction_url":         auctionURL(auction.Id),
+				"current_highest_bid": fmt.Sprintf("%.0f", createdBid.Amount),
+			},
+		})
+	}
 	return createdBid
 }

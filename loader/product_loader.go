@@ -13,8 +13,8 @@ type ProductLoader struct {
 	loader dataloader.Loader
 }
 
-func (l *ProductLoader) load(id string) (*model.Product, error) {
-	thunk := l.loader.Load(context.TODO(), dataloader.StringKey(id))
+func (l *ProductLoader) load(id int64) (*model.Product, error) {
+	thunk := l.loader.Load(context.TODO(), int64Key(id))
 	result, err := thunk()
 	if err != nil {
 		return nil, err
@@ -35,9 +35,9 @@ func (l *ProductLoader) AuctionFn(auction *model.Auction) func() error {
 
 func NewProductLoader(productRepository repository.ProductRepository) *ProductLoader {
 	batchFn := func(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
-		ids := make([]string, len(keys))
+		ids := make([]int64, len(keys))
 		for idx, k := range keys {
-			ids[idx] = k.String()
+			ids[idx] = parseInt64Key(k)
 		}
 
 		products, err := productRepository.FetchByIds(ctx, ids)
@@ -45,7 +45,7 @@ func NewProductLoader(productRepository repository.ProductRepository) *ProductLo
 			panic(err)
 		}
 
-		productById := map[string]model.Product{}
+		productById := map[int64]model.Product{}
 		for _, p := range products {
 			productById[p.Id] = p
 		}
@@ -53,7 +53,7 @@ func NewProductLoader(productRepository repository.ProductRepository) *ProductLo
 		results := make([]*dataloader.Result, len(keys))
 		for idx, k := range keys {
 			var product *model.Product
-			if v, ok := productById[k.String()]; ok {
+			if v, ok := productById[parseInt64Key(k)]; ok {
 				product = &v
 			}
 			results[idx] = &dataloader.Result{Data: product, Error: nil}
@@ -70,8 +70,8 @@ type UserRolesLoader struct {
 	loader dataloader.Loader
 }
 
-func (l *UserRolesLoader) load(userId string) ([]model.UserRole, error) {
-	thunk := l.loader.Load(context.TODO(), dataloader.StringKey(userId))
+func (l *UserRolesLoader) load(userId int64) ([]model.UserRole, error) {
+	thunk := l.loader.Load(context.TODO(), int64Key(userId))
 	result, err := thunk()
 	if err != nil {
 		return nil, err
@@ -92,9 +92,9 @@ func (l *UserRolesLoader) UserFn(user *model.User) func() error {
 
 func NewUserRolesLoader(userRoleRepository repository.UserRoleRepository) *UserRolesLoader {
 	batchFn := func(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
-		userIds := make([]string, len(keys))
+		userIds := make([]int64, len(keys))
 		for idx, k := range keys {
-			userIds[idx] = k.String()
+			userIds[idx] = parseInt64Key(k)
 		}
 
 		roles, err := userRoleRepository.FetchByUserIds(ctx, userIds)
@@ -102,7 +102,7 @@ func NewUserRolesLoader(userRoleRepository repository.UserRoleRepository) *UserR
 			panic(err)
 		}
 
-		rolesByUserId := map[string][]model.UserRole{}
+		rolesByUserId := map[int64][]model.UserRole{}
 		for _, r := range roles {
 			rolesByUserId[r.UserId] = append(rolesByUserId[r.UserId], r)
 		}
@@ -110,7 +110,7 @@ func NewUserRolesLoader(userRoleRepository repository.UserRoleRepository) *UserR
 		results := make([]*dataloader.Result, len(keys))
 		for idx, k := range keys {
 			userRoles := []model.UserRole{}
-			if v, ok := rolesByUserId[k.String()]; ok {
+			if v, ok := rolesByUserId[parseInt64Key(k)]; ok {
 				userRoles = v
 			}
 			results[idx] = &dataloader.Result{Data: userRoles, Error: nil}
@@ -127,8 +127,8 @@ type ProductStatusHistoriesLoader struct {
 	loader dataloader.Loader
 }
 
-func (l *ProductStatusHistoriesLoader) load(productId string) ([]model.ProductStatusHistory, error) {
-	thunk := l.loader.Load(context.TODO(), dataloader.StringKey(productId))
+func (l *ProductStatusHistoriesLoader) load(productId int64) ([]model.ProductStatusHistory, error) {
+	thunk := l.loader.Load(context.TODO(), int64Key(productId))
 	result, err := thunk()
 	if err != nil {
 		return nil, err
@@ -149,9 +149,9 @@ func (l *ProductStatusHistoriesLoader) ProductFn(product *model.Product) func() 
 
 func NewProductStatusHistoriesLoader(repo repository.ProductStatusHistoryRepository) *ProductStatusHistoriesLoader {
 	batchFn := func(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
-		productIds := make([]string, len(keys))
+		productIds := make([]int64, len(keys))
 		for idx, k := range keys {
-			productIds[idx] = k.String()
+			productIds[idx] = parseInt64Key(k)
 		}
 
 		histories, err := repo.FetchByProductIds(ctx, productIds)
@@ -159,7 +159,7 @@ func NewProductStatusHistoriesLoader(repo repository.ProductStatusHistoryReposit
 			panic(err)
 		}
 
-		historiesByProductId := map[string][]model.ProductStatusHistory{}
+		historiesByProductId := map[int64][]model.ProductStatusHistory{}
 		for _, h := range histories {
 			historiesByProductId[h.ProductId] = append(historiesByProductId[h.ProductId], h)
 		}
@@ -167,7 +167,7 @@ func NewProductStatusHistoriesLoader(repo repository.ProductStatusHistoryReposit
 		results := make([]*dataloader.Result, len(keys))
 		for idx, k := range keys {
 			productHistories := []model.ProductStatusHistory{}
-			if v, ok := historiesByProductId[k.String()]; ok {
+			if v, ok := historiesByProductId[parseInt64Key(k)]; ok {
 				productHistories = v
 			}
 			results[idx] = &dataloader.Result{Data: productHistories, Error: nil}

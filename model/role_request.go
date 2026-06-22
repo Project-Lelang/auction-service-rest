@@ -4,7 +4,7 @@ const RoleRequestTableName = "role_requests"
 
 type RoleRequest struct {
 	Id      int64   `db:"id" json:"id"`
-	UserId  string  `db:"user_id" json:"user_id"`
+	UserId  int64   `db:"user_id" json:"user_id"`
 	Status  string  `db:"status" json:"status"`
 	Role    string  `db:"role" json:"role"`
 	Message *string `db:"message" json:"message"`
@@ -15,7 +15,7 @@ type RoleRequest struct {
 }
 
 type RoleRequestUser struct {
-	Id       string `json:"id"`
+	Id       int64  `json:"id"`
 	Fullname string `json:"fullname"`
 	Phone    string `json:"phone"`
 
@@ -48,7 +48,7 @@ func (r *RoleRequest) ToMap() map[string]interface{} {
 type RoleRequestQueryOption struct {
 	QueryOption
 
-	UserId *string
+	UserId *int64
 	Status *string
 	Role   *string
 }

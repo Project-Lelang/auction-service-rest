@@ -21,23 +21,23 @@ const (
 
 // AuctionTaskPayload is the JSON payload carried by auction lifecycle tasks.
 type AuctionTaskPayload struct {
-	AuctionId string `json:"auction_id"`
+	AuctionId int64 `json:"auction_id"`
 }
 
 // PaymentTaskPayload is the JSON payload carried by payment expiry tasks.
 type PaymentTaskPayload struct {
-	PaymentId string `json:"payment_id"`
+	PaymentId int64 `json:"payment_id"`
 }
 
 // TaskQueueClient schedules and manages auction lifecycle tasks.
 type TaskQueueClient interface {
-	EnqueueAuctionStart(auctionId string, processAt time.Time) error
-	EnqueueAuctionClose(auctionId string, processAt time.Time) error
-	EnqueuePaymentExpiry(paymentId string, processAt time.Time) error
+	EnqueueAuctionStart(AuctionId int64, processAt time.Time) error
+	EnqueueAuctionClose(AuctionId int64, processAt time.Time) error
+	EnqueuePaymentExpiry(PaymentId int64, processAt time.Time) error
 	// ReplaceAuctionStart deletes any existing scheduled start task for the
 	// auction then re-enqueues it at the new time. Used when OwnUpdate changes
 	// the start/end times of a SCHEDULED auction.
-	ReplaceAuctionStart(auctionId string, processAt time.Time) error
+	ReplaceAuctionStart(AuctionId int64, processAt time.Time) error
 	Close() error
 }
 
@@ -79,23 +79,23 @@ func (c *asynqTaskQueueClient) enqueue(typeName, taskId string, payload []byte, 
 	return err
 }
 
-func (c *asynqTaskQueueClient) EnqueueAuctionStart(auctionId string, processAt time.Time) error {
+func (c *asynqTaskQueueClient) EnqueueAuctionStart(auctionId int64, processAt time.Time) error {
 	payload, _ := json.Marshal(AuctionTaskPayload{AuctionId: auctionId})
-	return c.enqueue(TypeAuctionStart, fmt.Sprintf("%s:%s", TypeAuctionStart, auctionId), payload, processAt)
+	return c.enqueue(TypeAuctionStart, fmt.Sprintf("%s:%d", TypeAuctionStart, auctionId), payload, processAt)
 }
 
-func (c *asynqTaskQueueClient) EnqueueAuctionClose(auctionId string, processAt time.Time) error {
+func (c *asynqTaskQueueClient) EnqueueAuctionClose(auctionId int64, processAt time.Time) error {
 	payload, _ := json.Marshal(AuctionTaskPayload{AuctionId: auctionId})
-	return c.enqueue(TypeAuctionClose, fmt.Sprintf("%s:%s", TypeAuctionClose, auctionId), payload, processAt)
+	return c.enqueue(TypeAuctionClose, fmt.Sprintf("%s:%d", TypeAuctionClose, auctionId), payload, processAt)
 }
 
-func (c *asynqTaskQueueClient) EnqueuePaymentExpiry(paymentId string, processAt time.Time) error {
+func (c *asynqTaskQueueClient) EnqueuePaymentExpiry(paymentId int64, processAt time.Time) error {
 	payload, _ := json.Marshal(PaymentTaskPayload{PaymentId: paymentId})
-	return c.enqueue(TypePaymentExpiry, fmt.Sprintf("%s:%s", TypePaymentExpiry, paymentId), payload, processAt)
+	return c.enqueue(TypePaymentExpiry, fmt.Sprintf("%s:%d", TypePaymentExpiry, paymentId), payload, processAt)
 }
 
-func (c *asynqTaskQueueClient) ReplaceAuctionStart(auctionId string, processAt time.Time) error {
-	taskID := fmt.Sprintf("%s:%s", TypeAuctionStart, auctionId)
+func (c *asynqTaskQueueClient) ReplaceAuctionStart(auctionId int64, processAt time.Time) error {
+	taskID := fmt.Sprintf("%s:%d", TypeAuctionStart, auctionId)
 	// Remove the previously scheduled task; ignore "not found" errors.
 	_ = c.inspector.DeleteTask(taskQueueName, taskID)
 	payload, _ := json.Marshal(AuctionTaskPayload{AuctionId: auctionId})

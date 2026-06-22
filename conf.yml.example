@@ -40,3 +40,12 @@ redis:
   port: 6379
   password: ""
   db: 0
+notification:
+  enabled: true
+  queue_name: notif_queue:auction_events
+  dlq_name: notif_queue:auction_events:dlq
+  worker_count: 5
+  max_retries: 3
+  retry_base_ms: 500
+# firebase:  # uncomment to enable real FCM delivery; otherwise notifications use a no-op sender
+#   service_account_path: ./storage/firebase-service-account.json

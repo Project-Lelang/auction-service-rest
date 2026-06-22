@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS auction_bids (
-    id         CHAR(36)       NOT NULL PRIMARY KEY,
-    user_id    CHAR(36)       NOT NULL,
-    auction_id CHAR(36)       NOT NULL,
+    id         BIGINT         NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    user_id    BIGINT         NOT NULL,
+    auction_id BIGINT         NOT NULL,
     amount     DECIMAL(15, 2) NOT NULL,
     created_at DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

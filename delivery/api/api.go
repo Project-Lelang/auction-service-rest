@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	_ "auction-service/docs"
@@ -40,6 +41,14 @@ func (a *apiContext) context() context.Context {
 
 func (a *apiContext) getParam(key string) string {
 	return a.ginCtx.Param(key)
+}
+
+func (a *apiContext) mustGetParamInt64(key string) int64 {
+	id, err := strconv.ParseInt(a.getParam(key), 10, 64)
+	if err != nil || id <= 0 {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageSystemInvalidRequestPayload))
+	}
+	return id
 }
 
 func (a *apiContext) getQuery(key string) string {

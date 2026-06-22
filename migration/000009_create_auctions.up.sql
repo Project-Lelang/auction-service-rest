@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS auctions (
-    id             CHAR(36)       NOT NULL PRIMARY KEY,
-    product_id     CHAR(36)       NOT NULL,
+    id             BIGINT         NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    product_id     BIGINT         NOT NULL,
     starting_price DECIMAL(15, 2) NOT NULL,
     start_time     DATETIME       NOT NULL,
     end_time       DATETIME       NOT NULL,

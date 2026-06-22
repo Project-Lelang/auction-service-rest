@@ -9,8 +9,8 @@ import (
 
 // ProductResponse represents a single product in API responses.
 type ProductResponse struct {
-	Id              string                         `json:"id"                       example:"550e8400-e29b-41d4-a716-446655440000"`
-	UserId          string                         `json:"user_id"                  example:"550e8400-e29b-41d4-a716-446655440001"`
+	Id              int64                          `json:"id"                       example:"1"`
+	UserId          int64                          `json:"user_id"                  example:"2"`
 	Name            string                         `json:"name"                     example:"Vintage Camera"`
 	Description     *string                        `json:"description,omitempty"    example:"A beautiful vintage camera"`
 	Condition       string                         `json:"condition"                example:"NEW"`
@@ -25,8 +25,8 @@ type ProductResponse struct {
 
 // ProductStatusHistoryResponse represents a single status history entry.
 type ProductStatusHistoryResponse struct {
-	Id        string  `json:"id"                example:"550e8400-e29b-41d4-a716-446655440000"`
-	ProductId string  `json:"product_id"        example:"550e8400-e29b-41d4-a716-446655440001"`
+	Id        int64   `json:"id"                example:"1"`
+	ProductId int64   `json:"product_id"        example:"2"`
 	Status    string  `json:"status"            example:"VERIFIED"`
 	Message   *string `json:"message,omitempty" example:"Looks good!"`
 	Timestamp

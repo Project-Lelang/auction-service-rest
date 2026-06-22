@@ -3,8 +3,8 @@ package model
 const UserAddressTableName = "user_addresses"
 
 type UserAddress struct {
-	Id             string `db:"id"`
-	UserId         string `db:"user_id"`
+	Id             int64  `db:"id"`
+	UserId         int64  `db:"user_id"`
 	Label          string `db:"label"`
 	RecipientName  string `db:"recipient_name"`
 	Phone          string `db:"phone"`
@@ -45,7 +45,7 @@ func (a *UserAddress) ToMap() map[string]interface{} {
 type UserAddressQueryOption struct {
 	QueryOption
 
-	UserId *string
+	UserId *int64
 }
 
 var _ PrepareOption = &UserAddressQueryOption{}

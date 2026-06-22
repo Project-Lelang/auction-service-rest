@@ -16,16 +16,16 @@ type AuctionBidRepository interface {
 	Insert(ctx context.Context, bid *model.AuctionBid) error
 
 	// read
-	GetById(ctx context.Context, id string) (*model.AuctionBid, error)
-	GetHighestByAuctionId(ctx context.Context, auctionId string) (*model.AuctionBid, error)
-	GetNextHighestByAuctionId(ctx context.Context, auctionId string, excludeBidId string) (*model.AuctionBid, error)
+	GetById(ctx context.Context, id int64) (*model.AuctionBid, error)
+	GetHighestByAuctionId(ctx context.Context, auctionId int64) (*model.AuctionBid, error)
+	GetNextHighestByAuctionId(ctx context.Context, auctionId int64, excludeBidId int64) (*model.AuctionBid, error)
 	// GetNextHighestByAuctionIdExcludingUsers returns the highest bid for an auction
 	// whose user_id is NOT in excludeUserIds. Used by OwnSecondChance to skip all
 	// bids (including lower bids) from users who have already been cancelled winners.
-	GetNextHighestByAuctionIdExcludingUsers(ctx context.Context, auctionId string, excludeUserIds []string) (*model.AuctionBid, error)
+	GetNextHighestByAuctionIdExcludingUsers(ctx context.Context, auctionId int64, excludeUserIds []int64) (*model.AuctionBid, error)
 	Fetch(ctx context.Context, options ...model.AuctionBidQueryOption) ([]model.AuctionBid, error)
-	FetchByIds(ctx context.Context, ids []string) ([]model.AuctionBid, error)
-	FetchByAuctionIds(ctx context.Context, auctionIds []string) ([]model.AuctionBid, error)
+	FetchByIds(ctx context.Context, ids []int64) ([]model.AuctionBid, error)
+	FetchByAuctionIds(ctx context.Context, auctionIds []int64) ([]model.AuctionBid, error)
 	Count(ctx context.Context, options ...model.AuctionBidQueryOption) (int64, error)
 }
 
@@ -85,7 +85,7 @@ func (r *auctionBidRepository) Insert(ctx context.Context, bid *model.AuctionBid
 
 // ------------------------------------------------------------------ read
 
-func (r *auctionBidRepository) GetById(ctx context.Context, id string) (*model.AuctionBid, error) {
+func (r *auctionBidRepository) GetById(ctx context.Context, id int64) (*model.AuctionBid, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("id"): id}).
@@ -94,7 +94,7 @@ func (r *auctionBidRepository) GetById(ctx context.Context, id string) (*model.A
 }
 
 // GetHighestByAuctionId returns the single highest bid for an auction.
-func (r *auctionBidRepository) GetHighestByAuctionId(ctx context.Context, auctionId string) (*model.AuctionBid, error) {
+func (r *auctionBidRepository) GetHighestByAuctionId(ctx context.Context, auctionId int64) (*model.AuctionBid, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("auction_id"): auctionId}).
@@ -105,7 +105,7 @@ func (r *auctionBidRepository) GetHighestByAuctionId(ctx context.Context, auctio
 
 // GetNextHighestByAuctionId returns the highest bid that is NOT the excluded bid.
 // Used to find the fallback winner when the current winner doesn't pay.
-func (r *auctionBidRepository) GetNextHighestByAuctionId(ctx context.Context, auctionId string, excludeBidId string) (*model.AuctionBid, error) {
+func (r *auctionBidRepository) GetNextHighestByAuctionId(ctx context.Context, auctionId int64, excludeBidId int64) (*model.AuctionBid, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("auction_id"): auctionId}).
@@ -119,7 +119,7 @@ func (r *auctionBidRepository) GetNextHighestByAuctionId(ctx context.Context, au
 // is not in excludeUserIds. squirrel translates a slice value in NotEq to a
 // NOT IN clause. Used by OwnSecondChance so that ALL bids from a deadbeat winner
 // are skipped, not just the single bid that was selected as winning bid.
-func (r *auctionBidRepository) GetNextHighestByAuctionIdExcludingUsers(ctx context.Context, auctionId string, excludeUserIds []string) (*model.AuctionBid, error) {
+func (r *auctionBidRepository) GetNextHighestByAuctionIdExcludingUsers(ctx context.Context, auctionId int64, excludeUserIds []int64) (*model.AuctionBid, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("auction_id"): auctionId}).
@@ -141,7 +141,7 @@ func (r *auctionBidRepository) Fetch(ctx context.Context, options ...model.Aucti
 	return r.fetchInternal(ctx, stmt)
 }
 
-func (r *auctionBidRepository) FetchByIds(ctx context.Context, ids []string) ([]model.AuctionBid, error) {
+func (r *auctionBidRepository) FetchByIds(ctx context.Context, ids []int64) ([]model.AuctionBid, error) {
 	if len(ids) == 0 {
 		return []model.AuctionBid{}, nil
 	}
@@ -151,7 +151,7 @@ func (r *auctionBidRepository) FetchByIds(ctx context.Context, ids []string) ([]
 	return r.fetchInternal(ctx, stmt)
 }
 
-func (r *auctionBidRepository) FetchByAuctionIds(ctx context.Context, auctionIds []string) ([]model.AuctionBid, error) {
+func (r *auctionBidRepository) FetchByAuctionIds(ctx context.Context, auctionIds []int64) ([]model.AuctionBid, error) {
 	if len(auctionIds) == 0 {
 		return []model.AuctionBid{}, nil
 	}

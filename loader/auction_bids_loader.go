@@ -13,8 +13,8 @@ type AuctionBidsLoader struct {
 	loader dataloader.Loader
 }
 
-func (l *AuctionBidsLoader) load(auctionId string) ([]*model.AuctionBid, error) {
-	thunk := l.loader.Load(context.TODO(), dataloader.StringKey(auctionId))
+func (l *AuctionBidsLoader) load(auctionId int64) ([]*model.AuctionBid, error) {
+	thunk := l.loader.Load(context.TODO(), int64Key(auctionId))
 	result, err := thunk()
 	if err != nil {
 		return nil, err
@@ -35,9 +35,9 @@ func (l *AuctionBidsLoader) AuctionFn(auction *model.Auction) func() error {
 
 func NewAuctionBidsLoader(bidRepository repository.AuctionBidRepository, userRepository repository.UserRepository) *AuctionBidsLoader {
 	batchFn := func(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
-		auctionIds := make([]string, len(keys))
+		auctionIds := make([]int64, len(keys))
 		for idx, k := range keys {
-			auctionIds[idx] = k.String()
+			auctionIds[idx] = parseInt64Key(k)
 		}
 
 		bids, err := bidRepository.FetchByAuctionIds(ctx, auctionIds)
@@ -46,7 +46,7 @@ func NewAuctionBidsLoader(bidRepository repository.AuctionBidRepository, userRep
 		}
 
 		// Load users for all bids
-		userIds := make([]string, 0, len(bids))
+		userIds := make([]int64, 0, len(bids))
 		for _, bid := range bids {
 			userIds = append(userIds, bid.UserId)
 		}
@@ -55,7 +55,7 @@ func NewAuctionBidsLoader(bidRepository repository.AuctionBidRepository, userRep
 			panic(err)
 		}
 
-		userById := map[string]model.User{}
+		userById := map[int64]model.User{}
 		for _, u := range users {
 			userById[u.Id] = u
 		}
@@ -68,7 +68,7 @@ func NewAuctionBidsLoader(bidRepository repository.AuctionBidRepository, userRep
 		}
 
 		// Group bids by auction ID
-		bidsByAuctionId := map[string][]*model.AuctionBid{}
+		bidsByAuctionId := map[int64][]*model.AuctionBid{}
 		for i := range bids {
 			auctionId := bids[i].AuctionId
 			bidsByAuctionId[auctionId] = append(bidsByAuctionId[auctionId], &bids[i])
@@ -76,7 +76,7 @@ func NewAuctionBidsLoader(bidRepository repository.AuctionBidRepository, userRep
 
 		results := make([]*dataloader.Result, len(keys))
 		for idx, k := range keys {
-			bids := bidsByAuctionId[k.String()]
+			bids := bidsByAuctionId[parseInt64Key(k)]
 			if bids == nil {
 				bids = []*model.AuctionBid{}
 			}

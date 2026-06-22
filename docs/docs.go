@@ -1127,6 +1127,75 @@ const docTemplate = `{
                 }
             }
         },
+        "/auctions/{auctionId}/bids/no-locking": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "Place a bid on an active auction (BIDDER only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuctionBidCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "bid": {
+                                                            "$ref": "#/definitions/AuctionBidResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/auctions/{auctionId}/payments/{paymentId}": {
             "get": {
                 "security": [
@@ -1930,6 +1999,39 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/save-fcm-token": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Save FCM token for a user",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuthFcmTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/biteship/areas/filter": {
             "post": {
                 "security": [
@@ -2529,6 +2631,185 @@ const docTemplate = `{
                                                     "properties": {
                                                         "path": {
                                                             "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/notifications/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get authenticated user's notifications (paginated)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OwnNotificationFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/NotificationResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/notifications/{notificationId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get authenticated user's notification by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Notification ID",
+                        "name": "notificationId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "notification": {
+                                                            "$ref": "#/definitions/NotificationResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/notifications/{notificationId}/read": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Mark authenticated user's notification as read",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Notification ID",
+                        "name": "notificationId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "notification": {
+                                                            "$ref": "#/definitions/NotificationResponse"
                                                         }
                                                     }
                                                 }
@@ -4071,15 +4352,15 @@ const docTemplate = `{
                     "$ref": "#/definitions/AuctionResponse"
                 },
                 "auction_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440002"
+                    "type": "integer",
+                    "example": 3
                 },
                 "created_at": {
                     "type": "string"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
                 },
                 "is_winner": {
                     "type": "boolean",
@@ -4095,8 +4376,8 @@ const docTemplate = `{
                     "$ref": "#/definitions/UserResponse"
                 },
                 "user_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                    "type": "integer",
+                    "example": 2
                 }
             }
         },
@@ -4183,8 +4464,8 @@ const docTemplate = `{
                     "example": 5000
                 },
                 "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
                 },
                 "payment": {
                     "$ref": "#/definitions/PaymentResponse"
@@ -4193,8 +4474,8 @@ const docTemplate = `{
                     "$ref": "#/definitions/ProductResponse"
                 },
                 "product_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                    "type": "integer",
+                    "example": 2
                 },
                 "start_time": {
                     "type": "string"
@@ -4257,8 +4538,8 @@ const docTemplate = `{
             ],
             "properties": {
                 "address_id": {
-                    "type": "string",
-                    "example": "uuid-here"
+                    "type": "integer",
+                    "example": 1
                 }
             }
         },
@@ -4316,19 +4597,19 @@ const docTemplate = `{
                     "$ref": "#/definitions/AuctionBidResponse"
                 },
                 "auction_bid_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440002"
+                    "type": "integer",
+                    "example": 3
                 },
                 "auction_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                    "type": "integer",
+                    "example": 2
                 },
                 "created_at": {
                     "type": "string"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
                 },
                 "status": {
                     "type": "string",
@@ -4336,6 +4617,18 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "AuthFcmTokenRequest": {
+            "type": "object",
+            "required": [
+                "fcm_token"
+            ],
+            "properties": {
+                "fcm_token": {
+                    "type": "string",
+                    "example": "fcm_token_123"
                 }
             }
         },
@@ -4470,6 +4763,45 @@ const docTemplate = `{
             "type": "object",
             "additionalProperties": true
         },
+        "NotificationResponse": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string",
+                    "example": "Your bid has been outbid."
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "is_read": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "reference_id": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Outbid!"
+                },
+                "type": {
+                    "type": "string",
+                    "example": "OUTBID"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer",
+                    "example": 2
+                }
+            }
+        },
         "OwnAuctionCreateRequest": {
             "type": "object",
             "required": [
@@ -4484,8 +4816,8 @@ const docTemplate = `{
                     "example": "2026-06-01T12:00:00Z"
                 },
                 "product_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
                 },
                 "start_time": {
                     "type": "string",
@@ -4586,8 +4918,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "auction_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
                 },
                 "limit": {
                     "type": "integer",
@@ -4620,6 +4952,56 @@ const docTemplate = `{
                                 "enum": [
                                     "id",
                                     "amount",
+                                    "created_at",
+                                    "updated_at"
+                                ],
+                                "example": "created_at"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "OwnNotificationFetchRequest": {
+            "type": "object",
+            "properties": {
+                "is_read": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "sorts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "direction",
+                            "field"
+                        ],
+                        "properties": {
+                            "direction": {
+                                "type": "string",
+                                "enum": [
+                                    "asc",
+                                    "desc"
+                                ],
+                                "example": "desc"
+                            },
+                            "field": {
+                                "type": "string",
+                                "enum": [
+                                    "id",
+                                    "title",
+                                    "type",
+                                    "is_read",
                                     "created_at",
                                     "updated_at"
                                 ],
@@ -4948,8 +5330,8 @@ const docTemplate = `{
                     "$ref": "#/definitions/AuctionResponse"
                 },
                 "auction_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                    "type": "integer",
+                    "example": 2
                 },
                 "created_at": {
                     "type": "string"
@@ -4958,11 +5340,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
                 },
                 "payment_method_id": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "snap_token": {
                     "type": "string"
@@ -4978,8 +5360,8 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440002"
+                    "type": "integer",
+                    "example": 3
                 }
             }
         },
@@ -5001,8 +5383,8 @@ const docTemplate = `{
                     "example": "A beautiful vintage camera"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
                 },
                 "image_links": {
                     "type": "array",
@@ -5031,8 +5413,8 @@ const docTemplate = `{
                     "$ref": "#/definitions/UserResponse"
                 },
                 "user_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                    "type": "integer",
+                    "example": 2
                 },
                 "weight_gram": {
                     "type": "integer",
@@ -5047,16 +5429,16 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
                 },
                 "message": {
                     "type": "string",
                     "example": "Looks good!"
                 },
                 "product_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                    "type": "integer",
+                    "example": 2
                 },
                 "status": {
                     "type": "string",
@@ -5099,8 +5481,8 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                    "type": "integer",
+                    "example": 2
                 }
             }
         },
@@ -5111,14 +5493,14 @@ const docTemplate = `{
                     "$ref": "#/definitions/AuctionBidResponse"
                 },
                 "auction_bid_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                    "type": "integer",
+                    "example": 2
                 },
                 "biteship_order_id": {
                     "type": "string"
                 },
                 "buyer_address_id": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "buyer_address_snapshot": {
                     "$ref": "#/definitions/model.ShipmentAddressSnapshot"
@@ -5139,14 +5521,14 @@ const docTemplate = `{
                     }
                 },
                 "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
                 },
                 "received_at": {
                     "type": "string"
                 },
                 "seller_address_id": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "seller_address_snapshot": {
                     "$ref": "#/definitions/model.ShipmentAddressSnapshot"
@@ -5167,8 +5549,8 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440002"
+                    "type": "integer",
+                    "example": 3
                 }
             }
         },
@@ -5310,8 +5692,8 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
                 },
                 "is_default": {
                     "type": "boolean"
@@ -5340,8 +5722,8 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                    "type": "integer",
+                    "example": 2
                 }
             }
         },
@@ -5411,6 +5793,10 @@ const docTemplate = `{
         "UserResponse": {
             "type": "object",
             "properties": {
+                "balance": {
+                    "type": "number",
+                    "example": 100000
+                },
                 "bank_account_number": {
                     "type": "string"
                 },
@@ -5430,8 +5816,8 @@ const docTemplate = `{
                     "example": "MALE"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
                 },
                 "identity_image_link": {
                     "type": "string"
@@ -5472,8 +5858,8 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
                 },
                 "role": {
                     "type": "string",
@@ -5483,8 +5869,8 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                    "type": "integer",
+                    "example": 2
                 }
             }
         },
@@ -5510,12 +5896,12 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                    "type": "integer",
+                    "example": 2
                 },
                 "validator_user_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440002"
+                    "type": "integer",
+                    "example": 3
                 }
             }
         },
@@ -5530,10 +5916,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "productId": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "userId": {
-                    "type": "string"
+                    "type": "integer"
                 }
             }
         },

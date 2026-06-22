@@ -20,8 +20,8 @@ type WithdrawalRequestUseCase interface {
 
 	// ADMIN
 	AdminFetch(ctx context.Context, req dto_request.WithdrawalRequestFetchRequest) ([]model.WithdrawalRequest, int64)
-	AdminFetchByUserId(ctx context.Context, userId string, req dto_request.WithdrawalRequestFetchRequest) ([]model.WithdrawalRequest, int64)
-	Complete(ctx context.Context, adminId string, userId string, withdrawalRequestId int64) model.WithdrawalRequest
+	AdminFetchByUserId(ctx context.Context, userId int64, req dto_request.WithdrawalRequestFetchRequest) ([]model.WithdrawalRequest, int64)
+	Complete(ctx context.Context, adminId int64, userId int64, withdrawalRequestId int64) model.WithdrawalRequest
 }
 
 type withdrawalRequestUseCase struct {
@@ -51,14 +51,14 @@ func (u *withdrawalRequestUseCase) mustLoadUsers(ctx context.Context, requests [
 	}
 
 	// 1. Kumpulkan semua userId unik dari list requests
-	userIdsMap := make(map[string]bool)
+	userIdsMap := make(map[int64]bool)
 	for _, req := range requests {
-		if req.UserId != "" {
+		if req.UserId != 0 {
 			userIdsMap[req.UserId] = true
 		}
 	}
 
-	userIds := make([]string, 0, len(userIdsMap))
+	userIds := make([]int64, 0, len(userIdsMap))
 	for id := range userIdsMap {
 		userIds = append(userIds, id)
 	}
@@ -68,7 +68,7 @@ func (u *withdrawalRequestUseCase) mustLoadUsers(ctx context.Context, requests [
 	panicIfErr(err)
 
 	// 3. Pindahkan ke map untuk mempermudah mapping data kembali
-	userMap := make(map[string]model.User)
+	userMap := make(map[int64]model.User)
 	for _, user := range users {
 		userMap[user.Id] = user
 	}
@@ -150,7 +150,7 @@ func (u *withdrawalRequestUseCase) AdminFetch(ctx context.Context, req dto_reque
 // AdminFetchByUserId digunakan Admin jika ingin memfilter history pengajuan berdasarkan 1 user spesifik
 func (u *withdrawalRequestUseCase) AdminFetchByUserId(
 	ctx context.Context,
-	userId string,
+	userId int64,
 	req dto_request.WithdrawalRequestFetchRequest,
 ) ([]model.WithdrawalRequest, int64) {
 
@@ -180,8 +180,8 @@ func (u *withdrawalRequestUseCase) AdminFetchByUserId(
 // Complete dijalankan oleh Admin untuk memproses persetujuan pencairan dana
 func (u *withdrawalRequestUseCase) Complete(
 	ctx context.Context,
-	adminId string,
-	userId string,
+	adminId int64,
+	userId int64,
 	withdrawalRequestId int64,
 ) model.WithdrawalRequest {
 

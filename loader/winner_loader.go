@@ -17,8 +17,8 @@ type WinnerLoader struct {
 	userRepository repository.UserRepository
 }
 
-func (l *WinnerLoader) load(auctionId string) (*model.AuctionWinner, error) {
-	thunk := l.loader.Load(context.TODO(), dataloader.StringKey(auctionId))
+func (l *WinnerLoader) load(auctionId int64) (*model.AuctionWinner, error) {
+	thunk := l.loader.Load(context.TODO(), int64Key(auctionId))
 	result, err := thunk()
 	if err != nil {
 		return nil, err
@@ -61,9 +61,9 @@ func (l *WinnerLoader) AuctionFn(auction *model.Auction) func() error {
 
 func NewWinnerLoader(winnerRepository repository.AuctionWinnerRepository, bidRepository repository.AuctionBidRepository, userRepository repository.UserRepository) *WinnerLoader {
 	batchFn := func(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
-		auctionIds := make([]string, len(keys))
+		auctionIds := make([]int64, len(keys))
 		for idx, k := range keys {
-			auctionIds[idx] = k.String()
+			auctionIds[idx] = parseInt64Key(k)
 		}
 
 		winners, err := winnerRepository.FetchByAuctionIds(ctx, auctionIds)
@@ -71,7 +71,7 @@ func NewWinnerLoader(winnerRepository repository.AuctionWinnerRepository, bidRep
 			panic(err)
 		}
 
-		winnerByAuctionId := map[string]model.AuctionWinner{}
+		winnerByAuctionId := map[int64]model.AuctionWinner{}
 		for _, w := range winners {
 			winnerByAuctionId[w.AuctionId] = w
 		}
@@ -79,7 +79,7 @@ func NewWinnerLoader(winnerRepository repository.AuctionWinnerRepository, bidRep
 		results := make([]*dataloader.Result, len(keys))
 		for idx, k := range keys {
 			var winner *model.AuctionWinner
-			if v, ok := winnerByAuctionId[k.String()]; ok {
+			if v, ok := winnerByAuctionId[parseInt64Key(k)]; ok {
 				winner = &v
 			}
 			results[idx] = &dataloader.Result{Data: winner, Error: nil}

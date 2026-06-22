@@ -17,16 +17,16 @@ type AdminProductFetchRequest struct {
 } // @name AdminProductFetchRequest
 
 type AdminProductFetchStatusHistoriesRequest struct {
-	ProductId string `json:"-" swaggerignore:"true"`
+	ProductId int64 `json:"-" swaggerignore:"true"`
 } // @name AdminProductFetchStatusHistoriesRequest
 
 type AdminProductApproveRequest struct {
-	UserId    string `uri:"userId"`
-	ProductId string `uri:"productId"`
+	UserId    int64 `uri:"userId"`
+	ProductId int64 `uri:"productId"`
 }
 
 type AdminProductRejectRequest struct {
-	UserId    string  `uri:"userId"`
-	ProductId string  `uri:"productId"`
+	UserId    int64   `uri:"userId"`
+	ProductId int64   `uri:"productId"`
 	Message   *string `json:"message" binding:"required"` // Mandatory rejection reason
 }

@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS otps (
-    id          CHAR(36)        NOT NULL PRIMARY KEY,
+    id          BIGINT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
     phone       VARCHAR(20)     NOT NULL UNIQUE,
     otp         VARCHAR(10)     NOT NULL,
     expires_at  DATETIME        NOT NULL,

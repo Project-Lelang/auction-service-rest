@@ -26,7 +26,7 @@ type ProductApi struct {
 func (a *ProductApi) Get() gin.HandlerFunc {
 	return a.Guest(func(ctx apiContext) {
 		var request dto_request.ProductGetRequest
-		request.ProductId = ctx.getParam("productId")
+		request.ProductId = ctx.mustGetParamInt64("productId")
 
 		product := a.productUseCase.Get(ctx.context(), request)
 

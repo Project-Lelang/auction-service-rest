@@ -52,7 +52,7 @@ func (a *UserAddressApi) Create() gin.HandlerFunc {
 func (a *UserAddressApi) Get() gin.HandlerFunc {
 	return a.Authorize(func(ctx apiContext) {
 		request := dto_request.UserAddressGetRequest{
-			UserAddressId: ctx.getParam("userAddressId"),
+			UserAddressId: ctx.mustGetParamInt64("userAddressId"),
 		}
 
 		address := a.userAddressUseCase.Get(ctx.context(), request)
@@ -80,7 +80,7 @@ func (a *UserAddressApi) Update() gin.HandlerFunc {
 	return a.Authorize(func(ctx apiContext) {
 		var request dto_request.UserAddressUpdateRequest
 		ctx.mustBind(&request)
-		request.UserAddressId = ctx.getParam("userAddressId")
+		request.UserAddressId = ctx.mustGetParamInt64("userAddressId")
 
 		address := a.userAddressUseCase.OwnUpdate(ctx.context(), request)
 
@@ -104,7 +104,7 @@ func (a *UserAddressApi) Update() gin.HandlerFunc {
 func (a *UserAddressApi) Delete() gin.HandlerFunc {
 	return a.Authorize(func(ctx apiContext) {
 		request := dto_request.UserAddressDeleteRequest{
-			UserAddressId: ctx.getParam("userAddressId"),
+			UserAddressId: ctx.mustGetParamInt64("userAddressId"),
 		}
 
 		a.userAddressUseCase.OwnDelete(ctx.context(), request)

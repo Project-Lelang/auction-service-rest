@@ -34,11 +34,11 @@ type OwnProductCreateRequest struct {
 } // @name OwnProductCreateRequest
 
 type OwnProductFetchStatusHistoriesRequest struct {
-	ProductId string `json:"-" swaggerignore:"true"`
+	ProductId int64 `json:"-" swaggerignore:"true"`
 } // @name OwnProductFetchStatusHistoriesRequest
 
 type OwnProductGetRequest struct {
-	ProductId string `json:"-" swaggerignore:"true"`
+	ProductId int64 `json:"-" swaggerignore:"true"`
 } // @name OwnProductGetRequest
 
 type OwnProductUpdateRequest struct {
@@ -49,11 +49,11 @@ type OwnProductUpdateRequest struct {
 	ImagePaths     []string `json:"image_paths"      validate:"omitempty,dive,required,max=500"`
 	WeightGram     int      `json:"weight_gram"      validate:"required,gt=0"                       example:"1000"`
 
-	ProductId string `json:"-" swaggerignore:"true"`
+	ProductId int64 `json:"-" swaggerignore:"true"`
 } // @name OwnProductUpdateRequest
 
 type OwnProductRequestRequest struct {
-	ProductId string `json:"-" swaggerignore:"true"`
+	ProductId int64 `json:"-" swaggerignore:"true"`
 } // @name OwnProductRequestRequest
 
 type OwnRoleRequestCreateRequest struct {
@@ -81,11 +81,11 @@ type OwnAuctionFetchRequest struct {
 } // @name OwnAuctionFetchRequest
 
 type OwnAuctionGetRequest struct {
-	AuctionId string `json:"-" swaggerignore:"true"`
+	AuctionId int64 `json:"-" swaggerignore:"true"`
 } // @name OwnAuctionGetRequest
 
 type OwnAuctionCreateRequest struct {
-	ProductId     string             `json:"product_id"     validate:"required,uuid4" example:"550e8400-e29b-41d4-a716-446655440000"`
+	ProductId     int64              `json:"product_id"     validate:"required,gt=0" example:"1"`
 	StartingPrice float64            `json:"starting_price" validate:"required,gt=0"  example:"100000"`
 	StartTime     data_type.DateTime `json:"start_time"     validate:"required"        example:"2026-06-01T10:00:00Z"`
 	EndTime       data_type.DateTime `json:"end_time"       validate:"required"        example:"2026-06-01T12:00:00Z"`
@@ -96,7 +96,7 @@ type OwnAuctionUpdateRequest struct {
 	StartTime     data_type.DateTime `json:"start_time"     validate:"required"       example:"2026-06-01T10:00:00Z"`
 	EndTime       data_type.DateTime `json:"end_time"       validate:"required"       example:"2026-06-01T12:00:00Z"`
 
-	AuctionId string `json:"-" swaggerignore:"true"`
+	AuctionId int64 `json:"-" swaggerignore:"true"`
 } // @name OwnAuctionUpdateRequest
 
 // OwnBidFetchSorts defines sortable fields for the own bid fetch endpoint.
@@ -108,11 +108,11 @@ type OwnBidFetchSorts []struct {
 type OwnBidFetchRequest struct {
 	PaginationRequest
 	Sorts     OwnBidFetchSorts `json:"sorts"      validate:"dive"`
-	AuctionId *string          `json:"auction_id" validate:"omitempty,uuid4" example:"550e8400-e29b-41d4-a716-446655440000"`
+	AuctionId *int64           `json:"auction_id" validate:"omitempty,gt=0" example:"1"`
 } // @name OwnBidFetchRequest
 
 type OwnBidGetRequest struct {
-	BidId string `json:"-" swaggerignore:"true"`
+	BidId int64 `json:"-" swaggerignore:"true"`
 } // @name OwnBidGetRequest
 
 // OwnPaymentFetchSorts defines sortable fields for the own payment fetch endpoint.
@@ -128,5 +128,24 @@ type OwnPaymentFetchRequest struct {
 } // @name OwnPaymentFetchRequest
 
 type OwnPaymentGetRequest struct {
-	PaymentId string `json:"-" swaggerignore:"true"`
+	PaymentId int64 `json:"-" swaggerignore:"true"`
 } // @name OwnPaymentGetRequest
+
+type OwnNotificationFetchSorts []struct {
+	Field     string `json:"field"     validate:"required,oneof=id title type is_read created_at updated_at" example:"created_at"`
+	Direction string `json:"direction" validate:"required,oneof=asc desc"                                  example:"desc"`
+} // @name OwnNotificationFetchSorts
+
+type OwnNotificationFetchRequest struct {
+	PaginationRequest
+	Sorts  OwnNotificationFetchSorts `json:"sorts"   validate:"dive"`
+	IsRead *bool                     `json:"is_read" validate:"omitempty" example:"false"`
+} // @name OwnNotificationFetchRequest
+
+type OwnNotificationGetRequest struct {
+	NotificationId int64 `json:"-" swaggerignore:"true"`
+} // @name OwnNotificationGetRequest
+
+type OwnNotificationMarkReadRequest struct {
+	NotificationId int64 `json:"-" swaggerignore:"true"`
+} // @name OwnNotificationMarkReadRequest

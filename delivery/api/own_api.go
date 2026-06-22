@@ -1,11 +1,13 @@
 package api
 
 import (
+	"context"
 	"net/http"
 
 	"auction-service/constant"
 	"auction-service/delivery/dto_request"
 	"auction-service/delivery/dto_response"
+	"auction-service/model"
 	"auction-service/use_case"
 	"auction-service/util"
 
@@ -22,6 +24,7 @@ type OwnApi struct {
 	auctionUseCase           use_case.AuctionUseCase
 	paymentUseCase           use_case.PaymentUseCase
 	bidUseCase               use_case.BidUseCase
+	notificationUseCase      use_case.NotificationUseCase
 }
 
 // Create godoc
@@ -89,7 +92,7 @@ func (a *OwnApi) FetchProducts() gin.HandlerFunc {
 func (a *OwnApi) FetchStatusHistories() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleBidder, constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.OwnProductFetchStatusHistoriesRequest
-		request.ProductId = ctx.getParam("productId")
+		request.ProductId = ctx.mustGetParamInt64("productId")
 
 		histories := a.productUseCase.OwnFetchStatusHistories(ctx.context(), request)
 
@@ -113,7 +116,7 @@ func (a *OwnApi) FetchStatusHistories() gin.HandlerFunc {
 func (a *OwnApi) Get() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleBidder, constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.OwnProductGetRequest
-		request.ProductId = ctx.getParam("productId")
+		request.ProductId = ctx.mustGetParamInt64("productId")
 
 		product := a.productUseCase.OwnGet(ctx.context(), request)
 
@@ -140,7 +143,7 @@ func (a *OwnApi) Update() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleBidder, constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.OwnProductUpdateRequest
 		ctx.mustBind(&request)
-		request.ProductId = ctx.getParam("productId")
+		request.ProductId = ctx.mustGetParamInt64("productId")
 
 		product := a.productUseCase.OwnUpdate(ctx.context(), request)
 
@@ -164,7 +167,7 @@ func (a *OwnApi) Update() gin.HandlerFunc {
 func (a *OwnApi) Request() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleBidder, constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.OwnProductRequestRequest
-		request.ProductId = ctx.getParam("productId")
+		request.ProductId = ctx.mustGetParamInt64("productId")
 
 		product := a.productUseCase.OwnRequest(ctx.context(), request)
 
@@ -289,7 +292,7 @@ func (a *OwnApi) UpdateUserAddress() gin.HandlerFunc {
 	return a.Authorize(func(ctx apiContext) {
 		var request dto_request.UserAddressUpdateRequest
 		ctx.mustBind(&request)
-		request.UserAddressId = ctx.getParam("userAddressId")
+		request.UserAddressId = ctx.mustGetParamInt64("userAddressId")
 
 		address := a.userAddressUseCase.OwnUpdate(ctx.context(), request)
 
@@ -312,7 +315,7 @@ func (a *OwnApi) UpdateUserAddress() gin.HandlerFunc {
 //	@Success	200	{object}	dto_response.Response{data=dto_response.SuccessResponse}
 func (a *OwnApi) DeleteUserAddress() gin.HandlerFunc {
 	return a.Authorize(func(ctx apiContext) {
-		request := dto_request.UserAddressDeleteRequest{UserAddressId: ctx.getParam("userAddressId")}
+		request := dto_request.UserAddressDeleteRequest{UserAddressId: ctx.mustGetParamInt64("userAddressId")}
 
 		a.userAddressUseCase.OwnDelete(ctx.context(), request)
 
@@ -412,7 +415,7 @@ func (a *OwnApi) FetchAuctions() gin.HandlerFunc {
 func (a *OwnApi) GetAuction() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.OwnAuctionGetRequest
-		request.AuctionId = ctx.getParam("auctionId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
 
 		auction := a.auctionUseCase.OwnGet(ctx.context(), request)
 
@@ -464,7 +467,7 @@ func (a *OwnApi) UpdateAuction() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.OwnAuctionUpdateRequest
 		ctx.mustBind(&request)
-		request.AuctionId = ctx.getParam("auctionId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
 
 		auction := a.auctionUseCase.OwnUpdate(ctx.context(), request)
 
@@ -516,7 +519,7 @@ func (a *OwnApi) FetchBids() gin.HandlerFunc {
 func (a *OwnApi) GetBid() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
 		var request dto_request.OwnBidGetRequest
-		request.BidId = ctx.getParam("bidId")
+		request.BidId = ctx.mustGetParamInt64("bidId")
 
 		bid := a.bidUseCase.OwnGet(ctx.context(), request)
 
@@ -568,7 +571,7 @@ func (a *OwnApi) FetchPayments() gin.HandlerFunc {
 func (a *OwnApi) GetPayment() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
 		var request dto_request.OwnPaymentGetRequest
-		request.PaymentId = ctx.getParam("paymentId")
+		request.PaymentId = ctx.mustGetParamInt64("paymentId")
 
 		payment := a.paymentUseCase.OwnGet(ctx.context(), request)
 
@@ -592,7 +595,7 @@ func (a *OwnApi) GetPayment() gin.HandlerFunc {
 func (a *OwnApi) RelistAuction() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.OwnAuctionRelistRequest
-		request.AuctionId = ctx.getParam("auctionId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
 
 		auction := a.auctionUseCase.OwnRelist(ctx.context(), request)
 
@@ -616,7 +619,7 @@ func (a *OwnApi) RelistAuction() gin.HandlerFunc {
 func (a *OwnApi) SecondChanceAuction() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.OwnAuctionSecondChanceRequest
-		request.AuctionId = ctx.getParam("auctionId")
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
 
 		auction := a.auctionUseCase.OwnSecondChance(ctx.context(), request)
 		// Create the initial payment for the new winner (same as post-close flow).
@@ -627,6 +630,86 @@ func (a *OwnApi) SecondChanceAuction() gin.HandlerFunc {
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
 				"auction": dto_response.NewAuctionResponse(ctx.context(), auction),
+			},
+		})
+	})
+}
+
+// FetchNotifications godoc
+//
+//	@Router		/own/notifications/filter [post]
+//	@Summary	Get authenticated user's notifications (paginated)
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		body	body	dto_request.OwnNotificationFetchRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.NotificationResponse}}
+func (a *OwnApi) FetchNotifications() gin.HandlerFunc {
+	return a.Authorize(func(ctx apiContext) {
+		var request dto_request.OwnNotificationFetchRequest
+		ctx.mustBind(&request)
+
+		notifications, total := a.notificationUseCase.OwnFetch(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.NewPaginationResponse(
+				util.ConvertArray(ctx.context(), notifications, func(_ context.Context, n model.Notification) dto_response.NotificationResponse {
+					return dto_response.NewNotificationResponse(n)
+				}),
+				int(total),
+				request.Page,
+				request.Limit,
+			),
+		})
+	})
+}
+
+// GetNotification godoc
+//
+//	@Router		/own/notifications/{notificationId} [get]
+//	@Summary	Get authenticated user's notification by ID
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Param		notificationId	path	string	true	"Notification ID"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{notification=dto_response.NotificationResponse}}
+func (a *OwnApi) GetNotification() gin.HandlerFunc {
+	return a.Authorize(func(ctx apiContext) {
+		request := dto_request.OwnNotificationGetRequest{
+			NotificationId: ctx.mustGetParamInt64("notificationId"),
+		}
+
+		notification := a.notificationUseCase.OwnGet(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"notification": dto_response.NewNotificationResponse(notification),
+			},
+		})
+	})
+}
+
+// MarkNotificationRead godoc
+//
+//	@Router		/own/notifications/{notificationId}/read [patch]
+//	@Summary	Mark authenticated user's notification as read
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Param		notificationId	path	string	true	"Notification ID"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{notification=dto_response.NotificationResponse}}
+func (a *OwnApi) MarkNotificationRead() gin.HandlerFunc {
+	return a.Authorize(func(ctx apiContext) {
+		request := dto_request.OwnNotificationMarkReadRequest{
+			NotificationId: ctx.mustGetParamInt64("notificationId"),
+		}
+
+		notification := a.notificationUseCase.OwnMarkRead(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"notification": dto_response.NewNotificationResponse(notification),
 			},
 		})
 	})
@@ -643,6 +726,7 @@ func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.Us
 		auctionUseCase:           useCaseManager.AuctionUseCase(),
 		paymentUseCase:           useCaseManager.PaymentUseCase(),
 		bidUseCase:               useCaseManager.BidUseCase(),
+		notificationUseCase:      useCaseManager.NotificationUseCase(),
 	}
 
 	routerGroup := router.Group("/own")
@@ -677,6 +761,11 @@ func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.Us
 	routerPaymentGroup := routerGroup.Group("/payments")
 	routerPaymentGroup.POST("/filter", api.FetchPayments())
 	routerPaymentGroup.GET("/:paymentId", api.GetPayment())
+
+	routerNotificationGroup := routerGroup.Group("/notifications")
+	routerNotificationGroup.POST("/filter", api.FetchNotifications())
+	routerNotificationGroup.GET("/:notificationId", api.GetNotification())
+	routerNotificationGroup.PATCH("/:notificationId/read", api.MarkNotificationRead())
 
 	// own user-addresses
 	routerUserAddressGroup := routerGroup.Group("/user-addresses")
