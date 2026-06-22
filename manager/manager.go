@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"auction-service/delivery/ws"
 	"auction-service/global"
 	"auction-service/infrastructure"
 	internalFilesystem "auction-service/internal/filesystem"
@@ -17,7 +18,7 @@ type Container struct {
 	baseFileUseCase       use_case.BaseFileUseCase
 }
 
-func NewContainer() *Container {
+func NewContainer(hub *ws.Hub) *Container {
 	config := global.GetConfig()
 
 	infraManager := infrastructure.NewInfrastructureManager(config)
@@ -70,7 +71,7 @@ func NewContainer() *Container {
 	paymentMethodUseCase := use_case.NewPaymentMethodUseCase(repoManager)
 	notificationQueue := infraManager.GetNotificationQueueClient()
 	auctionUseCase := use_case.NewAuctionUseCase(repoManager, infraManager.GetTaskQueueClient(), notificationQueue)
-	bidUseCase := use_case.NewBidUseCase(repoManager, notificationQueue)
+	bidUseCase := use_case.NewBidUseCase(repoManager, notificationQueue, hub)
 	winnerUseCase := use_case.NewWinnerUseCase(repoManager)
 	paymentUseCase := use_case.NewPaymentUseCase(repoManager, infraManager.GetMidtransClient(), infraManager.GetTaskQueueClient(), infraManager.GetBiteshipClient(), notificationQueue)
 	shipmentUseCase := use_case.NewShipmentUseCase(repoManager, infraManager.GetBiteshipClient())

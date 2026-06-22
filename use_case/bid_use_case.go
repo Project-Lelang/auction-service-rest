@@ -7,6 +7,7 @@ import (
 	"auction-service/constant"
 	"auction-service/delivery/dto_request"
 	"auction-service/delivery/dto_response"
+	"auction-service/delivery/ws"
 	"auction-service/internal/notification"
 	"auction-service/model"
 	"auction-service/repository"
@@ -24,10 +25,11 @@ type BidUseCase interface {
 type bidUseCase struct {
 	repositoryManager repository.RepositoryManager
 	notificationQueue NotificationPublisher
+	wsHub             *ws.Hub
 }
 
-func NewBidUseCase(repositoryManager repository.RepositoryManager, notificationQueue NotificationPublisher) BidUseCase {
-	return &bidUseCase{repositoryManager: repositoryManager, notificationQueue: notificationQueue}
+func NewBidUseCase(repositoryManager repository.RepositoryManager, notificationQueue NotificationPublisher, wsHub *ws.Hub) BidUseCase {
+	return &bidUseCase{repositoryManager: repositoryManager, notificationQueue: notificationQueue, wsHub: wsHub}
 }
 
 func ensureAuctionOpenForBid(auction *model.Auction) {
@@ -203,6 +205,13 @@ func (u *bidUseCase) PlaceBid(ctx context.Context, request dto_request.AuctionBi
 	panicIfErr(err)
 
 	createdBid.Auction = &auction
+
+	go u.wsHub.BroadcastBid(ws.BroadcastPayload{
+		AuctionID: createdBid.AuctionId,
+		Amount:    createdBid.Amount,
+		CreatedAt: util.CurrentDateTime().Format("2006-01-02T15:04:05Z07:00"),
+	})
+
 	if outbidUserId != 0 {
 		publishAuctionNotification(ctx, u.notificationQueue, notification.Payload{
 			UserId:    outbidUserId,
@@ -278,6 +287,13 @@ func (u *bidUseCase) PlaceBidNoLocking(ctx context.Context, request dto_request.
 	panicIfErr(err)
 
 	createdBid.Auction = &auction
+
+	go u.wsHub.BroadcastBid(ws.BroadcastPayload{
+		AuctionID: createdBid.AuctionId,
+		Amount:    createdBid.Amount,
+		CreatedAt: util.CurrentDateTime().Format("2006-01-02T15:04:05Z07:00"),
+	})
+
 	if outbidUserId != 0 {
 		publishAuctionNotification(ctx, u.notificationQueue, notification.Payload{
 			UserId:    outbidUserId,

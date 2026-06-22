@@ -14,6 +14,7 @@ import (
 	"auction-service/constant"
 	"auction-service/delivery/dto_response"
 	"auction-service/delivery/middleware"
+	"auction-service/delivery/ws"
 	"auction-service/global"
 	internalValidator "auction-service/internal/validator"
 	"auction-service/manager"
@@ -171,41 +172,47 @@ func (a *api) Guest(fn func(ctx apiContext)) gin.HandlerFunc {
 		fn(newApiContext(ctx))
 	}
 }
-
 func registerMiddlewares(router gin.IRouter, container *manager.Container) {
 	middleware.RequestIdHandler(router)
 	middleware.TranslatorHandler(router)
 	middleware.PanicHandler(router, container.InfrastructureManager().GetLoggerStack())
-	middleware.JWTHandler(router, container.UseCaseManager().AuthUseCase())
 }
 
-func registerRoutes(router gin.IRouter, container *manager.Container) {
+func registerRoutes(router *gin.Engine, container *manager.Container, hub *ws.Hub) {
 	// init validator only once (triggers binding.Validator assignment)
 	_ = internalValidator.Translators
-
 	baseApi := newApi()
+
+	wsHandler := ws.NewWsHandler(hub)
+	router.GET("/ws/auctions/:auction_id", wsHandler.ServeWs)
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	apiGroup := router.Group("/")
+	middleware.JWTHandler(apiGroup, container.UseCaseManager().AuthUseCase())
+
 	// admin
-	RegisterAdminAuthApi(router, &baseApi, container.UseCaseManager())
-	RegisterAdminUserApi(router, &baseApi, container.UseCaseManager())
-	RegisterAdminProductApi(router, &baseApi, container.UseCaseManager())
-	RegisterAdminRoleRequestApi(router, &baseApi, container.UseCaseManager())
-	RegisterAdminWithdrawalRequestApi(router, &baseApi, container.UseCaseManager())
-	RegisterAdminPaymentMethodApi(router, &baseApi, container.UseCaseManager())
+	RegisterAdminAuthApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterAdminUserApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterAdminProductApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterAdminRoleRequestApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterAdminWithdrawalRequestApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterAdminPaymentMethodApi(apiGroup, &baseApi, container.UseCaseManager())
 
 	// user
-	RegisterAuthApi(router, &baseApi, container.UseCaseManager())
-	RegisterProductApi(router, &baseApi, container.UseCaseManager())
-	RegisterOwnApi(router, &baseApi, container.UseCaseManager())
-	RegisterUserRoleRequestApi(router, &baseApi, container.UseCaseManager())
-	RegisterAuctionApi(router, &baseApi, container.UseCaseManager())
-	RegisterUserAddressApi(router, &baseApi, container.UseCaseManager())
-	RegisterBiteshipApi(router, &baseApi, container.UseCaseManager())
+	RegisterAuthApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterProductApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterOwnApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterUserRoleRequestApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterAuctionApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterUserAddressApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterBiteshipApi(apiGroup, &baseApi, container.UseCaseManager())
 
 	// file
-	RegisterFileApi(router, &baseApi, container.FilesystemManager(), container.BaseFileUseCase())
+	RegisterFileApi(apiGroup, &baseApi, container.FilesystemManager(), container.BaseFileUseCase())
 }
 
-func NewRouter(container *manager.Container) *gin.Engine {
+func NewRouter(container *manager.Container, hub *ws.Hub) *gin.Engine {
 	if global.IsProduction() {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -214,23 +221,9 @@ func NewRouter(container *manager.Container) *gin.Engine {
 
 	router.Use(
 		cors.New(cors.Config{
-			AllowOrigins: global.GetConfig().CorsAllowedOrigins,
-			AllowMethods: []string{
-				http.MethodGet,
-				http.MethodPost,
-				http.MethodPut,
-				http.MethodDelete,
-				http.MethodPatch,
-				http.MethodHead,
-			},
-			AllowHeaders: []string{
-				"Accept",
-				"Authorization",
-				"Content-Type",
-				"Content-Length",
-				"Origin",
-				"Accept-Language",
-			},
+			AllowOrigins:     global.GetConfig().CorsAllowedOrigins,
+			AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodPatch, http.MethodHead},
+			AllowHeaders:     []string{"Accept", "Authorization", "Content-Type", "Content-Length", "Origin", "Accept-Language"},
 			ExposeHeaders:    []string{"Content-Type", "Content-Length", "X-Request-Id"},
 			AllowCredentials: true,
 			MaxAge:           2 * time.Hour,
@@ -238,9 +231,8 @@ func NewRouter(container *manager.Container) *gin.Engine {
 	)
 
 	registerMiddlewares(router, container)
-	registerRoutes(router, container)
 
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	registerRoutes(router, container, hub)
 
 	return router
 }
