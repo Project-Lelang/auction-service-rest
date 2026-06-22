@@ -18,15 +18,15 @@ type ProductRepository interface {
 	Insert(ctx context.Context, product *model.Product) error
 
 	// read
-	GetById(ctx context.Context, id string) (*model.Product, error)
-	FetchByIds(ctx context.Context, ids []string) ([]model.Product, error)
+	GetById(ctx context.Context, id int64) (*model.Product, error)
+	FetchByIds(ctx context.Context, ids []int64) ([]model.Product, error)
 	Fetch(ctx context.Context, options ...model.ProductQueryOption) ([]model.Product, error)
 	Count(ctx context.Context, options ...model.ProductQueryOption) (int64, error)
 
 	// update
-	Update(ctx context.Context, id string, name string, description *string, condition string, weightGram int) (*model.Product, error)
-	UpdateImages(ctx context.Context, id string, coverImagePath *string, imagePaths *string) (*model.Product, error)
-	UpdateStatus(ctx context.Context, id string, status string) (*model.Product, error)
+	Update(ctx context.Context, id int64, name string, description *string, condition string, weightGram int) (*model.Product, error)
+	UpdateImages(ctx context.Context, id int64, coverImagePath *string, imagePaths *string) (*model.Product, error)
+	UpdateStatus(ctx context.Context, id int64, status string) (*model.Product, error)
 }
 
 type productRepository struct {
@@ -96,7 +96,7 @@ func (r *productRepository) Insert(ctx context.Context, product *model.Product) 
 
 // ------------------------------------------------------------------ read
 
-func (r *productRepository) GetById(ctx context.Context, id string) (*model.Product, error) {
+func (r *productRepository) GetById(ctx context.Context, id int64) (*model.Product, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{fmt.Sprintf("%s.id", r.alias()): id}).
@@ -104,7 +104,7 @@ func (r *productRepository) GetById(ctx context.Context, id string) (*model.Prod
 	return r.getInternal(ctx, stmt)
 }
 
-func (r *productRepository) FetchByIds(ctx context.Context, ids []string) ([]model.Product, error) {
+func (r *productRepository) FetchByIds(ctx context.Context, ids []int64) ([]model.Product, error) {
 	if len(ids) == 0 {
 		return []model.Product{}, nil
 	}
@@ -145,7 +145,7 @@ func (r *productRepository) Count(ctx context.Context, options ...model.ProductQ
 
 // ------------------------------------------------------------------ update
 
-func (r *productRepository) Update(ctx context.Context, id string, name string, description *string, condition string, weightGram int) (*model.Product, error) {
+func (r *productRepository) Update(ctx context.Context, id int64, name string, description *string, condition string, weightGram int) (*model.Product, error) {
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
 			"name":        name,
@@ -161,7 +161,7 @@ func (r *productRepository) Update(ctx context.Context, id string, name string, 
 	return r.GetById(ctx, id)
 }
 
-func (r *productRepository) UpdateImages(ctx context.Context, id string, coverImagePath *string, imagePaths *string) (*model.Product, error) {
+func (r *productRepository) UpdateImages(ctx context.Context, id int64, coverImagePath *string, imagePaths *string) (*model.Product, error) {
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
 			"cover_image_path": coverImagePath,
@@ -175,7 +175,7 @@ func (r *productRepository) UpdateImages(ctx context.Context, id string, coverIm
 	return r.GetById(ctx, id)
 }
 
-func (r *productRepository) UpdateStatus(ctx context.Context, id string, status string) (*model.Product, error) {
+func (r *productRepository) UpdateStatus(ctx context.Context, id int64, status string) (*model.Product, error) {
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
 			"status":     status,

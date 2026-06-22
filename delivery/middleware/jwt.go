@@ -23,7 +23,7 @@ func JWTHandler(router gin.IRouter, authUseCase use_case.AuthUseCase) {
 			return
 		}
 
-		claims, err := authUseCase.Parse(token)
+		claims, err := authUseCase.Parse(ctx.Request.Context(), token)
 		if err != nil {
 			if err != constant.ErrNotAuthenticated {
 				panic(err)

@@ -3,9 +3,9 @@ package model
 const UserRoleTableName = "user_roles"
 
 type UserRole struct {
-	Id     string `db:"id"`
+	Id     int64  `db:"id"`
 	Role   string `db:"role"`
-	UserId string `db:"user_id"`
+	UserId int64  `db:"user_id"`
 	Timestamp
 }
 

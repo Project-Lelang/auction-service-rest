@@ -24,6 +24,8 @@ type RepositoryManager interface {
 	PaymentRepository() PaymentRepository
 	ShipmentRepository() ShipmentRepository
 	UserAddressRepository() UserAddressRepository
+	NotifcationRepository() NotificationRepository
+	UserFcmTokenRepository() UserFcmTokenRepository
 
 	Transaction(ctx context.Context, fn func(ctx context.Context) error) error
 	PaymentMethodRepository() PaymentMethodRepository
@@ -45,6 +47,8 @@ type repositoryManager struct {
 	shipmentRepository             ShipmentRepository
 	paymentMethodRepository        PaymentMethodRepository
 	userAddressRepository          UserAddressRepository
+	notificationRepository         NotificationRepository
+	userFcmTokenRepository         UserFcmTokenRepository
 }
 
 func NewRepositoryManager(
@@ -63,6 +67,8 @@ func NewRepositoryManager(
 	shipmentRepository ShipmentRepository,
 	paymentMethodRepository PaymentMethodRepository,
 	userAddressRepository UserAddressRepository,
+	notificationRepository NotificationRepository,
+	userFcmTokenRepository UserFcmTokenRepository,
 ) RepositoryManager {
 	return &repositoryManager{
 		db:                             db,
@@ -80,6 +86,8 @@ func NewRepositoryManager(
 		shipmentRepository:             shipmentRepository,
 		paymentMethodRepository:        paymentMethodRepository,
 		userAddressRepository:          userAddressRepository,
+		notificationRepository:         notificationRepository,
+		userFcmTokenRepository:         userFcmTokenRepository,
 	}
 }
 
@@ -168,4 +176,12 @@ func (r *repositoryManager) PaymentMethodRepository() PaymentMethodRepository {
 
 func (r *repositoryManager) UserAddressRepository() UserAddressRepository {
 	return r.userAddressRepository
+}
+
+func (r *repositoryManager) NotifcationRepository() NotificationRepository {
+	return r.notificationRepository
+}
+
+func (r *repositoryManager) UserFcmTokenRepository() UserFcmTokenRepository {
+	return r.userFcmTokenRepository
 }

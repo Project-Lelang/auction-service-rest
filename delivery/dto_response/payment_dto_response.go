@@ -9,10 +9,10 @@ import (
 
 // PaymentResponse represents a single payment in API responses.
 type PaymentResponse struct {
-	Id              string                 `json:"id"               example:"550e8400-e29b-41d4-a716-446655440000"`
-	AuctionId       string                 `json:"auction_id"       example:"550e8400-e29b-41d4-a716-446655440001"`
-	UserId          string                 `json:"user_id"          example:"550e8400-e29b-41d4-a716-446655440002"`
-	PaymentMethodId *string                `json:"payment_method_id,omitempty"`
+	Id              int64                  `json:"id"               example:"1"`
+	AuctionId       int64                  `json:"auction_id"       example:"2"`
+	UserId          int64                  `json:"user_id"          example:"3"`
+	PaymentMethodId *int64                 `json:"payment_method_id,omitempty"`
 	Amount          float64                `json:"amount"           example:"155000"`
 	Status          string                 `json:"status"           example:"WAITING_FOR_PAYMENT"`
 	SnapUrl         *string                `json:"snap_url,omitempty"`

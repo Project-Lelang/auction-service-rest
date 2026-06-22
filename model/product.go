@@ -7,8 +7,8 @@ import (
 const ProductTableName = "products"
 
 type Product struct {
-	Id             string  `db:"id"`
-	UserId         string  `db:"user_id"`
+	Id             int64   `db:"id"`
+	UserId         int64   `db:"user_id"`
 	Name           string  `db:"name"`
 	Description    *string `db:"description"`
 	Condition      string  `db:"condition"`
@@ -30,7 +30,7 @@ type Product struct {
 type ProductQueryOption struct {
 	QueryOption
 
-	UserId    *string
+	UserId    *int64
 	Status    *string
 	Condition *string
 	Search    *string

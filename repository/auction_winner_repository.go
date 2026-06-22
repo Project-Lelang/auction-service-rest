@@ -17,17 +17,17 @@ type AuctionWinnerRepository interface {
 	Insert(ctx context.Context, winner *model.AuctionWinner) error
 
 	// read
-	GetById(ctx context.Context, id string) (*model.AuctionWinner, error)
-	GetActiveByAuctionIdForUpdate(ctx context.Context, auctionId string) (*model.AuctionWinner, error)
-	GetActiveByAuctionIdNoLocking(ctx context.Context, auctionId string) (*model.AuctionWinner, error)
-	GetLatestByAuctionId(ctx context.Context, auctionId string) (*model.AuctionWinner, error)
+	GetById(ctx context.Context, id int64) (*model.AuctionWinner, error)
+	GetActiveByAuctionIdForUpdate(ctx context.Context, auctionId int64) (*model.AuctionWinner, error)
+	GetActiveByAuctionIdNoLocking(ctx context.Context, auctionId int64) (*model.AuctionWinner, error)
+	GetLatestByAuctionId(ctx context.Context, auctionId int64) (*model.AuctionWinner, error)
 	Fetch(ctx context.Context, options ...model.AuctionWinnerQueryOption) ([]model.AuctionWinner, error)
-	FetchByAuctionIds(ctx context.Context, auctionIds []string) ([]model.AuctionWinner, error)
+	FetchByAuctionIds(ctx context.Context, auctionIds []int64) ([]model.AuctionWinner, error)
 	Count(ctx context.Context, options ...model.AuctionWinnerQueryOption) (int64, error)
 
 	// update
-	UpdateBidId(ctx context.Context, id string, auctionBidId string) (*model.AuctionWinner, error)
-	UpdateStatus(ctx context.Context, id string, status string) (*model.AuctionWinner, error)
+	UpdateBidId(ctx context.Context, id int64, auctionBidId int64) (*model.AuctionWinner, error)
+	UpdateStatus(ctx context.Context, id int64, status string) (*model.AuctionWinner, error)
 }
 
 type auctionWinnerRepository struct {
@@ -80,7 +80,7 @@ func (r *auctionWinnerRepository) Insert(ctx context.Context, winner *model.Auct
 	return defaultInsert(r.db, ctx, winner)
 }
 
-func (r *auctionWinnerRepository) GetById(ctx context.Context, id string) (*model.AuctionWinner, error) {
+func (r *auctionWinnerRepository) GetById(ctx context.Context, id int64) (*model.AuctionWinner, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("id"): id}).
@@ -93,7 +93,7 @@ func (r *auctionWinnerRepository) GetById(ctx context.Context, id string) (*mode
 // WAITING_FOR_PAYMENT and COMPLETED — i.e. any status that means the winner slot
 // is occupied. Used both to prevent duplicate winner inserts and to guard
 // payment/shipment state transitions.
-func (r *auctionWinnerRepository) GetActiveByAuctionIdForUpdate(ctx context.Context, auctionId string) (*model.AuctionWinner, error) {
+func (r *auctionWinnerRepository) GetActiveByAuctionIdForUpdate(ctx context.Context, auctionId int64) (*model.AuctionWinner, error) {
 	query := fmt.Sprintf(
 		"SELECT %s.* FROM %s WHERE %s.auction_id = ? AND %s.status != 'CANCELLED' LIMIT 1 FOR UPDATE",
 		r.alias(), r.fromTable(), r.alias(), r.alias(),
@@ -106,7 +106,7 @@ func (r *auctionWinnerRepository) GetActiveByAuctionIdForUpdate(ctx context.Cont
 	return &w, nil
 }
 
-func (r *auctionWinnerRepository) GetActiveByAuctionIdNoLocking(ctx context.Context, auctionId string) (*model.AuctionWinner, error) {
+func (r *auctionWinnerRepository) GetActiveByAuctionIdNoLocking(ctx context.Context, auctionId int64) (*model.AuctionWinner, error) {
 	query := fmt.Sprintf(
 		"SELECT %s.* FROM %s WHERE %s.auction_id = ? AND %s.status != 'CANCELLED' LIMIT 1",
 		r.alias(), r.fromTable(), r.alias(), r.alias(),
@@ -119,7 +119,7 @@ func (r *auctionWinnerRepository) GetActiveByAuctionIdNoLocking(ctx context.Cont
 	return &w, nil
 }
 
-func (r *auctionWinnerRepository) GetLatestByAuctionId(ctx context.Context, auctionId string) (*model.AuctionWinner, error) {
+func (r *auctionWinnerRepository) GetLatestByAuctionId(ctx context.Context, auctionId int64) (*model.AuctionWinner, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("auction_id"): auctionId}).
@@ -138,7 +138,7 @@ func (r *auctionWinnerRepository) Fetch(ctx context.Context, options ...model.Au
 	return r.fetchInternal(ctx, stmt)
 }
 
-func (r *auctionWinnerRepository) FetchByAuctionIds(ctx context.Context, auctionIds []string) ([]model.AuctionWinner, error) {
+func (r *auctionWinnerRepository) FetchByAuctionIds(ctx context.Context, auctionIds []int64) ([]model.AuctionWinner, error) {
 	if len(auctionIds) == 0 {
 		return []model.AuctionWinner{}, nil
 	}
@@ -165,7 +165,7 @@ func (r *auctionWinnerRepository) Count(ctx context.Context, options ...model.Au
 	return count, nil
 }
 
-func (r *auctionWinnerRepository) UpdateBidId(ctx context.Context, id string, auctionBidId string) (*model.AuctionWinner, error) {
+func (r *auctionWinnerRepository) UpdateBidId(ctx context.Context, id int64, auctionBidId int64) (*model.AuctionWinner, error) {
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
 			"auction_bid_id": auctionBidId,
@@ -178,7 +178,7 @@ func (r *auctionWinnerRepository) UpdateBidId(ctx context.Context, id string, au
 	return r.GetById(ctx, id)
 }
 
-func (r *auctionWinnerRepository) UpdateStatus(ctx context.Context, id string, status string) (*model.AuctionWinner, error) {
+func (r *auctionWinnerRepository) UpdateStatus(ctx context.Context, id int64, status string) (*model.AuctionWinner, error) {
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
 			"status":     status,

@@ -105,7 +105,6 @@ func (u *productUseCase) fetchPaginated(ctx context.Context, option model.Produc
 
 func (u *productUseCase) OwnCreate(ctx context.Context, request dto_request.OwnProductCreateRequest) model.Product {
 	userClaims := model.MustGetUserCtx(ctx)
-	productId := util.NewUuid()
 
 	// Validate all tmp paths upfront for a fast fail before any file I/O.
 	allTmpPaths := []string{}
@@ -117,10 +116,23 @@ func (u *productUseCase) OwnCreate(ctx context.Context, request dto_request.OwnP
 		u.MustValidateTemporaryFilePaths(allTmpPaths)
 	}
 
-	// Move cover image from tmp to main storage.
+	imagePathsStr := model.MarshalImagePaths([]string{})
+	product := model.Product{
+		UserId:      userClaims.UserId,
+		Name:        request.Name,
+		Description: request.Description,
+		Condition:   request.Condition,
+		ImagePaths:  &imagePathsStr,
+		WeightGram:  request.WeightGram,
+		Status:      constant.ProductStatusDraft,
+	}
+
+	panicIfErr(u.repositoryManager.ProductRepository().Insert(ctx, &product))
+
+	// Move cover image from tmp to main storage after the product ID exists.
 	var coverMainPath *string
 	if request.CoverImagePath != nil {
-		p, _ := u.MustUploadFileFromTemporaryToMain(ctx, "products", productId,
+		p, _ := u.MustUploadFileFromTemporaryToMain(ctx, "products", product.Id,
 			"cover"+path.Ext(*request.CoverImagePath), *request.CoverImagePath,
 			FileUploadTemporaryToMainParams{DeleteTmpOnSuccess: true})
 		coverMainPath = &p
@@ -129,26 +141,18 @@ func (u *productUseCase) OwnCreate(ctx context.Context, request dto_request.OwnP
 	// Move additional images from tmp to main storage.
 	mainImagePaths := make([]string, 0, len(request.ImagePaths))
 	for i, tmpPath := range request.ImagePaths {
-		p, _ := u.MustUploadFileFromTemporaryToMain(ctx, "products", productId,
+		p, _ := u.MustUploadFileFromTemporaryToMain(ctx, "products", product.Id,
 			fmt.Sprintf("image_%d%s", i, path.Ext(tmpPath)), tmpPath,
 			FileUploadTemporaryToMainParams{DeleteTmpOnSuccess: true})
 		mainImagePaths = append(mainImagePaths, p)
 	}
 
-	imagePathsStr := model.MarshalImagePaths(mainImagePaths)
-	product := model.Product{
-		Id:             productId,
-		UserId:         userClaims.UserId,
-		Name:           request.Name,
-		Description:    request.Description,
-		Condition:      request.Condition,
-		CoverImagePath: coverMainPath,
-		ImagePaths:     &imagePathsStr,
-		WeightGram:     request.WeightGram,
-		Status:         constant.ProductStatusDraft,
+	if coverMainPath != nil || len(mainImagePaths) > 0 {
+		imagePathsStr = model.MarshalImagePaths(mainImagePaths)
+		updated, err := u.repositoryManager.ProductRepository().UpdateImages(ctx, product.Id, coverMainPath, &imagePathsStr)
+		panicIfErr(err)
+		product = *updated
 	}
-
-	panicIfErr(u.repositoryManager.ProductRepository().Insert(ctx, &product))
 
 	u.populateImageLinks(&product)
 	return product
@@ -211,7 +215,6 @@ func (u *productUseCase) AdminApprove(ctx context.Context, request dto_request.A
 		}
 
 		return u.repositoryManager.ProductStatusHistoryRepository().Insert(txCtx, &model.ProductStatusHistory{
-			Id:        util.NewUuid(),
 			ProductId: request.ProductId,
 			Status:    constant.ProductStatusVerified,
 			Message:   nil, // Verification holds no negative comment message
@@ -241,7 +244,6 @@ func (u *productUseCase) AdminReject(ctx context.Context, request dto_request.Ad
 		}
 
 		return u.repositoryManager.ProductStatusHistoryRepository().Insert(txCtx, &model.ProductStatusHistory{
-			Id:        util.NewUuid(),
 			ProductId: request.ProductId,
 			Status:    constant.ProductStatusRejected,
 			Message:   request.Message, // Saved directly to history record
@@ -371,7 +373,6 @@ func (u *productUseCase) OwnRequest(ctx context.Context, request dto_request.Own
 			return err
 		}
 		return u.repositoryManager.ProductStatusHistoryRepository().Insert(ctx, &model.ProductStatusHistory{
-			Id:        util.NewUuid(),
 			ProductId: request.ProductId,
 			Status:    constant.ProductStatusRequest,
 		})

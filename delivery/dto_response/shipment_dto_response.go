@@ -10,11 +10,11 @@ import (
 
 // ShipmentResponse represents a single shipment in API responses.
 type ShipmentResponse struct {
-	Id                     string                         `json:"id"                          example:"550e8400-e29b-41d4-a716-446655440000"`
-	AuctionBidId           string                         `json:"auction_bid_id"              example:"550e8400-e29b-41d4-a716-446655440001"`
-	UserId                 string                         `json:"user_id"                     example:"550e8400-e29b-41d4-a716-446655440002"`
-	BuyerAddressId         *string                        `json:"buyer_address_id,omitempty"`
-	SellerAddressId        *string                        `json:"seller_address_id,omitempty"`
+	Id                     int64                          `json:"id"                          example:"1"`
+	AuctionBidId           int64                          `json:"auction_bid_id"              example:"2"`
+	UserId                 int64                          `json:"user_id"                     example:"3"`
+	BuyerAddressId         *int64                         `json:"buyer_address_id,omitempty"`
+	SellerAddressId        *int64                         `json:"seller_address_id,omitempty"`
 	BuyerAddressSnapshot   *model.ShipmentAddressSnapshot `json:"buyer_address_snapshot,omitempty"`
 	SellerAddressSnapshot  *model.ShipmentAddressSnapshot `json:"seller_address_snapshot,omitempty"`
 	ServiceCode            *string                        `json:"service_code,omitempty"`

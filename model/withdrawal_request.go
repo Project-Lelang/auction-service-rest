@@ -8,9 +8,9 @@ const (
 )
 
 type WithdrawalRequest struct {
-	Id              int64   `db:"id" json:"id"`
-	UserId          string  `db:"user_id" json:"user_id"`
-	ValidatorUserId *string `db:"validator_user_id" json:"validator_user_id"`
+	Id              int64  `db:"id" json:"id"`
+	UserId          int64  `db:"user_id" json:"user_id"`
+	ValidatorUserId *int64 `db:"validator_user_id" json:"validator_user_id"`
 
 	Amount float64 `db:"amount" json:"amount"`
 
@@ -23,7 +23,7 @@ type WithdrawalRequest struct {
 }
 
 type WithdrawalRequestUser struct {
-	Id string `json:"id"`
+	Id int64 `json:"id"`
 
 	Fullname string `json:"fullname"`
 	Phone    string `json:"phone"`
@@ -52,7 +52,7 @@ func (w *WithdrawalRequest) ToMap() map[string]interface{} {
 type WithdrawalRequestQueryOption struct {
 	QueryOption
 
-	UserId          *string
-	ValidatorUserId *string
+	UserId          *int64
+	ValidatorUserId *int64
 	Status          *string
 }

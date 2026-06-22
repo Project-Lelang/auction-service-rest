@@ -17,5 +17,5 @@ type ProductFetchRequest struct {
 } // @name ProductFetchRequest
 
 type ProductGetRequest struct {
-	ProductId string `json:"-" swaggerignore:"true"`
+	ProductId int64 `json:"-" swaggerignore:"true"`
 } // @name ProductGetRequest

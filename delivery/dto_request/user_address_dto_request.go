@@ -13,7 +13,7 @@ type UserAddressFetchRequest struct {
 } // @name UserAddressFetchRequest
 
 type UserAddressGetRequest struct {
-	UserAddressId string `json:"-" swaggerignore:"true"`
+	UserAddressId int64 `json:"-" swaggerignore:"true"`
 } // @name UserAddressGetRequest
 
 type UserAddressCreateRequest struct {
@@ -40,9 +40,9 @@ type UserAddressUpdateRequest struct {
 	PostalCode     string `json:"postal_code"            validate:"required,max=10"   example:"40111"`
 	BiteshipAreaId string `json:"biteship_area_id"       validate:"required,min=1"    example:"IDNP6IDNC148IDND843IDZ12250"`
 	IsDefault      bool   `json:"is_default"`
-	UserAddressId  string `json:"-" swaggerignore:"true"`
+	UserAddressId  int64  `json:"-" swaggerignore:"true"`
 } // @name UserAddressUpdateRequest
 
 type UserAddressDeleteRequest struct {
-	UserAddressId string `json:"-" swaggerignore:"true"`
+	UserAddressId int64 `json:"-" swaggerignore:"true"`
 } // @name UserAddressDeleteRequest

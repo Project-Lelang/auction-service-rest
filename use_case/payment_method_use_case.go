@@ -4,7 +4,6 @@ import (
 	"auction-service/delivery/dto_request"
 	"auction-service/model"
 	"auction-service/repository"
-	"auction-service/util"
 	"context"
 )
 
@@ -12,8 +11,8 @@ type PaymentMethodUseCase interface {
 	Create(ctx context.Context, req dto_request.PaymentMethodCreateRequest) model.PaymentMethod
 	Fetch(ctx context.Context, req dto_request.PaymentMethodFetchRequest) ([]model.PaymentMethod, int64)
 	AdminFetch(ctx context.Context, req dto_request.PaymentMethodFetchRequest) ([]model.PaymentMethod, int64)
-	GetById(ctx context.Context, id string) model.PaymentMethod
-	Update(ctx context.Context, id string, req dto_request.PaymentMethodUpdateRequest) model.PaymentMethod
+	GetById(ctx context.Context, id int64) model.PaymentMethod
+	Update(ctx context.Context, id int64, req dto_request.PaymentMethodUpdateRequest) model.PaymentMethod
 }
 
 type paymentMethodUseCase struct {
@@ -33,7 +32,6 @@ func (u *paymentMethodUseCase) Create(ctx context.Context, req dto_request.Payme
 	}
 
 	pm := model.PaymentMethod{
-		Id:       util.NewUuid(),
 		Name:     req.Name,
 		Code:     req.Code,
 		Type:     req.Type,
@@ -63,7 +61,7 @@ func (u *paymentMethodUseCase) Fetch(ctx context.Context, req dto_request.Paymen
 	return paymentMethods, total
 }
 
-func (u *paymentMethodUseCase) GetById(ctx context.Context, id string) model.PaymentMethod {
+func (u *paymentMethodUseCase) GetById(ctx context.Context, id int64) model.PaymentMethod {
 	pm, err := u.repoManager.PaymentMethodRepository().GetById(ctx, id)
 	panicIfErr(err)
 
@@ -78,7 +76,7 @@ func (u *paymentMethodUseCase) AdminFetch(ctx context.Context, req dto_request.P
 	return u.Fetch(ctx, req)
 }
 
-func (u *paymentMethodUseCase) Update(ctx context.Context, id string, req dto_request.PaymentMethodUpdateRequest) model.PaymentMethod {
+func (u *paymentMethodUseCase) Update(ctx context.Context, id int64, req dto_request.PaymentMethodUpdateRequest) model.PaymentMethod {
 	pm, err := u.repoManager.PaymentMethodRepository().GetById(ctx, id)
 	panicIfErr(err)
 

@@ -20,7 +20,7 @@ type BaseFileUseCase interface {
 	MustValidateTemporaryFilePaths(paths []string)
 	MustCopyFromTmpToMain(ctx context.Context, tmpPath string, mainPath string)
 	MustUploadFileToTemporary(ctx context.Context, entityName string, fileHeader *multipart.FileHeader, opt FileUploadTemporaryParams) string
-	MustUploadFileFromTemporaryToMain(ctx context.Context, entityName string, entityId string, destFilename string, tmpPath string, opt FileUploadTemporaryToMainParams) (mainPath string, filename string)
+	MustUploadFileFromTemporaryToMain(ctx context.Context, entityName string, entityId int64, destFilename string, tmpPath string, opt FileUploadTemporaryToMainParams) (mainPath string, filename string)
 	GetMainFilesystem() internalFilesystem.Client
 	GetTmpFilesystem() internalFilesystem.Client
 	PresignedLink(path string, expiry time.Duration) string
@@ -115,10 +115,10 @@ func (u *baseFileUseCase) MustUploadFileToTemporary(ctx context.Context, entityN
 
 // MustUploadFileFromTemporaryToMain moves a file from temporary to permanent storage.
 // Returns (mainPath, filename).
-func (u *baseFileUseCase) MustUploadFileFromTemporaryToMain(ctx context.Context, entityName string, entityId string, destFilename string, tmpPath string, opt FileUploadTemporaryToMainParams) (string, string) {
+func (u *baseFileUseCase) MustUploadFileFromTemporaryToMain(ctx context.Context, entityName string, entityId int64, destFilename string, tmpPath string, opt FileUploadTemporaryToMainParams) (string, string) {
 	u.MustValidateTemporaryFilePaths([]string{tmpPath})
 
-	mainPath := fmt.Sprintf("%s/%s/%s", entityName, entityId, destFilename)
+	mainPath := fmt.Sprintf("%s/%d/%s", entityName, entityId, destFilename)
 
 	r, err := u.tmpFilesystem.Open(tmpPath)
 	panicIfErr(err)

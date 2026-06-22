@@ -66,27 +66,42 @@ type RedisConfig struct {
 	DB       int    `yaml:"db"`
 }
 
+type NotificationConfig struct {
+	Enabled     bool   `yaml:"enabled"`
+	QueueName   string `yaml:"queue_name"`
+	DLQName     string `yaml:"dlq_name"`
+	WorkerCount int    `yaml:"worker_count"`
+	MaxRetries  int    `yaml:"max_retries"`
+	RetryBaseMs int    `yaml:"retry_base_ms"`
+}
+
+type FirebaseConfig struct {
+	ServiceAccountPath string `yaml:"service_account_path"`
+}
+
 type YamlConfig struct {
 	timeLocation       *time.Location
 	BaseDir            string
 	StorageDir         string
-	AppName            string           `yaml:"app_name"`
-	Environment        string           `yaml:"environment"`
-	IsDebug            bool             `yaml:"debug"`
-	LogChannel         []string         `yaml:"log_channel"`
-	Timezone           string           `yaml:"timezone"`
-	Port               uint             `yaml:"port"`
-	Uri                string           `yaml:"uri"`
-	FeUri              string           `yaml:"fe_uri"`
-	CorsAllowedOrigins []string         `yaml:"cors_allowed_origins"`
-	Mysql              MysqlConfig      `yaml:"mysql"`
-	JwtConfig          JwtConfig        `yaml:"jwt"`
-	SuperAdmin         SuperAdminConfig `yaml:"super_admin"`
-	Filesystem         FilesystemConfig `yaml:"filesystem"`
-	Supabase           *SupabaseConfig  `yaml:"supabase"`
-	Midtrans           *MidtransConfig  `yaml:"midtrans"`
-	Biteship           *BiteshipConfig  `yaml:"biteship"`
-	Redis              RedisConfig      `yaml:"redis"`
+	AppName            string             `yaml:"app_name"`
+	Environment        string             `yaml:"environment"`
+	IsDebug            bool               `yaml:"debug"`
+	LogChannel         []string           `yaml:"log_channel"`
+	Timezone           string             `yaml:"timezone"`
+	Port               uint               `yaml:"port"`
+	Uri                string             `yaml:"uri"`
+	FeUri              string             `yaml:"fe_uri"`
+	CorsAllowedOrigins []string           `yaml:"cors_allowed_origins"`
+	Mysql              MysqlConfig        `yaml:"mysql"`
+	JwtConfig          JwtConfig          `yaml:"jwt"`
+	SuperAdmin         SuperAdminConfig   `yaml:"super_admin"`
+	Filesystem         FilesystemConfig   `yaml:"filesystem"`
+	Supabase           *SupabaseConfig    `yaml:"supabase"`
+	Midtrans           *MidtransConfig    `yaml:"midtrans"`
+	Biteship           *BiteshipConfig    `yaml:"biteship"`
+	Redis              RedisConfig        `yaml:"redis"`
+	Notification       NotificationConfig `yaml:"notification"`
+	Firebase           *FirebaseConfig    `yaml:"firebase"`
 }
 
 var config YamlConfig
@@ -136,6 +151,21 @@ func LoadConfig() error {
 	}
 	if config.JwtConfig.RefreshTokenExpiryHours == 0 {
 		config.JwtConfig.RefreshTokenExpiryHours = 168
+	}
+	if config.Notification.QueueName == "" {
+		config.Notification.QueueName = "notif_queue:auction_events"
+	}
+	if config.Notification.DLQName == "" {
+		config.Notification.DLQName = "notif_queue:auction_events:dlq"
+	}
+	if config.Notification.WorkerCount == 0 {
+		config.Notification.WorkerCount = 5
+	}
+	if config.Notification.MaxRetries == 0 {
+		config.Notification.MaxRetries = 3
+	}
+	if config.Notification.RetryBaseMs == 0 {
+		config.Notification.RetryBaseMs = 500
 	}
 
 	return nil

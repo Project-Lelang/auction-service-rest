@@ -15,6 +15,7 @@ type UseCaseManager interface {
 	ShipmentUseCase() ShipmentUseCase
 	UserAddressUseCase() UserAddressUseCase
 	BiteshipUseCase() BiteshipUseCase
+	NotificationUseCase() NotificationUseCase
 }
 
 type useCaseManager struct {
@@ -32,6 +33,7 @@ type useCaseManager struct {
 	shipmentUseCase          ShipmentUseCase
 	userAddressUseCase       UserAddressUseCase
 	biteshipUseCase          BiteshipUseCase
+	notificationUseCase      NotificationUseCase
 }
 
 func NewUseCaseManager(
@@ -49,6 +51,7 @@ func NewUseCaseManager(
 	shipmentUseCase ShipmentUseCase,
 	userAddressUseCase UserAddressUseCase,
 	biteshipUseCase BiteshipUseCase,
+	notificationUseCase NotificationUseCase,
 ) UseCaseManager {
 	return &useCaseManager{
 		authUseCase:              authUseCase,
@@ -65,6 +68,7 @@ func NewUseCaseManager(
 		shipmentUseCase:          shipmentUseCase,
 		userAddressUseCase:       userAddressUseCase,
 		biteshipUseCase:          biteshipUseCase,
+		notificationUseCase:      notificationUseCase,
 	}
 }
 
@@ -122,4 +126,8 @@ func (u *useCaseManager) UserAddressUseCase() UserAddressUseCase {
 
 func (u *useCaseManager) BiteshipUseCase() BiteshipUseCase {
 	return u.biteshipUseCase
+}
+
+func (u *useCaseManager) NotificationUseCase() NotificationUseCase {
+	return u.notificationUseCase
 }

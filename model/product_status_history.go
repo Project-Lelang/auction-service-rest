@@ -3,8 +3,8 @@ package model
 const ProductStatusHistoryTableName = "product_status_histories"
 
 type ProductStatusHistory struct {
-	Id        string  `db:"id"`
-	ProductId string  `db:"product_id"`
+	Id        int64   `db:"id"`
+	ProductId int64   `db:"product_id"`
 	Status    string  `db:"status"`
 	Message   *string `db:"message"`
 	Timestamp

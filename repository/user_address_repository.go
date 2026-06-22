@@ -17,17 +17,17 @@ type UserAddressRepository interface {
 	Insert(ctx context.Context, address *model.UserAddress) error
 
 	// read
-	GetById(ctx context.Context, id string) (*model.UserAddress, error)
-	GetDefaultByUserId(ctx context.Context, userId string) (*model.UserAddress, error)
+	GetById(ctx context.Context, id int64) (*model.UserAddress, error)
+	GetDefaultByUserId(ctx context.Context, userId int64) (*model.UserAddress, error)
 	Fetch(ctx context.Context, options ...model.UserAddressQueryOption) ([]model.UserAddress, error)
 	Count(ctx context.Context, options ...model.UserAddressQueryOption) (int, error)
 
 	// update
 	Update(ctx context.Context, address *model.UserAddress) (*model.UserAddress, error)
-	UnsetDefaultByUserId(ctx context.Context, userId string) error
+	UnsetDefaultByUserId(ctx context.Context, userId int64) error
 
 	// delete
-	Delete(ctx context.Context, id string) error
+	Delete(ctx context.Context, id int64) error
 }
 
 type userAddressRepository struct {
@@ -77,7 +77,7 @@ func (r *userAddressRepository) Insert(ctx context.Context, address *model.UserA
 	return defaultInsert(r.db, ctx, address)
 }
 
-func (r *userAddressRepository) GetById(ctx context.Context, id string) (*model.UserAddress, error) {
+func (r *userAddressRepository) GetById(ctx context.Context, id int64) (*model.UserAddress, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("id"): id}).
@@ -85,7 +85,7 @@ func (r *userAddressRepository) GetById(ctx context.Context, id string) (*model.
 	return r.getInternal(ctx, stmt)
 }
 
-func (r *userAddressRepository) GetDefaultByUserId(ctx context.Context, userId string) (*model.UserAddress, error) {
+func (r *userAddressRepository) GetDefaultByUserId(ctx context.Context, userId int64) (*model.UserAddress, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("user_id"): userId, r.f("is_default"): true}).
@@ -126,7 +126,7 @@ func (r *userAddressRepository) Update(ctx context.Context, address *model.UserA
 	return r.GetById(ctx, address.Id)
 }
 
-func (r *userAddressRepository) UnsetDefaultByUserId(ctx context.Context, userId string) error {
+func (r *userAddressRepository) UnsetDefaultByUserId(ctx context.Context, userId int64) error {
 	now := util.CurrentDateTime()
 	return update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
@@ -137,6 +137,6 @@ func (r *userAddressRepository) UnsetDefaultByUserId(ctx context.Context, userId
 	)
 }
 
-func (r *userAddressRepository) Delete(ctx context.Context, id string) error {
+func (r *userAddressRepository) Delete(ctx context.Context, id int64) error {
 	return destroy(r.db, ctx, r.tableName(), squirrel.Eq{"id": id})
 }

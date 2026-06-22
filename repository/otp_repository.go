@@ -28,10 +28,11 @@ func NewOtpRepository(db infrastructure.DBTX) OtpRepository {
 func (r *otpRepository) Upsert(ctx context.Context, phone, otpVal string, expiresAt data_type.DateTime) error {
 	now := util.CurrentDateTime()
 	stmt := stmtBuilder.Insert(model.OtpTableName).
-		Columns("id", "phone", "otp", "expires_at", "verified", "created_at", "updated_at").
-		Values(util.NewUuid(), phone, otpVal, expiresAt, false, now, now).
+		Columns("phone", "otp", "expires_at", "verified", "created_at", "updated_at").
+		Values(phone, otpVal, expiresAt, false, now, now).
 		Suffix("ON DUPLICATE KEY UPDATE otp = VALUES(otp), expires_at = VALUES(expires_at), verified = false, updated_at = VALUES(updated_at)")
-	return exec(r.db, ctx, stmt)
+	_, err := exec(r.db, ctx, stmt)
+	return err
 }
 
 func (r *otpRepository) GetByPhone(ctx context.Context, phone string) (*model.Otp, error) {
@@ -52,5 +53,6 @@ func (r *otpRepository) MarkVerified(ctx context.Context, phone string) error {
 		Set("verified", true).
 		Set("updated_at", util.CurrentDateTime()).
 		Where(squirrel.Eq{"phone": phone})
-	return exec(r.db, ctx, stmt)
+	_, err := exec(r.db, ctx, stmt)
+	return err
 }

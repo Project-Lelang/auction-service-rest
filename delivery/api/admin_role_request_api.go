@@ -86,7 +86,7 @@ func (a *AdminRoleRequestApi) ListRoleRequests() gin.HandlerFunc {
 //	@Success	200	{object}	dto_response.Response
 // func (a *AdminRoleRequestApi) GetUserRoles() gin.HandlerFunc {
 // 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
-// 		userId := ctx.getParam("userId")
+// 		userId := ctx.mustGetParamInt64("userId")
 
 // 		// Panggil kembali userUseCase bawaan
 // 		user := a.userUseCase.AdminGet(ctx.context(), userId)
@@ -111,7 +111,7 @@ func (a *AdminRoleRequestApi) ListRoleRequests() gin.HandlerFunc {
 //	@Success	200	{object}	dto_response.Response
 func (a *AdminRoleRequestApi) GetUserRoleRequests() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
-		userId := ctx.getParam("userId")
+		userId := ctx.mustGetParamInt64("userId")
 
 		data := a.roleRequestUseCase.AdminFetchByUserId(ctx.context(), userId)
 		ctx.json(http.StatusOK, dto_response.Response{

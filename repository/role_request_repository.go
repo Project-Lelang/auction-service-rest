@@ -18,7 +18,7 @@ type RoleRequestRepository interface {
 
 	// Read
 	GetById(ctx context.Context, id int64) (*model.RoleRequest, error)
-	GetPendingByUserIdAndRole(ctx context.Context, userId string, role string) (*model.RoleRequest, error)
+	GetPendingByUserIdAndRole(ctx context.Context, userId int64, role string) (*model.RoleRequest, error)
 	Fetch(ctx context.Context, options ...model.RoleRequestQueryOption) ([]model.RoleRequest, error)
 	Count(ctx context.Context, options ...model.RoleRequestQueryOption) (int64, error)
 
@@ -104,7 +104,7 @@ func (r *roleRequestRepository) GetById(ctx context.Context, id int64) (*model.R
 	return r.getInternal(ctx, stmt)
 }
 
-func (r *roleRequestRepository) GetPendingByUserIdAndRole(ctx context.Context, userId string, role string) (*model.RoleRequest, error) {
+func (r *roleRequestRepository) GetPendingByUserIdAndRole(ctx context.Context, userId int64, role string) (*model.RoleRequest, error) {
 	stmt := stmtBuilder.
 		Select(r.f("*")).
 		From(r.fromTable()).
@@ -127,7 +127,7 @@ func (r *roleRequestRepository) Fetch(ctx context.Context, options ...model.Role
 
 	type roleRequestRow struct {
 		model.RoleRequest
-		UserIdJoin                  string  `db:"user_id_join"`
+		UserIdJoin                  int64   `db:"user_id_join"`
 		UserFullname                string  `db:"user_fullname"`
 		UserPhone                   string  `db:"user_phone"`
 		UserNik                     *string `db:"user_nik"`

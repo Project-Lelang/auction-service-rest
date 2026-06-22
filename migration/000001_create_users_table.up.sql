@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS users (
-    id                          CHAR(36)        NOT NULL PRIMARY KEY,
+    id                          BIGINT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
     fullname                    VARCHAR(255)    NOT NULL,
     phone                       VARCHAR(20)     NOT NULL UNIQUE,
     nik                         VARCHAR(50)     DEFAULT NULL,

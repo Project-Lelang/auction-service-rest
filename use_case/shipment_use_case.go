@@ -36,7 +36,7 @@ func NewShipmentUseCase(repositoryManager repository.RepositoryManager, biteship
 	}
 }
 
-func (u *shipmentUseCase) mustGetAuctionShipment(ctx context.Context, auctionId string, shipmentId string) (model.Auction, model.Shipment) {
+func (u *shipmentUseCase) mustGetAuctionShipment(ctx context.Context, auctionId int64, shipmentId int64) (model.Auction, model.Shipment) {
 	auction := mustGetAuction(ctx, u.repositoryManager, auctionId)
 	shipment := mustGetShipment(ctx, u.repositoryManager, shipmentId)
 

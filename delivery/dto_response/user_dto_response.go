@@ -9,7 +9,7 @@ import (
 
 // UserResponse is a single user in list endpoints.
 type UserResponse struct {
-	Id                      string             `json:"id"                          example:"550e8400-e29b-41d4-a716-446655440000"`
+	Id                      int64              `json:"id"                          example:"1"`
 	Fullname                string             `json:"fullname"                    example:"John Doe"`
 	Phone                   string             `json:"phone"                       example:"+6281234567890"`
 	Nik                     *string            `json:"nik,omitempty"`
@@ -27,9 +27,9 @@ type UserResponse struct {
 
 // UserRoleResponse is a single user role in responses.
 type UserRoleResponse struct {
-	Id     string `json:"id"      example:"550e8400-e29b-41d4-a716-446655440000"`
+	Id     int64  `json:"id"      example:"1"`
 	Role   string `json:"role"    example:"ADMIN"`
-	UserId string `json:"user_id" example:"550e8400-e29b-41d4-a716-446655440001"`
+	UserId int64  `json:"user_id" example:"2"`
 	Timestamp
 } // @name UserRoleResponse
 

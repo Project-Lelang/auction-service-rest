@@ -1,7 +1,9 @@
 package infrastructure
 
 import (
+	"context"
 	"fmt"
+	"log"
 
 	"auction-service/global"
 
@@ -18,6 +20,8 @@ type infrastructureManager struct {
 	midtransClient        MidtransClient
 	biteshipClient        BiteshipClient
 	taskQueueClient       TaskQueueClient
+	notificationQueue     NotificationQueueClient
+	pushClient            PushClient
 	loggerStack           LoggerStack
 }
 
@@ -35,12 +39,20 @@ func NewInfrastructureManager(configuration global.YamlConfig) InfrastructureMan
 		biteshipClient = NewBiteshipClient(configuration.Biteship.ApiKey)
 	}
 
+	pushClient, err := NewFirebasePushClient(context.Background(), configuration.Firebase)
+	if err != nil {
+		log.Printf("[notification worker] firebase disabled: %v", err)
+		pushClient = NewNoopPushClient()
+	}
+
 	return &infrastructureManager{
 		sqlDB:                 sqlDB,
 		supabaseStorageClient: supabaseClient,
 		midtransClient:        midtransClient,
 		biteshipClient:        biteshipClient,
 		taskQueueClient:       NewTaskQueueClient(configuration.Redis),
+		notificationQueue:     NewNotificationQueueClient(configuration.Redis, configuration.Notification),
+		pushClient:            pushClient,
 		loggerStack:           NewLoggerStack(configuration.LogChannel),
 	}
 }
@@ -63,6 +75,14 @@ func (i *infrastructureManager) GetBiteshipClient() BiteshipClient {
 
 func (i *infrastructureManager) GetTaskQueueClient() TaskQueueClient {
 	return i.taskQueueClient
+}
+
+func (i *infrastructureManager) GetNotificationQueueClient() NotificationQueueClient {
+	return i.notificationQueue
+}
+
+func (i *infrastructureManager) GetPushClient() PushClient {
+	return i.pushClient
 }
 
 func (i *infrastructureManager) migrationDSN() string {
@@ -124,6 +144,9 @@ func (i *infrastructureManager) GetLoggerStack() LoggerStack {
 func (i *infrastructureManager) Close() error {
 	if i.taskQueueClient != nil {
 		_ = i.taskQueueClient.Close()
+	}
+	if i.notificationQueue != nil {
+		_ = i.notificationQueue.Close()
 	}
 	return i.CloseDB()
 }

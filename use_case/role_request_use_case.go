@@ -21,7 +21,7 @@ import (
 type RoleRequestUseCase interface {
 	OwnCreate(ctx context.Context, request dto_request.OwnRoleRequestCreateRequest) model.RoleRequest
 	AdminFetch(ctx context.Context, req dto_request.RoleRequestFetchRequest) ([]model.RoleRequest, int64)
-	AdminFetchByUserId(ctx context.Context, userId string) []model.RoleRequest
+	AdminFetchByUserId(ctx context.Context, userId int64) []model.RoleRequest
 	Approve(ctx context.Context, id int64)
 	Reject(ctx context.Context, id int64, req dto_request.RoleRequestRejectRequest)
 	UserReRequest(ctx context.Context, id int64) model.RoleRequest
@@ -88,8 +88,8 @@ func (u *roleRequestUseCase) OwnCreate(ctx context.Context, request dto_request.
 
 			u.MustValidateTemporaryFilePaths([]string{identityPath, selfiePath})
 
-			identityMainPath := fmt.Sprintf("user/%s/identity%s", user.Id, path.Ext(identityPath))
-			selfieMainPath := fmt.Sprintf("user/%s/selfie_identity%s", user.Id, path.Ext(selfiePath))
+			identityMainPath := fmt.Sprintf("user/%d/identity%s", user.Id, path.Ext(identityPath))
+			selfieMainPath := fmt.Sprintf("user/%d/selfie_identity%s", user.Id, path.Ext(selfiePath))
 
 			u.MustCopyFromTmpToMain(ctx, identityPath, identityMainPath)
 			u.MustCopyFromTmpToMain(ctx, selfiePath, selfieMainPath)
@@ -186,7 +186,7 @@ func (u *roleRequestUseCase) AdminFetch(ctx context.Context, req dto_request.Rol
 }
 
 // AdminFetchByUserId dipanggil Admin untuk memeriksa riwayat pengajuan dari 1 user spesifik
-func (u *roleRequestUseCase) AdminFetchByUserId(ctx context.Context, userId string) []model.RoleRequest {
+func (u *roleRequestUseCase) AdminFetchByUserId(ctx context.Context, userId int64) []model.RoleRequest {
 	res, err := u.repositoryManager.RoleRequestRepository().Fetch(ctx, model.RoleRequestQueryOption{
 		UserId: &userId,
 	})
@@ -207,7 +207,6 @@ func (u *roleRequestUseCase) Approve(ctx context.Context, id int64) {
 
 		// 2. Daftarkan berkas role baru ke tabel user_roles
 		userRole := &model.UserRole{
-			Id:     util.NewUuid(),
 			UserId: req.UserId,
 			Role:   req.Role,
 		}

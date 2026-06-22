@@ -5,8 +5,8 @@ import "auction-service/data_type"
 const AuctionTableName = "auctions"
 
 type Auction struct {
-	Id            string             `db:"id"`
-	ProductId     string             `db:"product_id"`
+	Id            int64              `db:"id"`
+	ProductId     int64              `db:"product_id"`
 	StartingPrice float64            `db:"starting_price"`
 	StartTime     data_type.DateTime `db:"start_time"`
 	EndTime       data_type.DateTime `db:"end_time"`
@@ -40,7 +40,7 @@ func (a *Auction) ToMap() map[string]interface{} {
 type AuctionQueryOption struct {
 	QueryOption
 
-	UserId *string
+	UserId *int64
 	Status *string
 }
 

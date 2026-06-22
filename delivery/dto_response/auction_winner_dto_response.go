@@ -8,9 +8,9 @@ import (
 
 // AuctionWinnerResponse represents a single auction winner in API responses.
 type AuctionWinnerResponse struct {
-	Id           string              `json:"id"             example:"550e8400-e29b-41d4-a716-446655440000"`
-	AuctionId    string              `json:"auction_id"     example:"550e8400-e29b-41d4-a716-446655440001"`
-	AuctionBidId *string             `json:"auction_bid_id" example:"550e8400-e29b-41d4-a716-446655440002"`
+	Id           int64               `json:"id"             example:"1"`
+	AuctionId    int64               `json:"auction_id"     example:"2"`
+	AuctionBidId *int64              `json:"auction_bid_id" example:"3"`
 	Status       string              `json:"status"         example:"WAITING_FOR_PAYMENT"`
 	Auction      *AuctionResponse    `json:"auction,omitempty"`
 	AuctionBid   *AuctionBidResponse `json:"auction_bid,omitempty"`

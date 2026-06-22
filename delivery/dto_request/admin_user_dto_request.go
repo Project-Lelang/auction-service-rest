@@ -34,18 +34,18 @@ type AdminUserCreateRequest struct {
 type AdminUserRoleCreateRequest struct {
 	Role string `json:"role" validate:"required,oneof=SUPERADMIN ADMIN BIDDER SELLER" example:"ADMIN"`
 
-	UserId string `json:"-" swaggerignore:"true"`
+	UserId int64 `json:"-" swaggerignore:"true"`
 } // @name AdminUserRoleRequest
 
 type AdminUserGetRequest struct {
-	UserId string `json:"-" swaggerignore:"true"`
+	UserId int64 `json:"-" swaggerignore:"true"`
 } // @name AdminUserGetRequest
 
 type AdminUserDeleteRequest struct {
-	UserId string `json:"-" swaggerignore:"true"`
+	UserId int64 `json:"-" swaggerignore:"true"`
 } // @name AdminUserDeleteRequest
 
 type AdminUserRoleDeleteRequest struct {
-	UserId string `json:"-" swaggerignore:"true"`
+	UserId int64  `json:"-" swaggerignore:"true"`
 	Role   string `json:"-" swaggerignore:"true"`
 } // @name AdminUserRoleDeleteRequest

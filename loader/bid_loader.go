@@ -13,8 +13,8 @@ type BidLoader struct {
 	loader dataloader.Loader
 }
 
-func (l *BidLoader) load(id string) (*model.AuctionBid, error) {
-	thunk := l.loader.Load(context.TODO(), dataloader.StringKey(id))
+func (l *BidLoader) load(id int64) (*model.AuctionBid, error) {
+	thunk := l.loader.Load(context.TODO(), int64Key(id))
 	result, err := thunk()
 	if err != nil {
 		return nil, err
@@ -38,9 +38,9 @@ func (l *BidLoader) WinnerFn(winner *model.AuctionWinner) func() error {
 
 func NewBidLoader(bidRepository repository.AuctionBidRepository) *BidLoader {
 	batchFn := func(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
-		ids := make([]string, len(keys))
+		ids := make([]int64, len(keys))
 		for idx, k := range keys {
-			ids[idx] = k.String()
+			ids[idx] = parseInt64Key(k)
 		}
 
 		bids, err := bidRepository.FetchByIds(ctx, ids)
@@ -48,7 +48,7 @@ func NewBidLoader(bidRepository repository.AuctionBidRepository) *BidLoader {
 			panic(err)
 		}
 
-		bidById := map[string]model.AuctionBid{}
+		bidById := map[int64]model.AuctionBid{}
 		for _, b := range bids {
 			bidById[b.Id] = b
 		}
@@ -56,7 +56,7 @@ func NewBidLoader(bidRepository repository.AuctionBidRepository) *BidLoader {
 		results := make([]*dataloader.Result, len(keys))
 		for idx, k := range keys {
 			var bid *model.AuctionBid
-			if v, ok := bidById[k.String()]; ok {
+			if v, ok := bidById[parseInt64Key(k)]; ok {
 				bid = &v
 			}
 			results[idx] = &dataloader.Result{Data: bid, Error: nil}

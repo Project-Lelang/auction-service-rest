@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"strconv"
 	"time"
 
 	"auction-service/constant"
@@ -23,11 +24,11 @@ type PaymentUseCase interface {
 	HandleMidtransNotification(ctx context.Context, notification infrastructure.MidtransNotification)
 	// HandlePaymentExpiry is the safety-net task handler called by the asynq worker
 	// when a payment's expired_at window elapses without a Midtrans webhook.
-	HandlePaymentExpiry(ctx context.Context, paymentId string) error
+	HandlePaymentExpiry(ctx context.Context, paymentId int64) error
 	// CreateInitialPaymentForWinner creates the first payment after an auction closes.
 	// Called by the asynq close-auction handler after HandleCloseAuction succeeds.
 	// Idempotent: no-op if the winner already has a WAITING_FOR_PAYMENT record.
-	CreateInitialPaymentForWinner(ctx context.Context, auctionId string) error
+	CreateInitialPaymentForWinner(ctx context.Context, auctionId int64) error
 	// RecoverExpiredPayments is called on startup to process any payments that are
 	// still WAITING_FOR_PAYMENT but whose expired_at has already passed.
 	RecoverExpiredPayments(ctx context.Context) error
@@ -40,7 +41,7 @@ type paymentUseCase struct {
 	taskQueue         TaskQueue
 }
 
-func NewPaymentUseCase(repositoryManager repository.RepositoryManager, midtransClient infrastructure.MidtransClient, taskQueue TaskQueue, biteshipClient infrastructure.BiteshipClient) PaymentUseCase {
+func NewPaymentUseCase(repositoryManager repository.RepositoryManager, midtransClient infrastructure.MidtransClient, taskQueue TaskQueue, biteshipClient infrastructure.BiteshipClient, _ NotificationPublisher) PaymentUseCase {
 	return &paymentUseCase{
 		repositoryManager: repositoryManager,
 		midtransClient:    midtransClient,
@@ -118,19 +119,17 @@ func (u *paymentUseCase) createPaymentForWinner(
 	bid model.AuctionBid,
 	buyer model.User,
 ) (*model.Payment, error) {
-	paymentId := util.NewUuid()
 	amount := bid.Amount + auction.Fee
 
 	expiredAt := util.CurrentDateTime().Add(24 * time.Hour)
 
 	// Attach the Midtrans payment method if it exists in the DB.
-	var methodId *string
+	var methodId *int64
 	if pm, err := u.repositoryManager.PaymentMethodRepository().GetByCode(ctx, constant.PaymentMethodCodeMidtrans); err == nil && pm != nil {
 		methodId = &pm.Id
 	}
 
 	payment := model.Payment{
-		Id:              paymentId,
 		AuctionId:       auction.Id,
 		UserId:          buyer.Id,
 		PaymentMethodId: methodId,
@@ -144,6 +143,7 @@ func (u *paymentUseCase) createPaymentForWinner(
 	}
 
 	if u.midtransClient != nil {
+		paymentId := strconv.FormatInt(payment.Id, 10)
 		snapReq := infrastructure.MidtransSnapRequest{
 			TransactionDetails: infrastructure.MidtransTransactionDetails{
 				OrderId:     paymentId,
@@ -162,7 +162,7 @@ func (u *paymentUseCase) createPaymentForWinner(
 
 		snapResp, err := u.midtransClient.CreateSnapTransaction(snapReq)
 		if err == nil && snapResp != nil {
-			_, _ = u.repositoryManager.PaymentRepository().UpdateSnapInfo(ctx, paymentId, snapResp.RedirectUrl, snapResp.Token)
+			_, _ = u.repositoryManager.PaymentRepository().UpdateSnapInfo(ctx, payment.Id, snapResp.RedirectUrl, snapResp.Token)
 			payment.SnapUrl = &snapResp.RedirectUrl
 			payment.SnapToken = &snapResp.Token
 		}
@@ -171,7 +171,7 @@ func (u *paymentUseCase) createPaymentForWinner(
 	// Enqueue safety-net expiry task (fires 5 minutes after expired_at in case
 	// the Midtrans expire webhook is delayed or never arrives).
 	if u.taskQueue != nil {
-		_ = u.taskQueue.EnqueuePaymentExpiry(paymentId, expiredAt.Add(5*time.Minute).Time())
+		_ = u.taskQueue.EnqueuePaymentExpiry(payment.Id, expiredAt.Add(5*time.Minute).Time())
 	}
 
 	_ = winner
@@ -180,7 +180,11 @@ func (u *paymentUseCase) createPaymentForWinner(
 
 // HandleMidtransNotification processes an incoming Midtrans webhook notification.
 func (u *paymentUseCase) HandleMidtransNotification(ctx context.Context, notification infrastructure.MidtransNotification) {
-	payment, err := u.repositoryManager.PaymentRepository().GetById(ctx, notification.OrderId)
+	paymentId, parseErr := strconv.ParseInt(notification.OrderId, 10, 64)
+	if parseErr != nil {
+		return
+	}
+	payment, err := u.repositoryManager.PaymentRepository().GetById(ctx, paymentId)
 	if err != nil {
 		// Unknown order – ignore
 		return
@@ -246,8 +250,8 @@ func (u *paymentUseCase) onPaymentCompleted(ctx context.Context, payment model.P
 	}
 
 	// Resolve buyer's and seller's default addresses (best-effort, may be nil)
-	var buyerAddressId *string
-	var sellerAddressId *string
+	var buyerAddressId *int64
+	var sellerAddressId *int64
 	var buyerSnapshotStr *string
 	var sellerSnapshotStr *string
 
@@ -279,7 +283,6 @@ func (u *paymentUseCase) onPaymentCompleted(ctx context.Context, payment model.P
 
 	// Create shipment for the winning bid
 	shipment := model.Shipment{
-		Id:                    util.NewUuid(),
 		AuctionBidId:          *winner.AuctionBidId,
 		UserId:                payment.UserId,
 		BuyerAddressId:        buyerAddressId,
@@ -348,7 +351,7 @@ func (u *paymentUseCase) onPaymentExpired(ctx context.Context, payment model.Pay
 // HandlePaymentExpiry is the safety-net asynq task handler.  It fires
 // 5 minutes after the payment's expired_at to ensure the expired-payment flow
 // runs even when the Midtrans expire webhook is not delivered.
-func (u *paymentUseCase) HandlePaymentExpiry(ctx context.Context, paymentId string) error {
+func (u *paymentUseCase) HandlePaymentExpiry(ctx context.Context, paymentId int64) error {
 	payment, err := u.repositoryManager.PaymentRepository().GetById(ctx, paymentId)
 	if err != nil {
 		return err
@@ -378,9 +381,9 @@ func (u *paymentUseCase) RecoverExpiredPayments(ctx context.Context) error {
 		return err
 	}
 	for _, p := range payments {
-		log.Printf("[startup] recovering expired payment %s", p.Id)
+		log.Printf("[startup] recovering expired payment %d", p.Id)
 		if err := u.HandlePaymentExpiry(ctx, p.Id); err != nil {
-			log.Printf("[startup] recover expired payment %s failed: %v", p.Id, err)
+			log.Printf("[startup] recover expired payment %d failed: %v", p.Id, err)
 		}
 	}
 	return nil
@@ -389,7 +392,7 @@ func (u *paymentUseCase) RecoverExpiredPayments(ctx context.Context) error {
 // CreateInitialPaymentForWinner creates the first WAITING_FOR_PAYMENT record
 // after an auction closes.  Must be called after HandleCloseAuction succeeds.
 // It is idempotent: if the winner already has a payment it returns nil.
-func (u *paymentUseCase) CreateInitialPaymentForWinner(ctx context.Context, auctionId string) error {
+func (u *paymentUseCase) CreateInitialPaymentForWinner(ctx context.Context, auctionId int64) error {
 	auction, err := u.repositoryManager.AuctionRepository().GetById(ctx, auctionId)
 	if err != nil {
 		return err

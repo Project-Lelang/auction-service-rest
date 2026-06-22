@@ -11,9 +11,9 @@ import (
 
 type UserRoleRepository interface {
 	Insert(ctx context.Context, userRole *model.UserRole) error
-	Delete(ctx context.Context, userId string, role string) error
-	GetByUserIdAndRole(ctx context.Context, userId string, role string) (*model.UserRole, error)
-	FetchByUserIds(ctx context.Context, userIds []string) ([]model.UserRole, error)
+	Delete(ctx context.Context, userId int64, role string) error
+	GetByUserIdAndRole(ctx context.Context, userId int64, role string) (*model.UserRole, error)
+	FetchByUserIds(ctx context.Context, userIds []int64) ([]model.UserRole, error)
 }
 
 type userRoleRepository struct {
@@ -28,7 +28,7 @@ func (r *userRoleRepository) Insert(ctx context.Context, userRole *model.UserRol
 	return defaultInsert(r.db, ctx, userRole)
 }
 
-func (r *userRoleRepository) FetchByUserIds(ctx context.Context, userIds []string) ([]model.UserRole, error) {
+func (r *userRoleRepository) FetchByUserIds(ctx context.Context, userIds []int64) ([]model.UserRole, error) {
 	if len(userIds) == 0 {
 		return []model.UserRole{}, nil
 	}
@@ -43,13 +43,14 @@ func (r *userRoleRepository) FetchByUserIds(ctx context.Context, userIds []strin
 	return roles, nil
 }
 
-func (r *userRoleRepository) Delete(ctx context.Context, userId string, role string) error {
+func (r *userRoleRepository) Delete(ctx context.Context, userId int64, role string) error {
 	stmt := stmtBuilder.Delete(model.UserRoleTableName).
 		Where(squirrel.Eq{"user_id": userId, "role": role})
-	return exec(r.db, ctx, stmt)
+	_, err := exec(r.db, ctx, stmt)
+	return err
 }
 
-func (r *userRoleRepository) GetByUserIdAndRole(ctx context.Context, userId string, role string) (*model.UserRole, error) {
+func (r *userRoleRepository) GetByUserIdAndRole(ctx context.Context, userId int64, role string) (*model.UserRole, error) {
 	stmt := stmtBuilder.Select("*").
 		From(model.UserRoleTableName).
 		Where(squirrel.Eq{"user_id": userId, "role": role}).

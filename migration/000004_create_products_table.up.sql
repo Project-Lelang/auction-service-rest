@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS products (
-    id              CHAR(36)        NOT NULL PRIMARY KEY,
-    user_id         CHAR(36)        NOT NULL,
+    id              BIGINT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    user_id         BIGINT          NOT NULL,
     name            VARCHAR(255)    NOT NULL,
     description     TEXT            NULL,
     `condition`     VARCHAR(20)     NOT NULL DEFAULT 'NEW',

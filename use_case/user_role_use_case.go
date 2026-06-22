@@ -8,7 +8,6 @@ import (
 	"auction-service/delivery/dto_response"
 	"auction-service/model"
 	"auction-service/repository"
-	"auction-service/util"
 )
 
 type UserRoleUseCase interface {
@@ -33,7 +32,6 @@ func (u *userRoleUseCase) AdminCreate(ctx context.Context, request dto_request.A
 	mustGetUser(ctx, u.repositoryManager, request.UserId)
 
 	if err := u.repositoryManager.UserRoleRepository().Insert(ctx, &model.UserRole{
-		Id:     util.NewUuid(),
 		UserId: request.UserId,
 		Role:   request.Role,
 	}); err != nil {

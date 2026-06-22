@@ -112,7 +112,7 @@ func (r *withdrawalRequestRepository) Fetch(ctx context.Context, options ...mode
 
 	type withdrawalRequestRow struct {
 		model.WithdrawalRequest
-		UserIdJoin            string  `db:"user_id_join"`
+		UserIdJoin            int64   `db:"user_id_join"`
 		UserFullname          string  `db:"user_fullname"`
 		UserPhone             string  `db:"user_phone"`
 		UserBankName          *string `db:"user_bank_name"`

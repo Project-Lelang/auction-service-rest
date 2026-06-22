@@ -12,7 +12,7 @@ import (
 
 type PaymentMethodRepository interface {
 	Insert(ctx context.Context, pm *model.PaymentMethod) error
-	GetById(ctx context.Context, id string) (*model.PaymentMethod, error)
+	GetById(ctx context.Context, id int64) (*model.PaymentMethod, error)
 	Fetch(ctx context.Context, options ...model.PaymentMethodQueryOption) ([]model.PaymentMethod, error)
 	Update(ctx context.Context, pm *model.PaymentMethod) (*model.PaymentMethod, error)
 	Count(ctx context.Context, options ...model.PaymentMethodQueryOption) (int64, error)
@@ -69,7 +69,7 @@ func (r *paymentMethodRepository) Insert(ctx context.Context, pm *model.PaymentM
 	return defaultInsert(r.db, ctx, pm)
 }
 
-func (r *paymentMethodRepository) GetById(ctx context.Context, id string) (*model.PaymentMethod, error) {
+func (r *paymentMethodRepository) GetById(ctx context.Context, id int64) (*model.PaymentMethod, error) {
 	stmt := stmtBuilder.Select("*").From(r.tableName()).Where(squirrel.Eq{"id": id}).Limit(1)
 	res := model.PaymentMethod{}
 	if err := get(r.db, ctx, &res, stmt); err != nil {

@@ -17,3 +17,9 @@ type AuthRegisterRequest struct {
 	Password string  `json:"password" validate:"required,min=8,max=255" example:"password123"`
 	Otp      string  `json:"otp" validate:"required,len=6" example:"123456"`
 } // @name AuthRegisterRequest
+
+type AuthFcmTokenRequest struct {
+	FcmToken string `json:"fcm_token" validate:"required" example:"fcm_token_123"`
+
+	UserId int64 `json:"-"           swaggerignore:"true"`
+} // @name AuthFcmTokenRequest

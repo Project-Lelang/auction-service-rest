@@ -14,8 +14,8 @@ type UserLoader struct {
 	loader dataloader.Loader
 }
 
-func (l *UserLoader) load(id string) (*model.User, error) {
-	thunk := l.loader.Load(context.TODO(), dataloader.StringKey(id))
+func (l *UserLoader) load(id int64) (*model.User, error) {
+	thunk := l.loader.Load(context.TODO(), int64Key(id))
 	result, err := thunk()
 	if err != nil {
 		return nil, err
@@ -36,9 +36,9 @@ func (l *UserLoader) ProductFn(product *model.Product) func() error {
 
 func NewUserLoader(userRepository repository.UserRepository) *UserLoader {
 	batchFn := func(ctx context.Context, keys dataloader.Keys) []*dataloader.Result {
-		ids := make([]string, len(keys))
+		ids := make([]int64, len(keys))
 		for idx, k := range keys {
-			ids[idx] = k.String()
+			ids[idx] = parseInt64Key(k)
 		}
 
 		users, err := userRepository.FetchByIds(ctx, ids)
@@ -46,7 +46,7 @@ func NewUserLoader(userRepository repository.UserRepository) *UserLoader {
 			panic(err)
 		}
 
-		userById := map[string]model.User{}
+		userById := map[int64]model.User{}
 		for _, user := range users {
 			userById[user.Id] = user
 		}
@@ -54,7 +54,7 @@ func NewUserLoader(userRepository repository.UserRepository) *UserLoader {
 		results := make([]*dataloader.Result, len(keys))
 		for idx, k := range keys {
 			var user *model.User
-			if v, ok := userById[k.String()]; ok {
+			if v, ok := userById[parseInt64Key(k)]; ok {
 				user = &v
 			}
 			result := &dataloader.Result{Data: user, Error: nil}

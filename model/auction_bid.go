@@ -3,9 +3,9 @@ package model
 const AuctionBidTableName = "auction_bids"
 
 type AuctionBid struct {
-	Id        string  `db:"id"`
-	UserId    string  `db:"user_id"`
-	AuctionId string  `db:"auction_id"`
+	Id        int64   `db:"id"`
+	UserId    int64   `db:"user_id"`
+	AuctionId int64   `db:"auction_id"`
 	Amount    float64 `db:"amount"`
 	Timestamp
 
@@ -32,8 +32,8 @@ func (b *AuctionBid) ToMap() map[string]interface{} {
 type AuctionBidQueryOption struct {
 	QueryOption
 
-	UserId    *string
-	AuctionId *string
+	UserId    *int64
+	AuctionId *int64
 }
 
 var _ PrepareOption = &AuctionBidQueryOption{}

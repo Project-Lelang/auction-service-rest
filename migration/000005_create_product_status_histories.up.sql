@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS product_status_histories (
-    id          CHAR(36) NOT NULL PRIMARY KEY,
-    product_id  CHAR(36) NOT NULL,
+    id          BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    product_id  BIGINT NOT NULL,
     status      VARCHAR(50)         NOT NULL,
     message     TEXT        NULL,
     created_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -113,7 +113,7 @@ func (a *AdminUserApi) Fetch() gin.HandlerFunc {
 func (a *AdminUserApi) Get() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
 		var request dto_request.AdminUserGetRequest
-		request.UserId = ctx.getParam("userId")
+		request.UserId = ctx.mustGetParamInt64("userId")
 
 		user := a.userUseCase.AdminGet(ctx.context(), request)
 
@@ -137,7 +137,7 @@ func (a *AdminUserApi) Get() gin.HandlerFunc {
 func (a *AdminUserApi) Delete() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
 		var request dto_request.AdminUserDeleteRequest
-		request.UserId = ctx.getParam("userId")
+		request.UserId = ctx.mustGetParamInt64("userId")
 
 		a.userUseCase.AdminDelete(ctx.context(), request)
 		ctx.json(http.StatusOK, dto_response.SuccessResponse{Message: "Success"})

@@ -92,7 +92,7 @@ func (a *AdminPaymentMethodApi) ListPaymentMethods() gin.HandlerFunc {
 //	@Success	200	{object}	dto_response.Response
 func (a *AdminPaymentMethodApi) GetPaymentMethodById() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
-		id := ctx.getParam("id")
+		id := ctx.mustGetParamInt64("id")
 
 		data := a.paymentMethodUseCase.GetById(ctx.context(), id)
 		ctx.json(http.StatusOK, dto_response.Response{
@@ -115,7 +115,7 @@ func (a *AdminPaymentMethodApi) GetPaymentMethodById() gin.HandlerFunc {
 //	@Success	200	{object}	dto_response.Response
 func (a *AdminPaymentMethodApi) UpdatePaymentMethod() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
-		id := ctx.getParam("id")
+		id := ctx.mustGetParamInt64("id")
 
 		var request dto_request.PaymentMethodUpdateRequest
 		ctx.mustBind(&request)

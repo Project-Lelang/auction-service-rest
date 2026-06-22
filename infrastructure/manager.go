@@ -34,6 +34,10 @@ type InfrastructureManager interface {
 	// task queue
 	GetTaskQueueClient() TaskQueueClient
 
+	// notifications
+	GetNotificationQueueClient() NotificationQueueClient
+	GetPushClient() PushClient
+
 	// logger
 	GetLoggerStack() LoggerStack
 

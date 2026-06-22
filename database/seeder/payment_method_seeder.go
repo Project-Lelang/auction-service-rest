@@ -10,7 +10,6 @@ import (
 	"auction-service/infrastructure"
 	"auction-service/model"
 	"auction-service/repository"
-	"auction-service/util"
 )
 
 // SeedPaymentMethods inserts the default Midtrans payment method if it does not
@@ -31,7 +30,6 @@ func SeedPaymentMethods(db infrastructure.DBTX) error {
 	}
 
 	pm := &model.PaymentMethod{
-		Id:       util.NewUuid(),
 		Code:     constant.PaymentMethodCodeMidtrans,
 		Type:     constant.PaymentMethodTypeMidtrans,
 		Name:     "Midtrans",
@@ -42,6 +40,6 @@ func SeedPaymentMethods(db infrastructure.DBTX) error {
 		return err
 	}
 
-	log.Printf("Midtrans payment method seeded with id=%s", pm.Id)
+	log.Printf("Midtrans payment method seeded with id=%d", pm.Id)
 	return nil
 }

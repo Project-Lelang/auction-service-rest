@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS auction_winners (
-    id             CHAR(36)                                                   NOT NULL,
-    auction_id     CHAR(36)                                                   NOT NULL,
-    auction_bid_id CHAR(36)                                                   NULL,
+    id             BIGINT                                                     NOT NULL AUTO_INCREMENT,
+    auction_id     BIGINT                                                     NOT NULL,
+    auction_bid_id BIGINT                                                     NULL,
     status         VARCHAR(50)                                                NOT NULL DEFAULT 'WAITING_FOR_PAYMENT',
     created_at     DATETIME                                                   NOT NULL,
     updated_at     DATETIME                                                   NOT NULL,

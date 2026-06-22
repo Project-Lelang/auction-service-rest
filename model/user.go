@@ -5,7 +5,7 @@ import "auction-service/data_type"
 const UserTableName = "users"
 
 type User struct {
-	Id                      string             `db:"id"`
+	Id                      int64              `db:"id"`
 	Fullname                string             `db:"fullname"`
 	Phone                   string             `db:"phone"`
 	Nik                     *string            `db:"nik"`

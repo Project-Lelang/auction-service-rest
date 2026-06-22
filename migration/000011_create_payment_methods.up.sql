@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS payment_methods (
-    id         CHAR(36)                                             NOT NULL,
+    id         BIGINT                                               NOT NULL AUTO_INCREMENT,
     code       VARCHAR(50)                                          NOT NULL,
     type       VARCHAR(50)                                          NOT NULL,
     name       VARCHAR(100)                                         NOT NULL,

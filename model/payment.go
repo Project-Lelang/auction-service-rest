@@ -5,10 +5,10 @@ import "auction-service/data_type"
 const PaymentTableName = "payments"
 
 type Payment struct {
-	Id              string                 `db:"id"`
-	AuctionId       string                 `db:"auction_id"`
-	UserId          string                 `db:"user_id"`
-	PaymentMethodId *string                `db:"payment_method_id"`
+	Id              int64                  `db:"id"`
+	AuctionId       int64                  `db:"auction_id"`
+	UserId          int64                  `db:"user_id"`
+	PaymentMethodId *int64                 `db:"payment_method_id"`
 	Amount          float64                `db:"amount"`
 	Status          string                 `db:"status"`
 	SnapUrl         *string                `db:"snap_url"`
@@ -43,8 +43,8 @@ func (p *Payment) ToMap() map[string]interface{} {
 type PaymentQueryOption struct {
 	QueryOption
 
-	AuctionId *string
-	UserId    *string
+	AuctionId *int64
+	UserId    *int64
 	Status    *string
 }
 

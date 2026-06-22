@@ -8,8 +8,8 @@ import (
 
 // UserAddressResponse represents a single user address in API responses.
 type UserAddressResponse struct {
-	Id             string `json:"id"                    example:"550e8400-e29b-41d4-a716-446655440000"`
-	UserId         string `json:"user_id"               example:"550e8400-e29b-41d4-a716-446655440001"`
+	Id             int64  `json:"id"                    example:"1"`
+	UserId         int64  `json:"user_id"               example:"2"`
 	Label          string `json:"label"                 example:"Rumah"`
 	RecipientName  string `json:"recipient_name"        example:"John Doe"`
 	Phone          string `json:"phone"                 example:"08123456789"`

@@ -23,9 +23,10 @@ type AuthUseCase interface {
 	Login(ctx context.Context, request dto_request.AuthLoginRequest) string
 	AdminLogin(ctx context.Context, request dto_request.AdminAuthLoginRequest) string
 	Register(ctx context.Context, request dto_request.AuthRegisterRequest)
+	SaveFcmToken(ctx context.Context, request dto_request.AuthFcmTokenRequest)
 	CreateOtp(ctx context.Context, phone string)
 	// Middleware helper
-	Parse(token string) (*model.UserClaims, error)
+	Parse(ctx context.Context, token string) (*model.UserClaims, error)
 }
 
 type authUseCase struct {
@@ -125,7 +126,6 @@ func (u *authUseCase) Register(ctx context.Context, request dto_request.AuthRegi
 	}
 
 	user := &model.User{
-		Id:       util.NewUuid(),
 		Fullname: request.Fullname,
 		Phone:    request.Phone,
 		Birth:    data_type.NewDateTime(birth),
@@ -167,7 +167,7 @@ func (u *authUseCase) CreateOtp(ctx context.Context, phone string) {
 	// For development, the OTP is accessible via GET /v1/auth/debug-otp (not exposed in production)
 }
 
-func (u *authUseCase) Parse(token string) (*model.UserClaims, error) {
+func (u *authUseCase) Parse(ctx context.Context, token string) (*model.UserClaims, error) {
 	payload, err := u.jwt.Parse(token)
 	if err != nil {
 		return nil, constant.ErrNotAuthenticated
@@ -177,9 +177,44 @@ func (u *authUseCase) Parse(token string) (*model.UserClaims, error) {
 		return nil, constant.ErrNotAuthenticated
 	}
 
+	user, err := u.repositoryManager.UserRepository().GetById(ctx, payload.Id)
+	if err != nil {
+		if err == constant.ErrNoData {
+			return nil, constant.ErrNotAuthenticated
+		}
+		return nil, err
+	}
+
+	userRoles, err := u.repositoryManager.UserRoleRepository().FetchByUserIds(ctx, []int64{payload.Id})
+	if err != nil {
+		return nil, err
+	}
+
+	roles := make([]string, 0, len(userRoles))
+	for _, userRole := range userRoles {
+		roles = append(roles, userRole.Role)
+	}
+
 	return &model.UserClaims{
-		UserId: payload.Id,
-		Phone:  payload.Phone,
-		Roles:  payload.Roles,
+		UserId: user.Id,
+		Phone:  user.Phone,
+		Roles:  roles,
 	}, nil
+}
+
+func (u *authUseCase) SaveFcmToken(ctx context.Context, request dto_request.AuthFcmTokenRequest) {
+	userClaims := model.MustGetUserCtx(ctx)
+	// insert fcm token, take device info too
+	userFcmToken := &model.UserFcmToken{
+		UserId:   userClaims.UserId,
+		FcmToken: request.FcmToken,
+	}
+
+	if err := u.repositoryManager.UserFcmTokenRepository().Insert(ctx, userFcmToken); err != nil {
+		if err == constant.ErrDuplicateData {
+			// Token already exists — silently succeed
+			return
+		}
+		panic(err)
+	}
 }

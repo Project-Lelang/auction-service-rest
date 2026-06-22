@@ -11,7 +11,7 @@ import (
 var ErrInvalidToken = errors.New("invalid token")
 
 type customClaims struct {
-	Id    string   `json:"id"`
+	Id    int64    `json:"id"`
 	Phone string   `json:"phone"`
 	Roles []string `json:"roles"`
 	jwtLib.RegisteredClaims

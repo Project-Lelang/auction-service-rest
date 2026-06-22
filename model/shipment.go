@@ -34,11 +34,11 @@ type ShipmentCostEstimate struct {
 }
 
 type Shipment struct {
-	Id                     string                 `db:"id"`
-	AuctionBidId           string                 `db:"auction_bid_id"`
-	UserId                 string                 `db:"user_id"`
-	BuyerAddressId         *string                `db:"buyer_address_id"`
-	SellerAddressId        *string                `db:"seller_address_id"`
+	Id                     int64                  `db:"id"`
+	AuctionBidId           int64                  `db:"auction_bid_id"`
+	UserId                 int64                  `db:"user_id"`
+	BuyerAddressId         *int64                 `db:"buyer_address_id"`
+	SellerAddressId        *int64                 `db:"seller_address_id"`
 	BuyerAddressSnapshot   *string                `db:"buyer_address_snapshot"`  // JSON
 	SellerAddressSnapshot  *string                `db:"seller_address_snapshot"` // JSON
 	ServiceCode            *string                `db:"service_code"`
@@ -119,8 +119,8 @@ func (s *Shipment) ParseSellerAddressSnapshot() *ShipmentAddressSnapshot {
 type ShipmentQueryOption struct {
 	QueryOption
 
-	AuctionBidId *string
-	UserId       *string
+	AuctionBidId *int64
+	UserId       *int64
 }
 
 var _ PrepareOption = &ShipmentQueryOption{}

@@ -96,7 +96,7 @@ func (a *AdminWithdrawalRequestApi) CompleteWithdrawalRequest() gin.HandlerFunc 
 
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
 
-		userId := ctx.getParam("userId")
+		userId := ctx.mustGetParamInt64("userId")
 
 		withdrawalRequestId, _ := strconv.ParseInt(
 			ctx.getParam("withdrawalRequestId"),

@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS payments (
-    id                CHAR(36)                                                             NOT NULL,
-    auction_id        CHAR(36)                                                             NOT NULL,
-    user_id           CHAR(36)                                                             NOT NULL,
-    payment_method_id CHAR(36)                                                             NULL,
+    id                BIGINT                                                               NOT NULL AUTO_INCREMENT,
+    auction_id        BIGINT                                                               NOT NULL,
+    user_id           BIGINT                                                               NOT NULL,
+    payment_method_id BIGINT                                                               NULL,
     amount            DECIMAL(15,2)                                                        NOT NULL,
     status            VARCHAR(50)                                                          NOT NULL DEFAULT 'WAITING_FOR_PAYMENT',
     snap_url          VARCHAR(500)                                                         NULL,

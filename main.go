@@ -19,21 +19,23 @@ import (
 	"auction-service/global"
 	"auction-service/infrastructure"
 	"auction-service/manager"
+	"auction-service/use_case"
 
 	"github.com/hibiken/asynq"
 )
 
-//	@title						Auction Service API
-//	@version					1.0.0
-//	@description				Auction Service REST API
-//	@host						localhost:8080
-//	@BasePath					/
-//	@securityDefinitions.apikey	BearerAuth
-//	@in							header
-//	@name						Authorization
-//	@description				Type "Bearer" followed by a space and JWT token.
+// @title						Auction Service API
+// @version					1.0.0
+// @description				Auction Service REST API
+// @host						localhost:8080
+// @BasePath					/
+// @securityDefinitions.apikey	BearerAuth
+// @in							header
+// @name						Authorization
+// @description				Type "Bearer" followed by a space and JWT token.
 func main() {
 	container := manager.NewContainer()
+	notificationCtx, stopNotificationWorker := context.WithCancel(context.Background())
 
 	// Cleanup orphaned tmp files older than 1 hour every 30 minutes
 	go func() {
@@ -89,13 +91,30 @@ func main() {
 		log.Fatalf("asynq worker start error: %v", err)
 	}
 
+	if global.GetConfig().Notification.Enabled {
+		notificationCfg := global.GetConfig().Notification
+		notificationWorker := use_case.NewNotificationWorker(
+			use_case.NotificationWorkerConfig{
+				WorkerCount: notificationCfg.WorkerCount,
+				MaxRetries:  notificationCfg.MaxRetries,
+				RetryBase:   time.Duration(notificationCfg.RetryBaseMs) * time.Millisecond,
+			},
+			container.InfrastructureManager().GetNotificationQueueClient(),
+			container.InfrastructureManager().GetPushClient(),
+			container.RepositoryManager(),
+			container.InfrastructureManager().GetLoggerStack(),
+		)
+		notificationWorker.Start(notificationCtx)
+		log.Printf("notification worker started with %d worker(s)", notificationCfg.WorkerCount)
+	}
+
 	// Re-enqueue tasks for any SCHEDULED/ON_GOING auctions that lost their
 	// Redis tasks during a restart. Overdue ON_GOING auctions are closed
 	// directly; returns IDs that need payment initialisation.
 	startupClosedIds := container.UseCaseManager().AuctionUseCase().EnqueueScheduledTasks(context.Background())
 	for _, auctionId := range startupClosedIds {
 		if err := container.UseCaseManager().PaymentUseCase().CreateInitialPaymentForWinner(context.Background(), auctionId); err != nil {
-			log.Printf("[startup] CreateInitialPaymentForWinner for %s failed: %v", auctionId, err)
+			log.Printf("[startup] CreateInitialPaymentForWinner for %d failed: %v", auctionId, err)
 		}
 	}
 
@@ -121,6 +140,7 @@ func main() {
 	<-quit
 
 	log.Println("shutting down server...")
+	stopNotificationWorker()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

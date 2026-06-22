@@ -83,7 +83,6 @@ func (u *userUseCase) AdminCreate(ctx context.Context, request dto_request.Admin
 	}
 
 	user := &model.User{
-		Id:       util.NewUuid(),
 		Fullname: request.Fullname,
 		Phone:    request.Phone,
 		Birth:    data_type.NewDateTime(birth),
@@ -96,7 +95,6 @@ func (u *userUseCase) AdminCreate(ctx context.Context, request dto_request.Admin
 			return err
 		}
 		return u.repositoryManager.UserRoleRepository().Insert(ctx, &model.UserRole{
-			Id:     util.NewUuid(),
 			UserId: user.Id,
 			Role:   constant.RoleAdmin,
 		})

@@ -17,16 +17,16 @@ type ShipmentRepository interface {
 	Insert(ctx context.Context, shipment *model.Shipment) error
 
 	// read
-	GetById(ctx context.Context, id string) (*model.Shipment, error)
-	GetByAuctionBidId(ctx context.Context, auctionBidId string) (*model.Shipment, error)
+	GetById(ctx context.Context, id int64) (*model.Shipment, error)
+	GetByAuctionBidId(ctx context.Context, auctionBidId int64) (*model.Shipment, error)
 	Fetch(ctx context.Context, options ...model.ShipmentQueryOption) ([]model.Shipment, error)
 
 	// update
-	UpdateShipped(ctx context.Context, id string, trackingNumber string, courierCode string, serviceCode string, shippingCost float64, biteshipOrderId string) (*model.Shipment, error)
-	UpdateReceived(ctx context.Context, id string, deliveryProofImagePath string) (*model.Shipment, error)
-	UpdateBuyerAddress(ctx context.Context, id string, buyerAddressId string, snapshot string) (*model.Shipment, error)
-	UpdateSellerAddress(ctx context.Context, id string, sellerAddressId string, snapshot string) (*model.Shipment, error)
-	UpdateEstimatedCosts(ctx context.Context, id string, estimatedCosts string) (*model.Shipment, error)
+	UpdateShipped(ctx context.Context, id int64, trackingNumber string, courierCode string, serviceCode string, shippingCost float64, biteshipOrderId string) (*model.Shipment, error)
+	UpdateReceived(ctx context.Context, id int64, deliveryProofImagePath string) (*model.Shipment, error)
+	UpdateBuyerAddress(ctx context.Context, id int64, buyerAddressId int64, snapshot string) (*model.Shipment, error)
+	UpdateSellerAddress(ctx context.Context, id int64, sellerAddressId int64, snapshot string) (*model.Shipment, error)
+	UpdateEstimatedCosts(ctx context.Context, id int64, estimatedCosts string) (*model.Shipment, error)
 }
 
 type shipmentRepository struct {
@@ -79,7 +79,7 @@ func (r *shipmentRepository) Insert(ctx context.Context, shipment *model.Shipmen
 	return defaultInsert(r.db, ctx, shipment)
 }
 
-func (r *shipmentRepository) GetById(ctx context.Context, id string) (*model.Shipment, error) {
+func (r *shipmentRepository) GetById(ctx context.Context, id int64) (*model.Shipment, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("id"): id}).
@@ -87,7 +87,7 @@ func (r *shipmentRepository) GetById(ctx context.Context, id string) (*model.Shi
 	return r.getInternal(ctx, stmt)
 }
 
-func (r *shipmentRepository) GetByAuctionBidId(ctx context.Context, auctionBidId string) (*model.Shipment, error) {
+func (r *shipmentRepository) GetByAuctionBidId(ctx context.Context, auctionBidId int64) (*model.Shipment, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("auction_bid_id"): auctionBidId}).
@@ -105,7 +105,7 @@ func (r *shipmentRepository) Fetch(ctx context.Context, options ...model.Shipmen
 	return r.fetchInternal(ctx, stmt)
 }
 
-func (r *shipmentRepository) UpdateShipped(ctx context.Context, id string, trackingNumber string, courierCode string, serviceCode string, shippingCost float64, biteshipOrderId string) (*model.Shipment, error) {
+func (r *shipmentRepository) UpdateShipped(ctx context.Context, id int64, trackingNumber string, courierCode string, serviceCode string, shippingCost float64, biteshipOrderId string) (*model.Shipment, error) {
 	now := util.CurrentDateTime()
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
@@ -124,7 +124,7 @@ func (r *shipmentRepository) UpdateShipped(ctx context.Context, id string, track
 	return r.GetById(ctx, id)
 }
 
-func (r *shipmentRepository) UpdateReceived(ctx context.Context, id string, deliveryProofImagePath string) (*model.Shipment, error) {
+func (r *shipmentRepository) UpdateReceived(ctx context.Context, id int64, deliveryProofImagePath string) (*model.Shipment, error) {
 	now := util.CurrentDateTime()
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
@@ -139,7 +139,7 @@ func (r *shipmentRepository) UpdateReceived(ctx context.Context, id string, deli
 	return r.GetById(ctx, id)
 }
 
-func (r *shipmentRepository) UpdateBuyerAddress(ctx context.Context, id string, buyerAddressId string, snapshot string) (*model.Shipment, error) {
+func (r *shipmentRepository) UpdateBuyerAddress(ctx context.Context, id int64, buyerAddressId int64, snapshot string) (*model.Shipment, error) {
 	now := util.CurrentDateTime()
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
@@ -154,7 +154,7 @@ func (r *shipmentRepository) UpdateBuyerAddress(ctx context.Context, id string, 
 	return r.GetById(ctx, id)
 }
 
-func (r *shipmentRepository) UpdateSellerAddress(ctx context.Context, id string, sellerAddressId string, snapshot string) (*model.Shipment, error) {
+func (r *shipmentRepository) UpdateSellerAddress(ctx context.Context, id int64, sellerAddressId int64, snapshot string) (*model.Shipment, error) {
 	now := util.CurrentDateTime()
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
@@ -169,7 +169,7 @@ func (r *shipmentRepository) UpdateSellerAddress(ctx context.Context, id string,
 	return r.GetById(ctx, id)
 }
 
-func (r *shipmentRepository) UpdateEstimatedCosts(ctx context.Context, id string, estimatedCosts string) (*model.Shipment, error) {
+func (r *shipmentRepository) UpdateEstimatedCosts(ctx context.Context, id int64, estimatedCosts string) (*model.Shipment, error) {
 	now := util.CurrentDateTime()
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{

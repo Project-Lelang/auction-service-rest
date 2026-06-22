@@ -3,7 +3,7 @@ package model
 const PaymentMethodTableName = "payment_methods"
 
 type PaymentMethod struct {
-	Id       string `db:"id" json:"id"`
+	Id       int64  `db:"id" json:"id"`
 	Name     string `db:"name" json:"name"`
 	Code     string `db:"code" json:"code"`
 	Type     string `db:"type" json:"type"`
