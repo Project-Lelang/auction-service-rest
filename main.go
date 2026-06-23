@@ -16,6 +16,7 @@ import (
 	_ "auction-service/docs"
 
 	"auction-service/delivery/api"
+	"auction-service/delivery/ws"
 	"auction-service/global"
 	"auction-service/infrastructure"
 	"auction-service/manager"
@@ -34,7 +35,12 @@ import (
 // @name						Authorization
 // @description				Type "Bearer" followed by a space and JWT token.
 func main() {
-	container := manager.NewContainer()
+
+	wsHub := ws.NewHub()
+	go wsHub.Run()
+
+	container := manager.NewContainer(wsHub)
+
 	notificationCtx, stopNotificationWorker := context.WithCancel(context.Background())
 
 	// Cleanup orphaned tmp files older than 1 hour every 30 minutes
@@ -57,7 +63,7 @@ func main() {
 		}
 	}()
 
-	router := api.NewRouter(container)
+	router := api.NewRouter(container, wsHub)
 
 	// ── Auction lifecycle worker (Redis-backed, ~500 ms scheduling precision) ──
 	asynqSrv := infrastructure.NewAsynqServer(global.GetConfig().Redis)
