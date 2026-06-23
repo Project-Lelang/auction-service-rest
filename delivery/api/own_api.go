@@ -110,7 +110,7 @@ func (a *OwnApi) FetchStatusHistories() gin.HandlerFunc {
 //	@Summary	Get the authenticated user's own product by ID
 //	@tags		Own
 //	@Security	BearerAuth
-//	@Param		productId	path	string	true	"Product ID"
+//	@Param		productId	path	int	true	"Product ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{product=dto_response.ProductResponse}}
 func (a *OwnApi) Get() gin.HandlerFunc {
@@ -135,7 +135,7 @@ func (a *OwnApi) Get() gin.HandlerFunc {
 //	@tags		Own
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		productId	path	string								true	"Product ID"
+//	@Param		productId	path	int								true	"Product ID"
 //	@Param		body		body	dto_request.OwnProductUpdateRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{product=dto_response.ProductResponse}}
@@ -161,7 +161,7 @@ func (a *OwnApi) Update() gin.HandlerFunc {
 //	@Summary	Request the authenticated user's own product for review (DRAFT → REQUEST)
 //	@tags		Own
 //	@Security	BearerAuth
-//	@Param		productId	path	string	true	"Product ID"
+//	@Param		productId	path	int	true	"Product ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{product=dto_response.ProductResponse}}
 func (a *OwnApi) Request() gin.HandlerFunc {
@@ -284,7 +284,7 @@ func (a *OwnApi) FetchUserAddresses() gin.HandlerFunc {
 //	@tags		Own
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		userAddressId	path	string									true	"User Address ID"
+//	@Param		userAddressId	path	int									true	"User Address ID"
 //	@Param		body			body	dto_request.UserAddressUpdateRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{user_address=dto_response.UserAddressResponse}}
@@ -310,7 +310,7 @@ func (a *OwnApi) UpdateUserAddress() gin.HandlerFunc {
 //	@Summary	Delete authenticated user's address
 //	@tags		Own
 //	@Security	BearerAuth
-//	@Param		userAddressId	path	string	true	"User Address ID"
+//	@Param		userAddressId	path	int	true	"User Address ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.SuccessResponse}
 func (a *OwnApi) DeleteUserAddress() gin.HandlerFunc {
@@ -375,6 +375,36 @@ func (a *OwnApi) CreateWithdrawalRequest() gin.HandlerFunc {
 	})
 }
 
+// FetchWithdrawalRequests godoc
+//
+//	@Router		/own/withdrawal-requests/filter [post]
+//	@Summary	Get authenticated user's withdrawal request history (paginated)
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		body	body	dto_request.WithdrawalRequestFetchRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.WithdrawalRequestResponse}}
+func (a *OwnApi) FetchWithdrawalRequests() gin.HandlerFunc {
+	return a.Authorize(func(ctx apiContext) {
+		var request dto_request.WithdrawalRequestFetchRequest
+		ctx.mustBind(&request)
+
+		withdrawalRequests, total := a.withdrawalRequestUseCase.OwnFetch(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.NewPaginationResponse(
+				util.ConvertArray(ctx.context(), withdrawalRequests, func(_ context.Context, wr model.WithdrawalRequest) dto_response.WithdrawalRequestResponse {
+					return dto_response.NewWithdrawalRequestResponse(wr)
+				}),
+				int(total),
+				request.Page,
+				request.Limit,
+			),
+		})
+	})
+}
+
 // FetchAuctions godoc
 //
 //	@Router		/own/auctions/filter [post]
@@ -409,7 +439,7 @@ func (a *OwnApi) FetchAuctions() gin.HandlerFunc {
 //	@Summary	Get the authenticated seller's own auction by ID
 //	@tags		Own
 //	@Security	BearerAuth
-//	@Param		auctionId	path	string	true	"Auction ID"
+//	@Param		auctionId	path	int	true	"Auction ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{auction=dto_response.AuctionResponse}}
 func (a *OwnApi) GetAuction() gin.HandlerFunc {
@@ -459,7 +489,7 @@ func (a *OwnApi) CreateAuction() gin.HandlerFunc {
 //	@tags		Own
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		auctionId	path	string								true	"Auction ID"
+//	@Param		auctionId	path	int								true	"Auction ID"
 //	@Param		body		body	dto_request.OwnAuctionUpdateRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{auction=dto_response.AuctionResponse}}
@@ -513,7 +543,7 @@ func (a *OwnApi) FetchBids() gin.HandlerFunc {
 //	@Summary	Get the authenticated user's own bid by ID
 //	@tags		Own
 //	@Security	BearerAuth
-//	@Param		bidId	path	string	true	"Bid ID"
+//	@Param		bidId	path	int	true	"Bid ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{bid=dto_response.AuctionBidResponse}}
 func (a *OwnApi) GetBid() gin.HandlerFunc {
@@ -565,7 +595,7 @@ func (a *OwnApi) FetchPayments() gin.HandlerFunc {
 //	@Summary	Get the authenticated user's own payment by ID
 //	@tags		Own
 //	@Security	BearerAuth
-//	@Param		paymentId	path	string	true	"Payment ID"
+//	@Param		paymentId	path	int	true	"Payment ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{payment=dto_response.PaymentResponse}}
 func (a *OwnApi) GetPayment() gin.HandlerFunc {
@@ -590,7 +620,7 @@ func (a *OwnApi) GetPayment() gin.HandlerFunc {
 //	@tags		Own
 //	@Security	BearerAuth
 //	@Produce	json
-//	@Param		auctionId	path		string	true	"Auction ID"
+//	@Param		auctionId	path		int	true	"Auction ID"
 //	@Success	200			{object}	dto_response.Response{data=dto_response.DataResponse{auction=dto_response.AuctionResponse}}
 func (a *OwnApi) RelistAuction() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleSeller}, func(ctx apiContext) {
@@ -614,7 +644,7 @@ func (a *OwnApi) RelistAuction() gin.HandlerFunc {
 //	@tags		Own
 //	@Security	BearerAuth
 //	@Produce	json
-//	@Param		auctionId	path		string	true	"Auction ID"
+//	@Param		auctionId	path		int	true	"Auction ID"
 //	@Success	200			{object}	dto_response.Response{data=dto_response.DataResponse{auction=dto_response.AuctionResponse}}
 func (a *OwnApi) SecondChanceAuction() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleSeller}, func(ctx apiContext) {
@@ -671,7 +701,7 @@ func (a *OwnApi) FetchNotifications() gin.HandlerFunc {
 //	@Summary	Get authenticated user's notification by ID
 //	@tags		Own
 //	@Security	BearerAuth
-//	@Param		notificationId	path	string	true	"Notification ID"
+//	@Param		notificationId	path	int	true	"Notification ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{notification=dto_response.NotificationResponse}}
 func (a *OwnApi) GetNotification() gin.HandlerFunc {
@@ -696,7 +726,7 @@ func (a *OwnApi) GetNotification() gin.HandlerFunc {
 //	@Summary	Mark authenticated user's notification as read
 //	@tags		Own
 //	@Security	BearerAuth
-//	@Param		notificationId	path	string	true	"Notification ID"
+//	@Param		notificationId	path	int	true	"Notification ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{notification=dto_response.NotificationResponse}}
 func (a *OwnApi) MarkNotificationRead() gin.HandlerFunc {
@@ -745,6 +775,7 @@ func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.Us
 
 	routerGroup.POST("/role-requests", api.CreateRoleRequest())
 	routerGroup.POST("/withdrawal-requests", api.CreateWithdrawalRequest())
+	routerGroup.POST("/withdrawal-requests/filter", api.FetchWithdrawalRequests())
 
 	routerAuctionGroup := routerGroup.Group("/auctions")
 	routerAuctionGroup.POST("/filter", api.FetchAuctions())

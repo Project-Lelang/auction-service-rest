@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"strconv"
 
 	"auction-service/constant"
 	"auction-service/delivery/dto_request"
@@ -81,7 +80,7 @@ func (a *AdminRoleRequestApi) ListRoleRequests() gin.HandlerFunc {
 //	@Summary	Admin — Get active roles of a user
 //	@tags		Admin Role Requests
 //	@Security	BearerAuth
-//	@Param		userId	path	string	true	"User ID"
+//	@Param		userId	path	int	true	"User ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response
 // func (a *AdminRoleRequestApi) GetUserRoles() gin.HandlerFunc {
@@ -106,7 +105,7 @@ func (a *AdminRoleRequestApi) ListRoleRequests() gin.HandlerFunc {
 //	@Summary	Admin — Get role request history of a user
 //	@tags		Admin Role Requests
 //	@Security	BearerAuth
-//	@Param		userId	path	string	true	"User ID (UUID)"
+//	@Param		userId	path	int	true	"User ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response
 func (a *AdminRoleRequestApi) GetUserRoleRequests() gin.HandlerFunc {
@@ -128,13 +127,13 @@ func (a *AdminRoleRequestApi) GetUserRoleRequests() gin.HandlerFunc {
 //	@Summary	Admin — Approve a role request
 //	@tags		Admin Role Requests
 //	@Security	BearerAuth
-//	@Param		userId		path	string	true	"User ID"
+//	@Param		userId		path	int	true	"User ID"
 //	@Param		requestId	path	int		true	"Request ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.SuccessResponse
 func (a *AdminRoleRequestApi) ApproveRoleRequest() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
-		requestId, _ := strconv.ParseInt(ctx.getParam("requestId"), 10, 64)
+		requestId := ctx.mustGetParamInt64("requestId")
 
 		a.roleRequestUseCase.Approve(ctx.context(), requestId)
 		ctx.json(http.StatusOK, dto_response.SuccessResponse{Message: "Success"})
@@ -147,14 +146,14 @@ func (a *AdminRoleRequestApi) ApproveRoleRequest() gin.HandlerFunc {
 //	@Summary	Admin — Reject a role request
 //	@tags		Admin Role Requests
 //	@Security	BearerAuth
-//	@Param		userId		path	string									true	"User ID"
+//	@Param		userId		path	int									true	"User ID"
 //	@Param		requestId	path	int										true	"Request ID"
 //	@Param		body		body	dto_request.RoleRequestRejectRequest	true	"Reject Reason"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.SuccessResponse
 func (a *AdminRoleRequestApi) RejectRoleRequest() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
-		requestId, _ := strconv.ParseInt(ctx.getParam("requestId"), 10, 64)
+		requestId := ctx.mustGetParamInt64("requestId")
 
 		var request dto_request.RoleRequestRejectRequest
 		ctx.mustBind(&request)

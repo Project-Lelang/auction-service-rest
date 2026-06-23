@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"strconv"
 
 	"auction-service/constant"
 	"auction-service/delivery/dto_request"
@@ -88,7 +87,7 @@ func (a *AdminWithdrawalRequestApi) Fetch() gin.HandlerFunc {
 //	@Summary	Admin — Complete withdrawal request
 //	@tags		Admin Withdrawal Requests
 //	@Security	BearerAuth
-//	@Param		userId				path	string	true	"User ID"
+//	@Param		userId				path	int	true	"User ID"
 //	@Param		withdrawalRequestId	path	int		true	"Withdrawal Request ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response
@@ -97,12 +96,7 @@ func (a *AdminWithdrawalRequestApi) CompleteWithdrawalRequest() gin.HandlerFunc 
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
 
 		userId := ctx.mustGetParamInt64("userId")
-
-		withdrawalRequestId, _ := strconv.ParseInt(
-			ctx.getParam("withdrawalRequestId"),
-			10,
-			64,
-		)
+		withdrawalRequestId := ctx.mustGetParamInt64("withdrawalRequestId")
 
 		admin := model.MustGetUserCtx(ctx.context())
 

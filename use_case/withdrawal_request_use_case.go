@@ -17,6 +17,7 @@ import (
 type WithdrawalRequestUseCase interface {
 	// USER
 	OwnCreate(ctx context.Context, request dto_request.OwnWithdrawalRequestCreateRequest) model.WithdrawalRequest
+	OwnFetch(ctx context.Context, req dto_request.WithdrawalRequestFetchRequest) ([]model.WithdrawalRequest, int64)
 
 	// ADMIN
 	AdminFetch(ctx context.Context, req dto_request.WithdrawalRequestFetchRequest) ([]model.WithdrawalRequest, int64)
@@ -125,6 +126,25 @@ func (u *withdrawalRequestUseCase) OwnCreate(ctx context.Context, request dto_re
 	panicIfErr(u.repositoryManager.WithdrawalRequestRepository().Insert(ctx, &withdrawalRequest))
 
 	return withdrawalRequest
+}
+
+// OwnFetch dipanggil user log-in untuk melihat history pengajuan penarikan saldo miliknya sendiri.
+func (u *withdrawalRequestUseCase) OwnFetch(ctx context.Context, req dto_request.WithdrawalRequestFetchRequest) ([]model.WithdrawalRequest, int64) {
+	userClaims := model.MustGetUserCtx(ctx)
+
+	option := model.WithdrawalRequestQueryOption{
+		QueryOption: model.NewQueryOptionWithPagination(req.Page, req.Limit, nil),
+		UserId:      &userClaims.UserId,
+		Status:      req.Status,
+	}
+
+	requests, err := u.repositoryManager.WithdrawalRequestRepository().Fetch(ctx, option)
+	panicIfErr(err)
+
+	total, err := u.repositoryManager.WithdrawalRequestRepository().Count(ctx, option)
+	panicIfErr(err)
+
+	return requests, total
 }
 
 // ------------------------------------------------------------------ admin operations

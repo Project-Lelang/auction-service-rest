@@ -46,7 +46,7 @@ func (a *UserAddressApi) Create() gin.HandlerFunc {
 //	@Summary	Get a specific user address
 //	@tags		UserAddress
 //	@Security	BearerAuth
-//	@Param		userAddressId	path	string	true	"User Address ID"
+//	@Param		userAddressId	path	int	true	"User Address ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{user_address=dto_response.UserAddressResponse}}
 func (a *UserAddressApi) Get() gin.HandlerFunc {
@@ -72,7 +72,7 @@ func (a *UserAddressApi) Get() gin.HandlerFunc {
 //	@tags		UserAddress
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		userAddressId	path	string									true	"User Address ID"
+//	@Param		userAddressId	path	int									true	"User Address ID"
 //	@Param		body			body	dto_request.UserAddressUpdateRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{user_address=dto_response.UserAddressResponse}}
@@ -98,7 +98,7 @@ func (a *UserAddressApi) Update() gin.HandlerFunc {
 //	@Summary	Delete a user address
 //	@tags		UserAddress
 //	@Security	BearerAuth
-//	@Param		userAddressId	path	string	true	"User Address ID"
+//	@Param		userAddressId	path	int	true	"User Address ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.SuccessResponse}
 func (a *UserAddressApi) Delete() gin.HandlerFunc {

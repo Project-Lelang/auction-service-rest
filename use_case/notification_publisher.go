@@ -8,6 +8,8 @@ import (
 
 	"auction-service/infrastructure"
 	"auction-service/internal/notification"
+	"auction-service/model"
+	"auction-service/repository"
 	"auction-service/util"
 )
 
@@ -35,6 +37,19 @@ func publishAuctionNotification(ctx context.Context, publisher NotificationPubli
 
 func auctionURL(auctionId int64) string {
 	return fmt.Sprintf("/auction/%d", auctionId)
+}
+
+func insertUserNotification(ctx context.Context, repositoryManager repository.RepositoryManager, userId int64, title, body, notificationType string, referenceId *int64) {
+	if err := repositoryManager.NotifcationRepository().Insert(ctx, &model.Notification{
+		UserId:      userId,
+		Title:       title,
+		Body:        body,
+		Type:        notificationType,
+		ReferenceId: referenceId,
+		IsRead:      false,
+	}); err != nil {
+		log.Printf("[notification] insert user=%d type=%s failed: %v", userId, notificationType, err)
+	}
 }
 
 var _ NotificationPublisher = infrastructure.NotificationQueueClient(nil)

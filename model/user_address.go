@@ -3,18 +3,20 @@ package model
 const UserAddressTableName = "user_addresses"
 
 type UserAddress struct {
-	Id             int64  `db:"id"`
-	UserId         int64  `db:"user_id"`
-	Label          string `db:"label"`
-	RecipientName  string `db:"recipient_name"`
-	Phone          string `db:"phone"`
-	CityId         string `db:"city_id"`
-	CityName       string `db:"city_name"`
-	ProvinceName   string `db:"province_name"`
-	Address        string `db:"address"`
-	PostalCode     string `db:"postal_code"`
-	BiteshipAreaId string `db:"biteship_area_id"`
-	IsDefault      bool   `db:"is_default"`
+	Id             int64    `db:"id"`
+	UserId         int64    `db:"user_id"`
+	Label          string   `db:"label"`
+	RecipientName  string   `db:"recipient_name"`
+	Phone          string   `db:"phone"`
+	CityId         string   `db:"city_id"`
+	CityName       string   `db:"city_name"`
+	ProvinceName   string   `db:"province_name"`
+	Address        string   `db:"address"`
+	PostalCode     string   `db:"postal_code"`
+	BiteshipAreaId string   `db:"biteship_area_id"`
+	Latitude       *float64 `db:"latitude"`
+	Longitude      *float64 `db:"longitude"`
+	IsDefault      bool     `db:"is_default"`
 	Timestamp
 
 	// relations
@@ -36,6 +38,8 @@ func (a *UserAddress) ToMap() map[string]interface{} {
 		"address":          a.Address,
 		"postal_code":      a.PostalCode,
 		"biteship_area_id": a.BiteshipAreaId,
+		"latitude":         a.Latitude,
+		"longitude":        a.Longitude,
 		"is_default":       a.IsDefault,
 		"created_at":       a.CreatedAt,
 		"updated_at":       a.UpdatedAt,

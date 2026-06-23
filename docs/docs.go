@@ -649,14 +649,14 @@ const docTemplate = `{
                 "summary": "Admin — Approve/Verify a product",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "User ID",
                         "name": "userId",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Product ID",
                         "name": "productId",
                         "in": "path",
@@ -701,14 +701,14 @@ const docTemplate = `{
                 "summary": "Admin — Reject a product with feedback message",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "User ID",
                         "name": "userId",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Product ID",
                         "name": "productId",
                         "in": "path",
@@ -762,8 +762,8 @@ const docTemplate = `{
                 "summary": "Admin — Get role request history of a user",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "User ID (UUID)",
+                        "type": "integer",
+                        "description": "User ID",
                         "name": "userId",
                         "in": "path",
                         "required": true
@@ -795,7 +795,7 @@ const docTemplate = `{
                 "summary": "Admin — Approve a role request",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "User ID",
                         "name": "userId",
                         "in": "path",
@@ -835,7 +835,7 @@ const docTemplate = `{
                 "summary": "Admin — Reject a role request",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "User ID",
                         "name": "userId",
                         "in": "path",
@@ -884,7 +884,7 @@ const docTemplate = `{
                 "summary": "Admin — Complete withdrawal request",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "User ID",
                         "name": "userId",
                         "in": "path",
@@ -1006,6 +1006,66 @@ const docTemplate = `{
                 }
             }
         },
+        "/auctions/on-going/filter": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "List ongoing auctions (paginated, public)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuctionFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/AuctionResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/auctions/{auctionId}": {
             "get": {
                 "produces": [
@@ -1017,7 +1077,7 @@ const docTemplate = `{
                 "summary": "Get a single auction by ID (public)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
@@ -1077,7 +1137,7 @@ const docTemplate = `{
                 "summary": "Place a bid on an active auction (BIDDER only)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
@@ -1146,7 +1206,7 @@ const docTemplate = `{
                 "summary": "Place a bid on an active auction (BIDDER only)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
@@ -1212,14 +1272,14 @@ const docTemplate = `{
                 "summary": "Get a single payment record (authenticated)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Payment ID",
                         "name": "paymentId",
                         "in": "path",
@@ -1279,7 +1339,7 @@ const docTemplate = `{
                 "summary": "List shipments for an auction (authenticated)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
@@ -1348,14 +1408,14 @@ const docTemplate = `{
                 "summary": "Get a single shipment record (authenticated)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Shipment ID",
                         "name": "shipmentId",
                         "in": "path",
@@ -1415,14 +1475,14 @@ const docTemplate = `{
                 "summary": "Update buyer shipping address (BIDDER only, before shipped)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Shipment ID",
                         "name": "shipmentId",
                         "in": "path",
@@ -1491,14 +1551,14 @@ const docTemplate = `{
                 "summary": "Mark a shipment as received with delivery proof (BIDDER only)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Shipment ID",
                         "name": "shipmentId",
                         "in": "path",
@@ -1567,14 +1627,14 @@ const docTemplate = `{
                 "summary": "Update seller sender address (SELLER only, before shipped)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Shipment ID",
                         "name": "shipmentId",
                         "in": "path",
@@ -1643,14 +1703,14 @@ const docTemplate = `{
                 "summary": "Mark a shipment as shipped with a tracking number (SELLER only)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Shipment ID",
                         "name": "shipmentId",
                         "in": "path",
@@ -1716,14 +1776,14 @@ const docTemplate = `{
                 "summary": "Get live tracking info via Komship (BUYER/SELLER only)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Shipment ID",
                         "name": "shipmentId",
                         "in": "path",
@@ -1771,7 +1831,7 @@ const docTemplate = `{
                 "summary": "List winners for an auction (authenticated)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
@@ -1840,14 +1900,14 @@ const docTemplate = `{
                 "summary": "Get a single winner record (authenticated)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Winner ID",
                         "name": "winnerId",
                         "in": "path",
@@ -2240,7 +2300,7 @@ const docTemplate = `{
                 "summary": "Get the authenticated seller's own auction by ID",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
@@ -2298,7 +2358,7 @@ const docTemplate = `{
                 "summary": "Update a scheduled auction (only allowed when SCHEDULED)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
@@ -2364,7 +2424,7 @@ const docTemplate = `{
                 "summary": "Cancel the auction and relist the product after winner did not pay",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
@@ -2421,7 +2481,7 @@ const docTemplate = `{
                 "summary": "Offer the auction to the next-highest bidder after winner did not pay",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Auction ID",
                         "name": "auctionId",
                         "in": "path",
@@ -2543,7 +2603,7 @@ const docTemplate = `{
                 "summary": "Get the authenticated user's own bid by ID",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Bid ID",
                         "name": "bidId",
                         "in": "path",
@@ -2725,7 +2785,7 @@ const docTemplate = `{
                 "summary": "Get authenticated user's notification by ID",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Notification ID",
                         "name": "notificationId",
                         "in": "path",
@@ -2782,7 +2842,7 @@ const docTemplate = `{
                 "summary": "Mark authenticated user's notification as read",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Notification ID",
                         "name": "notificationId",
                         "in": "path",
@@ -2904,7 +2964,7 @@ const docTemplate = `{
                 "summary": "Get the authenticated user's own payment by ID",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Payment ID",
                         "name": "paymentId",
                         "in": "path",
@@ -3088,7 +3148,7 @@ const docTemplate = `{
                 "summary": "Get the authenticated user's own product by ID",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Product ID",
                         "name": "productId",
                         "in": "path",
@@ -3146,7 +3206,7 @@ const docTemplate = `{
                 "summary": "Update the authenticated user's own product (only allowed when DRAFT)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Product ID",
                         "name": "productId",
                         "in": "path",
@@ -3272,7 +3332,7 @@ const docTemplate = `{
                 "summary": "Request the authenticated user's own product for review (DRAFT → REQUEST)",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Product ID",
                         "name": "productId",
                         "in": "path",
@@ -3629,7 +3689,7 @@ const docTemplate = `{
                 "summary": "Update authenticated user's address",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "User Address ID",
                         "name": "userAddressId",
                         "in": "path",
@@ -3693,7 +3753,7 @@ const docTemplate = `{
                 "summary": "Delete authenticated user's address",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "User Address ID",
                         "name": "userAddressId",
                         "in": "path",
@@ -3771,6 +3831,71 @@ const docTemplate = `{
                                                     "properties": {
                                                         "withdrawal_request": {
                                                             "$ref": "#/definitions/WithdrawalRequestResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/withdrawal-requests/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get authenticated user's withdrawal request history (paginated)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto_request.WithdrawalRequestFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/WithdrawalRequestResponse"
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -3865,42 +3990,6 @@ const docTemplate = `{
                                     }
                                 }
                             ]
-                        }
-                    }
-                }
-            }
-        },
-        "/role-requests/{requestId}": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User Role Requests"
-                ],
-                "summary": "User — Re-submit a rejected role request",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Request ID",
-                        "name": "requestId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/Response"
                         }
                     }
                 }
@@ -4009,7 +4098,7 @@ const docTemplate = `{
                 "summary": "Get a specific user address",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "User Address ID",
                         "name": "userAddressId",
                         "in": "path",
@@ -4067,7 +4156,7 @@ const docTemplate = `{
                 "summary": "Update a user address",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "User Address ID",
                         "name": "userAddressId",
                         "in": "path",
@@ -4131,7 +4220,7 @@ const docTemplate = `{
                 "summary": "Delete a user address",
                 "parameters": [
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "User Address ID",
                         "name": "userAddressId",
                         "in": "path",
@@ -5604,6 +5693,18 @@ const docTemplate = `{
                     "maxLength": 100,
                     "example": "Rumah"
                 },
+                "latitude": {
+                    "type": "number",
+                    "maximum": 90,
+                    "minimum": -90,
+                    "example": -6.2
+                },
+                "longitude": {
+                    "type": "number",
+                    "maximum": 180,
+                    "minimum": -180,
+                    "example": 106.8166667
+                },
                 "phone": {
                     "type": "string",
                     "maxLength": 20,
@@ -5702,6 +5803,14 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Rumah"
                 },
+                "latitude": {
+                    "type": "number",
+                    "example": -6.2
+                },
+                "longitude": {
+                    "type": "number",
+                    "example": 106.8166667
+                },
                 "phone": {
                     "type": "string",
                     "example": "08123456789"
@@ -5767,6 +5876,18 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 100,
                     "example": "Rumah"
+                },
+                "latitude": {
+                    "type": "number",
+                    "maximum": 90,
+                    "minimum": -90,
+                    "example": -6.2
+                },
+                "longitude": {
+                    "type": "number",
+                    "maximum": 180,
+                    "minimum": -180,
+                    "example": 106.8166667
                 },
                 "phone": {
                     "type": "string",
@@ -6078,6 +6199,12 @@ const docTemplate = `{
                 },
                 "city_name": {
                     "type": "string"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
                 },
                 "phone": {
                     "type": "string"

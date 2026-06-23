@@ -250,6 +250,20 @@ func (u *productUseCase) AdminReject(ctx context.Context, request dto_request.Ad
 		})
 	}))
 
+	message := "Your product request was rejected."
+	if request.Message != nil && *request.Message != "" {
+		message = *request.Message
+	}
+	insertUserNotification(
+		ctx,
+		u.repositoryManager,
+		product.UserId,
+		"Product request rejected",
+		message,
+		"PRODUCT_REQUEST_REJECTED",
+		&request.ProductId,
+	)
+
 	u.populateImageLinks(updated)
 	return *updated
 }

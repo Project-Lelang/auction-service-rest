@@ -23,8 +23,8 @@ type AdminProductApi struct {
 //	@Summary	Admin — Approve/Verify a product
 //	@tags		Admin Products
 //	@Security	BearerAuth
-//	@Param		userId		path	string	true	"User ID"
-//	@Param		productId	path	string	true	"Product ID"
+//	@Param		userId		path	int	true	"User ID"
+//	@Param		productId	path	int	true	"Product ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.ProductResponse}
 func (a *AdminProductApi) Approve() gin.HandlerFunc {
@@ -48,8 +48,8 @@ func (a *AdminProductApi) Approve() gin.HandlerFunc {
 //	@Summary	Admin — Reject a product with feedback message
 //	@tags		Admin Products
 //	@Security	BearerAuth
-//	@Param		userId		path	string									true	"User ID"
-//	@Param		productId	path	string									true	"Product ID"
+//	@Param		userId		path	int									true	"User ID"
+//	@Param		productId	path	int									true	"Product ID"
 //	@Param		body		body	dto_request.AdminProductRejectRequest	true	"Rejection details"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.ProductResponse}

@@ -69,7 +69,7 @@ func NewContainer() *Container {
 	withdrawalRequestUseCase := use_case.NewWithdrawalRequestUseCase(repoManager)
 	paymentMethodUseCase := use_case.NewPaymentMethodUseCase(repoManager)
 	notificationQueue := infraManager.GetNotificationQueueClient()
-	auctionUseCase := use_case.NewAuctionUseCase(repoManager, infraManager.GetTaskQueueClient(), notificationQueue)
+	auctionUseCase := use_case.NewAuctionUseCase(repoManager, filesystemManager, infraManager.GetTaskQueueClient(), notificationQueue)
 	bidUseCase := use_case.NewBidUseCase(repoManager, notificationQueue)
 	winnerUseCase := use_case.NewWinnerUseCase(repoManager)
 	paymentUseCase := use_case.NewPaymentUseCase(repoManager, infraManager.GetMidtransClient(), infraManager.GetTaskQueueClient(), infraManager.GetBiteshipClient(), notificationQueue)
