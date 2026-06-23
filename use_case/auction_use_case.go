@@ -9,6 +9,7 @@ import (
 	"auction-service/constant"
 	"auction-service/delivery/dto_request"
 	"auction-service/delivery/dto_response"
+	internalFilesystem "auction-service/internal/filesystem"
 	"auction-service/internal/notification"
 	"auction-service/loader"
 	"auction-service/model"
@@ -55,15 +56,39 @@ type AuctionUseCase interface {
 
 type auctionUseCase struct {
 	repositoryManager repository.RepositoryManager
+	filesystemManager internalFilesystem.FilesystemManager
 	taskQueue         TaskQueue
 	notificationQueue NotificationPublisher
 }
 
-func NewAuctionUseCase(repositoryManager repository.RepositoryManager, taskQueue TaskQueue, notificationQueue NotificationPublisher) AuctionUseCase {
+func NewAuctionUseCase(repositoryManager repository.RepositoryManager, filesystemManager internalFilesystem.FilesystemManager, taskQueue TaskQueue, notificationQueue NotificationPublisher) AuctionUseCase {
 	return &auctionUseCase{
 		repositoryManager: repositoryManager,
+		filesystemManager: filesystemManager,
 		taskQueue:         taskQueue,
 		notificationQueue: notificationQueue,
+	}
+}
+
+func (u *auctionUseCase) populateAuctionProductImageLinks(auctions ...*model.Auction) {
+	const presignedExpiry = 24 * time.Hour
+	mainFs := u.filesystemManager.Main()
+
+	for _, auction := range auctions {
+		if auction.Product == nil {
+			continue
+		}
+		product := auction.Product
+		if product.CoverImagePath != nil && *product.CoverImagePath != "" {
+			link := mainFs.PresignedUrl(util.GetFilenameFromPath(*product.CoverImagePath), *product.CoverImagePath, presignedExpiry)
+			product.CoverImageLink = &link
+		}
+
+		imagePaths := model.ParseImagePaths(product.ImagePaths)
+		product.ImageLinks = make([]string, 0, len(imagePaths))
+		for _, p := range imagePaths {
+			product.ImageLinks = append(product.ImageLinks, mainFs.PresignedUrl(util.GetFilenameFromPath(p), p, presignedExpiry))
+		}
 	}
 }
 
@@ -82,6 +107,7 @@ func (u *auctionUseCase) mustLoadAuctionData(_ context.Context, auctions []*mode
 			group.Go(winnerLoader.AuctionFn(auction))
 		}
 	}))
+	u.populateAuctionProductImageLinks(auctions...)
 }
 
 // mustLoadOwnAuctionData loads product, winner, payment, and bids for own auction endpoints
@@ -106,6 +132,7 @@ func (u *auctionUseCase) mustLoadOwnAuctionData(_ context.Context, auctions []*m
 			group.Go(bidsLoader.AuctionFn(auction))
 		}
 	}))
+	u.populateAuctionProductImageLinks(auctions...)
 }
 
 func (u *auctionUseCase) mustGetOwnAuction(ctx context.Context, auctionId int64, userId int64) model.Auction {
@@ -180,6 +207,7 @@ func (u *auctionUseCase) OwnGet(ctx context.Context, request dto_request.OwnAuct
 
 func (u *auctionUseCase) OwnCreate(ctx context.Context, request dto_request.OwnAuctionCreateRequest) model.Auction {
 	userClaims := model.MustGetUserCtx(ctx)
+	productId := request.ProductId.Int64()
 
 	// verify user has SELLER role
 	if !userClaims.HasRole(constant.RoleSeller) {
@@ -197,7 +225,7 @@ func (u *auctionUseCase) OwnCreate(ctx context.Context, request dto_request.OwnA
 	// }
 
 	// load product and verify ownership + status
-	product := mustGetProduct(ctx, u.repositoryManager, request.ProductId)
+	product := mustGetProduct(ctx, u.repositoryManager, productId)
 	if product.UserId != userClaims.UserId {
 		panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
 	}
@@ -206,7 +234,7 @@ func (u *auctionUseCase) OwnCreate(ctx context.Context, request dto_request.OwnA
 	}
 
 	auction := model.Auction{
-		ProductId:     request.ProductId,
+		ProductId:     productId,
 		StartingPrice: request.StartingPrice,
 		StartTime:     request.StartTime,
 		EndTime:       request.EndTime,
@@ -241,6 +269,7 @@ func (u *auctionUseCase) OwnCreate(ctx context.Context, request dto_request.OwnA
 	panicIfErr(err)
 
 	auction.Product = &product
+	u.populateAuctionProductImageLinks(&auction)
 	return auction
 }
 
@@ -275,6 +304,7 @@ func (u *auctionUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnA
 	panicIfErr(err)
 
 	updated.Product = auction.Product
+	u.populateAuctionProductImageLinks(updated)
 
 	// Replace the scheduled start task with the new timing.
 	if err := u.taskQueue.ReplaceAuctionStart(updated.Id, updated.StartTime.Time()); err != nil {
@@ -449,10 +479,15 @@ func (u *auctionUseCase) closeAuction(ctx context.Context, auction model.Auction
 			return err
 		}
 
-		if winner == nil {
+		if winner == nil || winner.AuctionBidId == nil {
 			// No bids — cancel auction and revert product to VERIFIED.
 			if _, err := u.repositoryManager.AuctionRepository().UpdateStatus(ctx, auction.Id, constant.AuctionStatusCancelled); err != nil {
 				return err
+			}
+			if winner != nil {
+				if _, err := u.repositoryManager.AuctionWinnerRepository().UpdateStatus(ctx, winner.Id, constant.AuctionWinnerStatusCancelled); err != nil {
+					return err
+				}
 			}
 			if _, err := u.repositoryManager.ProductRepository().UpdateStatus(ctx, auction.ProductId, constant.ProductStatusVerified); err != nil {
 				return err
@@ -523,6 +558,7 @@ func (u *auctionUseCase) OwnRelist(ctx context.Context, request dto_request.OwnA
 	}))
 
 	auction.Status = constant.AuctionStatusCancelled
+	u.populateAuctionProductImageLinks(&auction)
 	return auction
 }
 
@@ -584,5 +620,6 @@ func (u *auctionUseCase) OwnSecondChance(ctx context.Context, request dto_reques
 	}))
 
 	auction.Status = constant.AuctionStatusWaitingForPayment
+	u.populateAuctionProductImageLinks(&auction)
 	return auction
 }

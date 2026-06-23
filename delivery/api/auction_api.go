@@ -49,12 +49,42 @@ func (a *AuctionApi) FetchAuctions() gin.HandlerFunc {
 	})
 }
 
+// FetchOnGoingAuctions godoc
+//
+//	@Router		/auctions/on-going/filter [post]
+//	@Summary	List ongoing auctions (paginated, public)
+//	@tags		Auction
+//	@Accept		json
+//	@Param		body	body	dto_request.AuctionFetchRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.AuctionResponse}}
+func (a *AuctionApi) FetchOnGoingAuctions() gin.HandlerFunc {
+	return a.Guest(func(ctx apiContext) {
+		var request dto_request.AuctionFetchRequest
+		ctx.mustBind(&request)
+
+		status := constant.AuctionStatusOnGoing
+		request.Status = &status
+
+		auctions, total := a.auctionUseCase.Fetch(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.NewPaginationResponse(
+				util.ConvertArray(ctx.context(), auctions, dto_response.NewAuctionResponse),
+				int(total),
+				request.Page,
+				request.Limit,
+			),
+		})
+	})
+}
+
 // GetAuction godoc
 //
 //	@Router		/auctions/{auctionId} [get]
 //	@Summary	Get a single auction by ID (public)
 //	@tags		Auction
-//	@Param		auctionId	path	string	true	"Auction ID"
+//	@Param		auctionId	path	int	true	"Auction ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{auction=dto_response.AuctionResponse}}
 func (a *AuctionApi) GetAuction() gin.HandlerFunc {
@@ -79,7 +109,7 @@ func (a *AuctionApi) GetAuction() gin.HandlerFunc {
 //	@tags		Auction
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		auctionId	path	string								true	"Auction ID"
+//	@Param		auctionId	path	int								true	"Auction ID"
 //	@Param		body		body	dto_request.AuctionBidCreateRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	201	{object}	dto_response.Response{data=dto_response.DataResponse{bid=dto_response.AuctionBidResponse}}
@@ -106,7 +136,7 @@ func (a *AuctionApi) PlaceBid() gin.HandlerFunc {
 //	@tags		Auction
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		auctionId	path	string								true	"Auction ID"
+//	@Param		auctionId	path	int								true	"Auction ID"
 //	@Param		body		body	dto_request.AuctionBidCreateRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	201	{object}	dto_response.Response{data=dto_response.DataResponse{bid=dto_response.AuctionBidResponse}}
@@ -133,7 +163,7 @@ func (a *AuctionApi) PlaceBidNoLocking() gin.HandlerFunc {
 //	@tags		Auction
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		auctionId	path	string									true	"Auction ID"
+//	@Param		auctionId	path	int									true	"Auction ID"
 //	@Param		body		body	dto_request.AuctionWinnerFetchRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.AuctionWinnerResponse}}
@@ -162,8 +192,8 @@ func (a *AuctionApi) FetchWinners() gin.HandlerFunc {
 //	@Summary	Get a single winner record (authenticated)
 //	@tags		Auction
 //	@Security	BearerAuth
-//	@Param		auctionId	path	string	true	"Auction ID"
-//	@Param		winnerId	path	string	true	"Winner ID"
+//	@Param		auctionId	path	int	true	"Auction ID"
+//	@Param		winnerId	path	int	true	"Winner ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{winner=dto_response.AuctionWinnerResponse}}
 func (a *AuctionApi) GetWinner() gin.HandlerFunc {
@@ -188,8 +218,8 @@ func (a *AuctionApi) GetWinner() gin.HandlerFunc {
 //	@Summary	Get a single payment record (authenticated)
 //	@tags		Auction
 //	@Security	BearerAuth
-//	@Param		auctionId	path	string	true	"Auction ID"
-//	@Param		paymentId	path	string	true	"Payment ID"
+//	@Param		auctionId	path	int	true	"Auction ID"
+//	@Param		paymentId	path	int	true	"Payment ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{payment=dto_response.PaymentResponse}}
 func (a *AuctionApi) GetPayment() gin.HandlerFunc {
@@ -215,7 +245,7 @@ func (a *AuctionApi) GetPayment() gin.HandlerFunc {
 //	@tags		Auction
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		auctionId	path	string									true	"Auction ID"
+//	@Param		auctionId	path	int									true	"Auction ID"
 //	@Param		body		body	dto_request.AuctionShipmentFetchRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{shipments=[]dto_response.ShipmentResponse}}
@@ -241,8 +271,8 @@ func (a *AuctionApi) FetchShipments() gin.HandlerFunc {
 //	@Summary	Get a single shipment record (authenticated)
 //	@tags		Auction
 //	@Security	BearerAuth
-//	@Param		auctionId	path	string	true	"Auction ID"
-//	@Param		shipmentId	path	string	true	"Shipment ID"
+//	@Param		auctionId	path	int	true	"Auction ID"
+//	@Param		shipmentId	path	int	true	"Shipment ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{shipment=dto_response.ShipmentResponse}}
 func (a *AuctionApi) GetShipment() gin.HandlerFunc {
@@ -268,8 +298,8 @@ func (a *AuctionApi) GetShipment() gin.HandlerFunc {
 //	@tags		Auction
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		auctionId	path	string									true	"Auction ID"
-//	@Param		shipmentId	path	string									true	"Shipment ID"
+//	@Param		auctionId	path	int									true	"Auction ID"
+//	@Param		shipmentId	path	int									true	"Shipment ID"
 //	@Param		body		body	dto_request.AuctionShipmentShipRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{shipment=dto_response.ShipmentResponse}}
@@ -297,8 +327,8 @@ func (a *AuctionApi) Ship() gin.HandlerFunc {
 //	@tags		Auction
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		auctionId	path	string											true	"Auction ID"
-//	@Param		shipmentId	path	string											true	"Shipment ID"
+//	@Param		auctionId	path	int											true	"Auction ID"
+//	@Param		shipmentId	path	int											true	"Shipment ID"
 //	@Param		body		body	dto_request.AuctionShipmentUpdateAddressRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{shipment=dto_response.ShipmentResponse}}
@@ -326,8 +356,8 @@ func (a *AuctionApi) UpdateBuyerAddress() gin.HandlerFunc {
 //	@tags		Auction
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		auctionId	path	string											true	"Auction ID"
-//	@Param		shipmentId	path	string											true	"Shipment ID"
+//	@Param		auctionId	path	int											true	"Auction ID"
+//	@Param		shipmentId	path	int											true	"Shipment ID"
 //	@Param		body		body	dto_request.AuctionShipmentUpdateAddressRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{shipment=dto_response.ShipmentResponse}}
@@ -354,8 +384,8 @@ func (a *AuctionApi) UpdateSellerAddress() gin.HandlerFunc {
 //	@Summary	Get live tracking info via Komship (BUYER/SELLER only)
 //	@tags		Auction
 //	@Security	BearerAuth
-//	@Param		auctionId	path	string	true	"Auction ID"
-//	@Param		shipmentId	path	string	true	"Shipment ID"
+//	@Param		auctionId	path	int	true	"Auction ID"
+//	@Param		shipmentId	path	int	true	"Shipment ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=object}
 func (a *AuctionApi) GetTracking() gin.HandlerFunc {
@@ -380,8 +410,8 @@ func (a *AuctionApi) GetTracking() gin.HandlerFunc {
 // @tags		Auction
 // @Security	BearerAuth
 // @Accept		json
-// @Param		auctionId	path	string										true	"Auction ID"
-// @Param		shipmentId	path	string										true	"Shipment ID"
+// @Param		auctionId	path	int										true	"Auction ID"
+// @Param		shipmentId	path	int										true	"Shipment ID"
 // @Param		body		body	dto_request.AuctionShipmentReceiveRequest	true	"Body Request"
 // @Produce	json
 // @Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{shipment=dto_response.ShipmentResponse}}
@@ -435,6 +465,7 @@ func RegisterAuctionApi(router gin.IRouter, baseApi *api, useCaseManager use_cas
 
 	auctionsGroup := router.Group("/auctions")
 	auctionsGroup.POST("/filter", a.FetchAuctions())
+	auctionsGroup.POST("/on-going/filter", a.FetchOnGoingAuctions())
 	auctionsGroup.GET("/:auctionId", a.GetAuction())
 	auctionsGroup.POST("/:auctionId/bids", a.PlaceBid())
 	auctionsGroup.POST("/:auctionId/bids/no-locking", a.PlaceBidNoLocking())

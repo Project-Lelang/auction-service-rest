@@ -417,6 +417,27 @@ func (u *paymentUseCase) CreateInitialPaymentForWinner(ctx context.Context, auct
 		return nil
 	}
 
+	if winner.AuctionBidId == nil {
+		log.Printf("[payment] cancel auction %d: active winner %d has no bid", auctionId, winner.Id)
+		return u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+			if _, err := u.repositoryManager.AuctionRepository().UpdateStatus(ctx, auction.Id, constant.AuctionStatusCancelled); err != nil {
+				return err
+			}
+			if _, err := u.repositoryManager.AuctionWinnerRepository().UpdateStatus(ctx, winner.Id, constant.AuctionWinnerStatusCancelled); err != nil {
+				return err
+			}
+			if _, err := u.repositoryManager.ProductRepository().UpdateStatus(ctx, auction.ProductId, constant.ProductStatusVerified); err != nil {
+				return err
+			}
+			msg := "Auction ended with no bids"
+			return u.repositoryManager.ProductStatusHistoryRepository().Insert(ctx, &model.ProductStatusHistory{
+				ProductId: auction.ProductId,
+				Status:    constant.ProductStatusVerified,
+				Message:   &msg,
+			})
+		})
+	}
+
 	bid, err := u.repositoryManager.AuctionBidRepository().GetById(ctx, *winner.AuctionBidId)
 	if err != nil {
 		return err
@@ -448,6 +469,8 @@ func buildAddressSnapshot(a *model.UserAddress) string {
 		Address:        a.Address,
 		PostalCode:     a.PostalCode,
 		BiteshipAreaId: a.BiteshipAreaId,
+		Latitude:       a.Latitude,
+		Longitude:      a.Longitude,
 	}
 	b, _ := json.Marshal(snap)
 	return string(b)

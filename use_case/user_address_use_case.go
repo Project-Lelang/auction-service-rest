@@ -58,6 +58,8 @@ func (u *userAddressUseCase) OwnCreate(ctx context.Context, request dto_request.
 		Address:        request.Address,
 		PostalCode:     request.PostalCode,
 		BiteshipAreaId: request.BiteshipAreaId,
+		Latitude:       request.Latitude,
+		Longitude:      request.Longitude,
 		IsDefault:      request.IsDefault,
 	}
 	panicIfErr(u.repositoryManager.UserAddressRepository().Insert(ctx, &address))
@@ -106,6 +108,8 @@ func (u *userAddressUseCase) OwnUpdate(ctx context.Context, request dto_request.
 	address.Address = request.Address
 	address.PostalCode = request.PostalCode
 	address.BiteshipAreaId = request.BiteshipAreaId
+	address.Latitude = request.Latitude
+	address.Longitude = request.Longitude
 	address.IsDefault = request.IsDefault
 
 	updated, err := u.repositoryManager.UserAddressRepository().Update(ctx, &address)

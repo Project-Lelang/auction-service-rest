@@ -85,10 +85,10 @@ type OwnAuctionGetRequest struct {
 } // @name OwnAuctionGetRequest
 
 type OwnAuctionCreateRequest struct {
-	ProductId     int64              `json:"product_id"     validate:"required,gt=0" example:"1"`
-	StartingPrice float64            `json:"starting_price" validate:"required,gt=0"  example:"100000"`
-	StartTime     data_type.DateTime `json:"start_time"     validate:"required"        example:"2026-06-01T10:00:00Z"`
-	EndTime       data_type.DateTime `json:"end_time"       validate:"required"        example:"2026-06-01T12:00:00Z"`
+	ProductId     data_type.FlexibleInt64 `json:"product_id"     validate:"required,gt=0" swaggertype:"integer" example:"1"`
+	StartingPrice float64                 `json:"starting_price" validate:"required,gt=0"                       example:"100000"`
+	StartTime     data_type.DateTime      `json:"start_time"     validate:"required"                             example:"2026-06-01T10:00:00Z"`
+	EndTime       data_type.DateTime      `json:"end_time"       validate:"required"                             example:"2026-06-01T12:00:00Z"`
 } // @name OwnAuctionCreateRequest
 
 type OwnAuctionUpdateRequest struct {

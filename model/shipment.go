@@ -11,14 +11,16 @@ const ShipmentTableName = "shipments"
 // ShipmentAddressSnapshot is stored as JSON inside shipments to preserve the
 // address at the time of shipment creation, even if the user later edits it.
 type ShipmentAddressSnapshot struct {
-	RecipientName  string `json:"recipient_name"`
-	Phone          string `json:"phone"`
-	CityId         string `json:"city_id"`
-	CityName       string `json:"city_name"`
-	ProvinceName   string `json:"province_name"`
-	Address        string `json:"address"`
-	PostalCode     string `json:"postal_code"`
-	BiteshipAreaId string `json:"biteship_area_id"`
+	RecipientName  string   `json:"recipient_name"`
+	Phone          string   `json:"phone"`
+	CityId         string   `json:"city_id"`
+	CityName       string   `json:"city_name"`
+	ProvinceName   string   `json:"province_name"`
+	Address        string   `json:"address"`
+	PostalCode     string   `json:"postal_code"`
+	BiteshipAreaId string   `json:"biteship_area_id"`
+	Latitude       *float64 `json:"latitude,omitempty"`
+	Longitude      *float64 `json:"longitude,omitempty"`
 }
 
 // ShipmentCostEstimate represents a single courier/service cost option from
