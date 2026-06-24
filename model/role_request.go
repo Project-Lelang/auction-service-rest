@@ -17,7 +17,7 @@ type RoleRequest struct {
 type RoleRequestUser struct {
 	Id       int64  `json:"id"`
 	Fullname string `json:"fullname"`
-	Phone    string `json:"phone"`
+	Email    string `json:"email"`
 
 	Nik *string `json:"nik"`
 
@@ -27,6 +27,8 @@ type RoleRequestUser struct {
 
 	IdentityImagePath       *string `json:"identity_image_path"`
 	SelfieIdentityImagePath *string `json:"selfie_identity_image_path"`
+	IdentityImageLink       *string `json:"identity_image_link,omitempty"`
+	SelfieIdentityImageLink *string `json:"selfie_identity_image_link,omitempty"`
 }
 
 func (r *RoleRequest) TableName() string {

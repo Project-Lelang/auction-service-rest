@@ -34,7 +34,7 @@ type JwtConfig struct {
 }
 
 type SuperAdminConfig struct {
-	Phone    string `yaml:"phone"`
+	Email    string `yaml:"email"`
 	Password string `yaml:"password"`
 }
 
@@ -79,6 +79,16 @@ type FirebaseConfig struct {
 	ServiceAccountPath string `yaml:"service_account_path"`
 }
 
+type EmailConfig struct {
+	Enabled     bool   `yaml:"enabled"`
+	Host        string `yaml:"host"`
+	Port        int    `yaml:"port"`
+	Username    string `yaml:"username"`
+	Password    string `yaml:"password"`
+	FromAddress string `yaml:"from_address"`
+	FromName    string `yaml:"from_name"`
+}
+
 type YamlConfig struct {
 	timeLocation       *time.Location
 	BaseDir            string
@@ -102,6 +112,7 @@ type YamlConfig struct {
 	Redis              RedisConfig        `yaml:"redis"`
 	Notification       NotificationConfig `yaml:"notification"`
 	Firebase           *FirebaseConfig    `yaml:"firebase"`
+	Email              EmailConfig        `yaml:"email"`
 }
 
 var config YamlConfig
@@ -166,6 +177,12 @@ func LoadConfig() error {
 	}
 	if config.Notification.RetryBaseMs == 0 {
 		config.Notification.RetryBaseMs = 500
+	}
+	if config.Email.Port == 0 {
+		config.Email.Port = 587
+	}
+	if config.Email.FromName == "" {
+		config.Email.FromName = config.AppName
 	}
 
 	return nil

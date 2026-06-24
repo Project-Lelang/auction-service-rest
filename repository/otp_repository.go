@@ -12,9 +12,9 @@ import (
 )
 
 type OtpRepository interface {
-	Upsert(ctx context.Context, phone, otp string, expiresAt data_type.DateTime) error
-	GetByPhone(ctx context.Context, phone string) (*model.Otp, error)
-	MarkVerified(ctx context.Context, phone string) error
+	Upsert(ctx context.Context, email, otp string, expiresAt data_type.DateTime) error
+	GetByEmail(ctx context.Context, email string) (*model.Otp, error)
+	MarkVerified(ctx context.Context, email string) error
 }
 
 type otpRepository struct {
@@ -25,20 +25,20 @@ func NewOtpRepository(db infrastructure.DBTX) OtpRepository {
 	return &otpRepository{db: db}
 }
 
-func (r *otpRepository) Upsert(ctx context.Context, phone, otpVal string, expiresAt data_type.DateTime) error {
+func (r *otpRepository) Upsert(ctx context.Context, email, otpVal string, expiresAt data_type.DateTime) error {
 	now := util.CurrentDateTime()
 	stmt := stmtBuilder.Insert(model.OtpTableName).
-		Columns("phone", "otp", "expires_at", "verified", "created_at", "updated_at").
-		Values(phone, otpVal, expiresAt, false, now, now).
+		Columns("email", "otp", "expires_at", "verified", "created_at", "updated_at").
+		Values(email, otpVal, expiresAt, false, now, now).
 		Suffix("ON DUPLICATE KEY UPDATE otp = VALUES(otp), expires_at = VALUES(expires_at), verified = false, updated_at = VALUES(updated_at)")
 	_, err := exec(r.db, ctx, stmt)
 	return err
 }
 
-func (r *otpRepository) GetByPhone(ctx context.Context, phone string) (*model.Otp, error) {
+func (r *otpRepository) GetByEmail(ctx context.Context, email string) (*model.Otp, error) {
 	stmt := stmtBuilder.Select("*").
 		From(model.OtpTableName).
-		Where(squirrel.Eq{"phone": phone, "verified": false}).
+		Where(squirrel.Eq{"email": email, "verified": false}).
 		Limit(1)
 
 	o := model.Otp{}
@@ -48,11 +48,11 @@ func (r *otpRepository) GetByPhone(ctx context.Context, phone string) (*model.Ot
 	return &o, nil
 }
 
-func (r *otpRepository) MarkVerified(ctx context.Context, phone string) error {
+func (r *otpRepository) MarkVerified(ctx context.Context, email string) error {
 	stmt := stmtBuilder.Update(model.OtpTableName).
 		Set("verified", true).
 		Set("updated_at", util.CurrentDateTime()).
-		Where(squirrel.Eq{"phone": phone})
+		Where(squirrel.Eq{"email": email})
 	_, err := exec(r.db, ctx, stmt)
 	return err
 }

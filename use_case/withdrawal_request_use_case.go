@@ -81,7 +81,7 @@ func (u *withdrawalRequestUseCase) mustLoadUsers(ctx context.Context, requests [
 			requests[i].User = &model.WithdrawalRequestUser{
 				Id:                dbUser.Id,
 				Fullname:          dbUser.Fullname,
-				Phone:             dbUser.Phone,
+				Email:             dbUser.Email,
 				BankAccountNumber: dbUser.BankAccountNumber,
 				BankName:          dbUser.BankName,
 				BankAccountName:   dbUser.BankAccountName,

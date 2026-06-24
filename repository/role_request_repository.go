@@ -60,7 +60,7 @@ func (r *roleRequestRepository) buildFetchQuery(option model.RoleRequestQueryOpt
 			r.f("*"),
 			"u.id AS user_id_join",
 			"u.fullname AS user_fullname",
-			"u.phone AS user_phone",
+			"u.email AS user_email",
 			"u.nik AS user_nik",
 			"u.bank_account_number AS user_bank_account_number",
 			"u.bank_account_name AS user_bank_account_name",
@@ -129,7 +129,7 @@ func (r *roleRequestRepository) Fetch(ctx context.Context, options ...model.Role
 		model.RoleRequest
 		UserIdJoin                  int64   `db:"user_id_join"`
 		UserFullname                string  `db:"user_fullname"`
-		UserPhone                   string  `db:"user_phone"`
+		UserEmail                   string  `db:"user_email"`
 		UserNik                     *string `db:"user_nik"`
 		UserBankAccountNumber       *string `db:"user_bank_account_number"`
 		UserBankAccountName         *string `db:"user_bank_account_name"`
@@ -149,7 +149,7 @@ func (r *roleRequestRepository) Fetch(ctx context.Context, options ...model.Role
 		item.User = &model.RoleRequestUser{
 			Id:                      row.UserIdJoin,
 			Fullname:                row.UserFullname,
-			Phone:                   row.UserPhone,
+			Email:                   row.UserEmail,
 			Nik:                     row.UserNik,
 			BankAccountNumber:       row.UserBankAccountNumber,
 			BankAccountName:         row.UserBankAccountName,

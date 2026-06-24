@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
+	"auction-service/global"
 	"auction-service/infrastructure"
 	"auction-service/internal/notification"
 	"auction-service/model"
@@ -36,7 +38,12 @@ func publishAuctionNotification(ctx context.Context, publisher NotificationPubli
 }
 
 func auctionURL(auctionId int64) string {
-	return fmt.Sprintf("/auction/%d", auctionId)
+	path := fmt.Sprintf("/auction/%d", auctionId)
+	feURI := strings.TrimRight(global.GetConfig().FeUri, "/")
+	if feURI == "" {
+		return path
+	}
+	return feURI + path
 }
 
 func insertUserNotification(ctx context.Context, repositoryManager repository.RepositoryManager, userId int64, title, body, notificationType string, referenceId *int64) {

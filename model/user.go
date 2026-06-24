@@ -7,7 +7,7 @@ const UserTableName = "users"
 type User struct {
 	Id                      int64              `db:"id"`
 	Fullname                string             `db:"fullname"`
-	Phone                   string             `db:"phone"`
+	Email                   string             `db:"email"`
 	Nik                     *string            `db:"nik"`
 	Birth                   data_type.DateTime `db:"birth"`
 	Gender                  *string            `db:"gender"`
@@ -36,7 +36,7 @@ func (u *User) ToMap() map[string]interface{} {
 	return map[string]interface{}{
 		"id":                         u.Id,
 		"fullname":                   u.Fullname,
-		"phone":                      u.Phone,
+		"email":                      u.Email,
 		"nik":                        u.Nik,
 		"birth":                      u.Birth,
 		"gender":                     u.Gender,

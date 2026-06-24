@@ -40,7 +40,7 @@ func (a *AuthApi) Login() gin.HandlerFunc {
 // RequestOtp godoc
 //
 //	@Router		/auth/request-otp [post]
-//	@Summary	Request OTP for phone verification
+//	@Summary	Request OTP for email verification
 //	@tags		Auth
 //	@Accept		json
 //	@Param		body	body	dto_request.AuthOtpRequest	true	"Body Request"
@@ -51,7 +51,7 @@ func (a *AuthApi) RequestOtp() gin.HandlerFunc {
 		var request dto_request.AuthOtpRequest
 		ctx.mustBind(&request)
 
-		a.authUseCase.CreateOtp(ctx.context(), request.Phone)
+		a.authUseCase.CreateOtp(ctx.context(), request.Email)
 
 		ctx.json(http.StatusOK, dto_response.SuccessResponse{Message: "Success"})
 	})

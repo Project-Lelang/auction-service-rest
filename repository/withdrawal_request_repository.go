@@ -60,7 +60,7 @@ func (r *withdrawalRequestRepository) buildFetchQuery(option model.WithdrawalReq
 			r.f("*"),
 			"u.id AS user_id_join",
 			"u.fullname AS user_fullname",
-			"u.phone AS user_phone",
+			"u.email AS user_email",
 			"u.bank_name AS user_bank_name",
 			"u.bank_account_name AS user_bank_account_name",
 			"u.bank_account_number AS user_bank_account_number",
@@ -114,7 +114,7 @@ func (r *withdrawalRequestRepository) Fetch(ctx context.Context, options ...mode
 		model.WithdrawalRequest
 		UserIdJoin            int64   `db:"user_id_join"`
 		UserFullname          string  `db:"user_fullname"`
-		UserPhone             string  `db:"user_phone"`
+		UserEmail             string  `db:"user_email"`
 		UserBankName          *string `db:"user_bank_name"`
 		UserBankAccountName   *string `db:"user_bank_account_name"`
 		UserBankAccountNumber *string `db:"user_bank_account_number"`
@@ -131,7 +131,7 @@ func (r *withdrawalRequestRepository) Fetch(ctx context.Context, options ...mode
 		item.User = &model.WithdrawalRequestUser{
 			Id:                row.UserIdJoin,
 			Fullname:          row.UserFullname,
-			Phone:             row.UserPhone,
+			Email:             row.UserEmail,
 			BankName:          row.UserBankName,
 			BankAccountName:   row.UserBankAccountName,
 			BankAccountNumber: row.UserBankAccountNumber,

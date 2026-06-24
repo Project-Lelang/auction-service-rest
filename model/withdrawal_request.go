@@ -26,7 +26,7 @@ type WithdrawalRequestUser struct {
 	Id int64 `json:"id"`
 
 	Fullname string `json:"fullname"`
-	Phone    string `json:"phone"`
+	Email    string `json:"email"`
 
 	BankName          *string `json:"bank_name"`
 	BankAccountName   *string `json:"bank_account_name"`

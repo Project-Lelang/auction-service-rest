@@ -8,7 +8,7 @@ AUTH.REFRESH_TOKEN_EXPIRED: "Refresh token telah kedaluwarsa"
 AUTH.REFRESH_TOKEN_INVALID: "Refresh token tidak valid"
 AUTH.LOGGED_OUT: "Berhasil keluar"
 AUTH.OTP_INVALID: "OTP tidak valid atau telah kedaluwarsa"
-AUTH.PHONE_ALREADY_REGISTERED: "Nomor telepon sudah terdaftar"
+AUTH.PHONE_ALREADY_REGISTERED: "Email sudah terdaftar"
 
 # user
 USER.NOT_FOUND: "Pengguna tidak ditemukan"

@@ -116,39 +116,52 @@ func (w *NotificationWorker) process(ctx context.Context, payload notification.P
 		return err
 	}
 
-	var transientErr error
+	fcmTokens := make([]string, 0, len(tokens))
 	for _, token := range tokens {
-		result, err := w.pushClient.Send(ctx, token.FcmToken, payload)
-		if err == nil {
+		fcmTokens = append(fcmTokens, token.FcmToken)
+	}
+
+	result, err := w.pushClient.SendMulticast(ctx, fcmTokens, payload)
+	if err != nil {
+		return err
+	}
+	if len(result.Responses) != len(tokens) {
+		return fmt.Errorf("fcm response count mismatch: got %d want %d", len(result.Responses), len(tokens))
+	}
+
+	var transientErr error
+	for i, sendResult := range result.Responses {
+		token := tokens[i]
+		if sendResult.Error == nil {
 			w.logf(
 				"level=info component=notification_worker event_id=%s user_id=%d token_id=%d fcm_message_id=%s status=token_sent",
 				payload.EventId,
 				payload.UserId,
 				token.Id,
-				result.MessageId,
+				sendResult.MessageId,
 			)
 			continue
 		}
 
-		if result.InvalidToken {
-			_ = w.repositoryManager.UserFcmTokenRepository().Delete(ctx, token.UserId, token.FcmToken)
+		if sendResult.InvalidToken {
+			_ = w.repositoryManager.UserFcmTokenRepository().DeleteByToken(ctx, token.FcmToken)
 			w.logf(
 				"level=warn component=notification_worker event_id=%s user_id=%d token_id=%d status=invalid_token_cleaned error=%q",
 				payload.EventId,
 				payload.UserId,
 				token.Id,
-				err.Error(),
+				sendResult.Error.Error(),
 			)
 			continue
 		}
 
-		transientErr = err
+		transientErr = sendResult.Error
 		w.logf(
 			"level=error component=notification_worker event_id=%s user_id=%d token_id=%d status=token_send_failed error=%q",
 			payload.EventId,
 			payload.UserId,
 			token.Id,
-			err.Error(),
+			sendResult.Error.Error(),
 		)
 	}
 
