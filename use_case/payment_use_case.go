@@ -151,7 +151,7 @@ func (u *paymentUseCase) createPaymentForWinner(
 			},
 			CustomerDetails: infrastructure.MidtransCustomerDetails{
 				FirstName: buyer.Fullname,
-				Phone:     buyer.Phone,
+				Email:     buyer.Email,
 			},
 			Expiry: &infrastructure.MidtransExpiry{
 				StartTime: time.Now().Format("2006-01-02 15:04:05 +0700"),

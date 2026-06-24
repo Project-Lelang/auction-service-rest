@@ -20,7 +20,7 @@ jwt:
   access_token_expiry_hours: 24
   refresh_token_expiry_hours: 168
 super_admin:
-  phone: "+628100000000"
+  email: superadmin@example.com
   password: SuperAdmin@123
 filesystem:
   type: local  # local | supabase
@@ -49,3 +49,11 @@ notification:
   retry_base_ms: 500
 # firebase:  # uncomment to enable real FCM delivery; otherwise notifications use a no-op sender
 #   service_account_path: ./storage/firebase-service-account.json
+email:
+  enabled: false
+  host: smtp.example.com
+  port: 587
+  username: smtp-user
+  password: smtp-password
+  from_address: no-reply@example.com
+  from_name: Auction Service

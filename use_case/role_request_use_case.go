@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"time"
 
 	"auction-service/constant"
 	"auction-service/delivery/dto_request"
@@ -49,6 +50,32 @@ func (u *roleRequestUseCase) mustLoadUserRoles(ctx context.Context, users []*mod
 			group.Go(rolesLoader.UserFn(user))
 		}
 	}))
+}
+
+func (u *roleRequestUseCase) populateUserImageLinks(requests ...*model.RoleRequest) {
+	const presignedExpiry = 24 * time.Hour
+	mainFs := u.filesystemManager.Main()
+	for _, request := range requests {
+		if request.User == nil {
+			continue
+		}
+		if request.User.IdentityImagePath != nil && *request.User.IdentityImagePath != "" {
+			link := mainFs.PresignedUrl(
+				util.GetFilenameFromPath(*request.User.IdentityImagePath),
+				*request.User.IdentityImagePath,
+				presignedExpiry,
+			)
+			request.User.IdentityImageLink = &link
+		}
+		if request.User.SelfieIdentityImagePath != nil && *request.User.SelfieIdentityImagePath != "" {
+			link := mainFs.PresignedUrl(
+				util.GetFilenameFromPath(*request.User.SelfieIdentityImagePath),
+				*request.User.SelfieIdentityImagePath,
+				presignedExpiry,
+			)
+			request.User.SelfieIdentityImageLink = &link
+		}
+	}
 }
 
 // ------------------------------------------------------------------ member operations
@@ -148,6 +175,7 @@ func (u *roleRequestUseCase) AdminFetch(ctx context.Context, req dto_request.Rol
 
 	requests, err := u.repositoryManager.RoleRequestRepository().Fetch(ctx, option)
 	panicIfErr(err)
+	u.populateUserImageLinks(util.SliceValueToSlicePointer(requests)...)
 
 	// Total count dihitung dinamis menggunakan method repository Count demi keandalan pagination
 	total, err := u.repositoryManager.RoleRequestRepository().Count(ctx, option)
@@ -162,6 +190,7 @@ func (u *roleRequestUseCase) AdminFetchByUserId(ctx context.Context, userId int6
 		UserId: &userId,
 	})
 	panicIfErr(err)
+	u.populateUserImageLinks(util.SliceValueToSlicePointer(res)...)
 	return res
 }
 

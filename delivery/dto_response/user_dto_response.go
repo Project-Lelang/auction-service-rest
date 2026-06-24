@@ -11,7 +11,7 @@ import (
 type UserResponse struct {
 	Id                      int64              `json:"id"                          example:"1"`
 	Fullname                string             `json:"fullname"                    example:"John Doe"`
-	Phone                   string             `json:"phone"                       example:"+6281234567890"`
+	Email                   string             `json:"email"                       example:"user@example.com"`
 	Nik                     *string            `json:"nik,omitempty"`
 	Birth                   data_type.DateTime `json:"birth"                       example:"1990-01-15T00:00:00Z"`
 	Balance                 float64            `json:"balance"                     example:"100000.00"`
@@ -37,7 +37,7 @@ func NewUserResponse(_ context.Context, u model.User) UserResponse {
 	r := UserResponse{
 		Id:                      u.Id,
 		Fullname:                u.Fullname,
-		Phone:                   u.Phone,
+		Email:                   u.Email,
 		Nik:                     u.Nik,
 		Birth:                   u.Birth,
 		Gender:                  u.Gender,

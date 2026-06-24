@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"auction-service/global"
 	"auction-service/internal/notification"
@@ -15,11 +16,17 @@ import (
 
 type PushSendResult struct {
 	MessageId    string
+	Token        string
 	InvalidToken bool
+	Error        error
+}
+
+type PushBatchResult struct {
+	Responses []PushSendResult
 }
 
 type PushClient interface {
-	Send(ctx context.Context, token string, payload notification.Payload) (PushSendResult, error)
+	SendMulticast(ctx context.Context, tokens []string, payload notification.Payload) (PushBatchResult, error)
 }
 
 type noopPushClient struct{}
@@ -28,8 +35,12 @@ func NewNoopPushClient() PushClient {
 	return noopPushClient{}
 }
 
-func (noopPushClient) Send(_ context.Context, _ string, _ notification.Payload) (PushSendResult, error) {
-	return PushSendResult{MessageId: "noop"}, nil
+func (noopPushClient) SendMulticast(_ context.Context, tokens []string, _ notification.Payload) (PushBatchResult, error) {
+	result := PushBatchResult{Responses: make([]PushSendResult, 0, len(tokens))}
+	for _, token := range tokens {
+		result.Responses = append(result.Responses, PushSendResult{MessageId: "noop", Token: token})
+	}
+	return result, nil
 }
 
 type firebasePushClient struct {
@@ -52,28 +63,63 @@ func NewFirebasePushClient(ctx context.Context, cfg *global.FirebaseConfig) (Pus
 	return &firebasePushClient{client: client}, nil
 }
 
-func (c *firebasePushClient) Send(ctx context.Context, token string, payload notification.Payload) (PushSendResult, error) {
-	msg := &messaging.Message{
-		Token: token,
-		Notification: &messaging.Notification{
-			Title: payload.Title,
-			Body:  payload.Body,
-		},
-		Data: payload.DataPayload,
+func (c *firebasePushClient) SendMulticast(ctx context.Context, tokens []string, payload notification.Payload) (PushBatchResult, error) {
+	if len(tokens) == 0 {
+		return PushBatchResult{}, nil
 	}
-	if msg.Data == nil {
-		msg.Data = map[string]string{}
-	}
-	msg.Data["event_id"] = payload.EventId
-	msg.Data["event_type"] = payload.EventType
-	msg.Data["auction_id"] = strconv.FormatInt(payload.AuctionId, 10)
-	msg.Data["role"] = payload.Role
 
-	id, err := c.client.Send(ctx, msg)
-	if err != nil {
-		return PushSendResult{
-			InvalidToken: messaging.IsRegistrationTokenNotRegistered(err) || messaging.IsInvalidArgument(err),
-		}, err
+	result := PushBatchResult{Responses: make([]PushSendResult, 0, len(tokens))}
+	for start := 0; start < len(tokens); start += 500 {
+		end := start + 500
+		if end > len(tokens) {
+			end = len(tokens)
+		}
+		batchTokens := tokens[start:end]
+		message := &messaging.MulticastMessage{
+			Tokens: batchTokens,
+			Notification: &messaging.Notification{
+				Title: payload.Title,
+				Body:  payload.Body,
+			},
+			Data: buildNotificationData(payload),
+		}
+
+		if link := message.Data["auction_url"]; isHTTPURL(link) {
+			message.Webpush = &messaging.WebpushConfig{
+				FCMOptions: &messaging.WebpushFCMOptions{Link: link},
+			}
+		}
+
+		response, err := c.client.SendEachForMulticast(ctx, message)
+		if err != nil {
+			return result, err
+		}
+		for i, sendResponse := range response.Responses {
+			sendResult := PushSendResult{Token: batchTokens[i]}
+			if sendResponse.Success {
+				sendResult.MessageId = sendResponse.MessageID
+			} else {
+				sendResult.Error = sendResponse.Error
+				sendResult.InvalidToken = messaging.IsUnregistered(sendResponse.Error)
+			}
+			result.Responses = append(result.Responses, sendResult)
+		}
 	}
-	return PushSendResult{MessageId: id}, nil
+	return result, nil
+}
+
+func buildNotificationData(payload notification.Payload) map[string]string {
+	data := make(map[string]string, len(payload.DataPayload)+4)
+	for k, v := range payload.DataPayload {
+		data[k] = v
+	}
+	data["event_id"] = payload.EventId
+	data["event_type"] = payload.EventType
+	data["auction_id"] = strconv.FormatInt(payload.AuctionId, 10)
+	data["role"] = payload.Role
+	return data
+}
+
+func isHTTPURL(value string) bool {
+	return strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://")
 }

@@ -84,7 +84,7 @@ func (u *userUseCase) AdminCreate(ctx context.Context, request dto_request.Admin
 
 	user := &model.User{
 		Fullname: request.Fullname,
-		Phone:    request.Phone,
+		Email:    normalizeEmail(request.Email),
 		Birth:    data_type.NewDateTime(birth),
 		Gender:   request.Gender,
 		Password: hashedPassword,
@@ -100,7 +100,7 @@ func (u *userUseCase) AdminCreate(ctx context.Context, request dto_request.Admin
 		})
 	}); err != nil {
 		if err == constant.ErrDuplicateData {
-			panic(dto_response.NewConflictErrorResponse(constant.LanguageAuthPhoneAlreadyRegistered))
+			panic(dto_response.NewConflictErrorResponse(constant.LanguageUserEmailAlreadyExist))
 		}
 		panic(err)
 	}

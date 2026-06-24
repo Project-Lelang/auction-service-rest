@@ -19,9 +19,9 @@ type UserRepository interface {
 	Insert(ctx context.Context, user *model.User) error
 
 	// read
-	GetByPhone(ctx context.Context, phone string) (*model.User, error)
+	GetByEmail(ctx context.Context, email string) (*model.User, error)
 	GetById(ctx context.Context, id int64) (*model.User, error)
-	FindAdminByPhone(ctx context.Context, phone string) (*model.User, error)
+	FindAdminByEmail(ctx context.Context, email string) (*model.User, error)
 	FetchByIds(ctx context.Context, ids []int64) ([]model.User, error)
 	Fetch(ctx context.Context, options ...model.UserQueryOption) ([]model.User, error)
 	Count(ctx context.Context, options ...model.UserQueryOption) (int64, error)
@@ -90,10 +90,10 @@ func (r *userRepository) Insert(ctx context.Context, user *model.User) error {
 
 // ------------------------------------------------------------------ read
 
-func (r *userRepository) GetByPhone(ctx context.Context, phone string) (*model.User, error) {
+func (r *userRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
-		Where(squirrel.Eq{r.f("phone"): phone}).
+		Where(squirrel.Eq{r.f("email"): email}).
 		Limit(1)
 	return r.getInternal(ctx, stmt)
 }
@@ -106,11 +106,11 @@ func (r *userRepository) GetById(ctx context.Context, id int64) (*model.User, er
 	return r.getInternal(ctx, stmt)
 }
 
-func (r *userRepository) FindAdminByPhone(ctx context.Context, phone string) (*model.User, error) {
+func (r *userRepository) FindAdminByEmail(ctx context.Context, email string) (*model.User, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Join("user_roles ur ON ur.user_id = u.id").
-		Where(squirrel.Eq{r.f("phone"): phone}).
+		Where(squirrel.Eq{r.f("email"): email}).
 		Where(squirrel.Eq{r.f("is_deleted"): false}).
 		Where(squirrel.Or{
 			squirrel.Eq{"ur.role": constant.RoleAdmin},
