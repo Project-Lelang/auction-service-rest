@@ -198,17 +198,17 @@ func registerRoutes(router *gin.Engine, container *manager.Container, hub *ws.Hu
 	RegisterAdminRoleRequestApi(apiGroup, &baseApi, container.UseCaseManager())
 	RegisterAdminWithdrawalRequestApi(apiGroup, &baseApi, container.UseCaseManager())
 	RegisterAdminPaymentMethodApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterAdminAuctionApi(apiGroup, &baseApi, container.UseCaseManager())
 
 	// user
 
 	RegisterAuthApi(apiGroup, &baseApi, container.UseCaseManager())
 	RegisterProductApi(apiGroup, &baseApi, container.UseCaseManager())
 	RegisterOwnApi(apiGroup, &baseApi, container.UseCaseManager())
-	RegisterUserRoleRequestApi(apiGroup, &baseApi, container.UseCaseManager())
+	// RegisterUserRoleRequestApi(apiGroup, &baseApi, container.UseCaseManager())
 	RegisterAuctionApi(apiGroup, &baseApi, container.UseCaseManager())
 	RegisterUserAddressApi(apiGroup, &baseApi, container.UseCaseManager())
 	RegisterBiteshipApi(apiGroup, &baseApi, container.UseCaseManager())
-
 
 	// file
 	RegisterFileApi(apiGroup, &baseApi, container.FilesystemManager(), container.BaseFileUseCase())

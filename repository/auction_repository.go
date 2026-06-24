@@ -3,8 +3,10 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"auction-service/data_type"
+	"auction-service/delivery/dto_response"
 	"auction-service/infrastructure"
 	"auction-service/model"
 	"auction-service/util"
@@ -24,6 +26,7 @@ type AuctionRepository interface {
 	Count(ctx context.Context, options ...model.AuctionQueryOption) (int64, error)
 	FetchStartable(ctx context.Context) ([]model.Auction, error)
 	FetchCloseable(ctx context.Context) ([]model.Auction, error)
+	GetDailyReport(ctx context.Context, startTime, endTime time.Time) ([]dto_response.DashboardDailyReport, error)
 
 	// update
 	Update(ctx context.Context, id int64, startingPrice float64, startTime, endTime data_type.DateTime, fee float64) (*model.Auction, error)
@@ -127,6 +130,27 @@ func (r *auctionRepository) GetByIdForUpdate(ctx context.Context, id int64) (*mo
 		return nil, translateSqlError(err)
 	}
 	return &a, nil
+}
+
+func (r *auctionRepository) GetDailyReport(ctx context.Context, startTime, endTime time.Time) ([]dto_response.DashboardDailyReport, error) {
+	stmt := stmtBuilder.Select(
+		"DATE("+r.f("end_time")+" ) AS date",
+		"COUNT("+r.f("id")+" ) AS total_auctions",
+		"SUM("+r.f("fee")+" ) AS total_revenue",
+	).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("status"): "COMPLETED"}).
+		Where(squirrel.Expr(r.f("end_time")+" BETWEEN ? AND ?", startTime, endTime)).
+		GroupBy("DATE(" + r.f("end_time") + ")").
+		OrderBy("date ASC")
+
+	// Eksekusi ke database
+	var reports []dto_response.DashboardDailyReport
+	if err := fetch(r.db, ctx, &reports, stmt); err != nil {
+		return nil, err
+	}
+
+	return reports, nil
 }
 
 func (r *auctionRepository) Fetch(ctx context.Context, options ...model.AuctionQueryOption) ([]model.Auction, error) {

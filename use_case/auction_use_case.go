@@ -34,6 +34,7 @@ type AuctionUseCase interface {
 	// public
 	Fetch(ctx context.Context, request dto_request.AuctionFetchRequest) ([]model.Auction, int64)
 	Get(ctx context.Context, request dto_request.AuctionGetRequest) model.Auction
+	GetAdminDashboardReport(ctx context.Context, request dto_request.AdminDashboardReportRequest) []dto_response.DashboardDailyReport
 
 	// own (seller)
 	OwnFetch(ctx context.Context, request dto_request.OwnAuctionFetchRequest) ([]model.Auction, int64)
@@ -170,6 +171,36 @@ func (u *auctionUseCase) Get(ctx context.Context, request dto_request.AuctionGet
 	auction := mustGetAuction(ctx, u.repositoryManager, request.AuctionId)
 	u.mustLoadAuctionData(ctx, []*model.Auction{&auction})
 	return auction
+}
+
+func (u *auctionUseCase) GetAdminDashboardReport(ctx context.Context, request dto_request.AdminDashboardReportRequest) []dto_response.DashboardDailyReport {
+	loc, _ := time.LoadLocation("Asia/Jakarta")
+	now := time.Now().In(loc)
+
+	startDateStr := request.StartDate
+	endDateStr := request.EndDate
+
+	// Default ke 30 hari terakhir jika kosong
+	if startDateStr == "" {
+		startDateStr = now.AddDate(0, 0, -30).Format("2006-01-02")
+	}
+	if endDateStr == "" {
+		endDateStr = now.Format("2006-01-02")
+	}
+
+	startTime, err := time.ParseInLocation("2006-01-02", startDateStr, loc)
+	panicIfErr(err)
+
+	endTime, err := time.ParseInLocation("2006-01-02", endDateStr, loc)
+	panicIfErr(err)
+	// Pastikan mencakup waktu sampai akhir hari (23:59:59)
+	endTime = endTime.Add(24*time.Hour - time.Second)
+
+	// Panggil repository yang baru dibuat
+	reports, err := u.repositoryManager.AuctionRepository().GetDailyReport(ctx, startTime, endTime)
+	panicIfErr(err)
+
+	return reports
 }
 
 func (u *auctionUseCase) OwnFetch(ctx context.Context, request dto_request.OwnAuctionFetchRequest) ([]model.Auction, int64) {
