@@ -144,10 +144,10 @@ func (u *roleRequestUseCase) OwnCreate(ctx context.Context, request dto_request.
 			if existing != nil {
 				panic(dto_response.NewBadRequestErrorResponse(constant.LanguageRoleRequestPendingExists))
 			}
-			if request.BankAccountNumber == nil {
+			if request.BankAccountNumber == nil || request.BankAccountName == nil || request.BankName == nil {
 				panic(dto_response.NewBadRequestErrorResponse(constant.LanguageRoleRequestMissingSellerInfo))
 			}
-			if err := u.repositoryManager.UserRepository().UpdateBankAccountNumber(ctx, user.Id, *request.BankAccountNumber); err != nil {
+			if err := u.repositoryManager.UserRepository().UpdateBankAccountInfo(ctx, user.Id, *request.BankAccountNumber, *request.BankAccountName, *request.BankName); err != nil {
 				return err
 			}
 		}

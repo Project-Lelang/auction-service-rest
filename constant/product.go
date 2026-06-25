@@ -12,6 +12,7 @@ const (
 	ProductStatusWaitingForBuyerAddress   = "WAITING_FOR_BUYER_ADDRESS"
 	ProductStatusWaitingForShipment       = "WAITING_FOR_SHIPMENT"
 	ProductStatusShipped                  = "SHIPPED"
+	ProductStatusSellerFailedToShip       = "SELLER_FAILED_TO_SHIP"
 	ProductStatusCompleted                = "COMPLETED"
 )
 
@@ -31,9 +32,10 @@ var ValidProductStatusTransitions = map[string][]string{
 	ProductStatusWaitingForPayment:        {ProductStatusWaitingForBuyerAddress, ProductStatusWaitingForSellerDecision, ProductStatusCompleted, ProductStatusVerified},
 	ProductStatusWaitingForSellerDecision: {ProductStatusVerified, ProductStatusWaitingForPayment},
 	ProductStatusWaitingForBuyerAddress:   {ProductStatusWaitingForShipment},
-	ProductStatusWaitingForShipment:       {ProductStatusShipped},
+	ProductStatusWaitingForShipment:       {ProductStatusShipped, ProductStatusSellerFailedToShip},
 	ProductStatusShipped:                  {ProductStatusCompleted},
-	ProductStatusRejected:                 {ProductStatusDraft},
+	ProductStatusSellerFailedToShip:       {ProductStatusVerified},
+	ProductStatusRejected:                 {ProductStatusDraft, ProductStatusRequest},
 }
 
 // ValidProductStatusTransitionFor returns true when the transition from current → next is allowed.

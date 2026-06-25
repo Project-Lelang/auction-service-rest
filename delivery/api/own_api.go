@@ -135,7 +135,7 @@ func (a *OwnApi) Get() gin.HandlerFunc {
 //	@tags		Own
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		productId	path	int								true	"Product ID"
+//	@Param		productId	path	int									true	"Product ID"
 //	@Param		body		body	dto_request.OwnProductUpdateRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{product=dto_response.ProductResponse}}
@@ -284,7 +284,7 @@ func (a *OwnApi) FetchUserAddresses() gin.HandlerFunc {
 //	@tags		Own
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		userAddressId	path	int									true	"User Address ID"
+//	@Param		userAddressId	path	int										true	"User Address ID"
 //	@Param		body			body	dto_request.UserAddressUpdateRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{user_address=dto_response.UserAddressResponse}}
@@ -489,7 +489,7 @@ func (a *OwnApi) CreateAuction() gin.HandlerFunc {
 //	@tags		Own
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		auctionId	path	int								true	"Auction ID"
+//	@Param		auctionId	path	int									true	"Auction ID"
 //	@Param		body		body	dto_request.OwnAuctionUpdateRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{auction=dto_response.AuctionResponse}}

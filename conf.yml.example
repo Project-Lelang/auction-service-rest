@@ -47,6 +47,12 @@ notification:
   worker_count: 5
   max_retries: 3
   retry_base_ms: 500
+shipment_deadline:
+  buyer_address_hours: 24
+  seller_ship_hours: 72
+  buyer_receive_hours: 168
+  tracking_check_interval_minutes: 60
+  deadline_grace_minutes: 5
 # firebase:  # uncomment to enable real FCM delivery; otherwise notifications use a no-op sender
 #   service_account_path: ./storage/firebase-service-account.json
 email:

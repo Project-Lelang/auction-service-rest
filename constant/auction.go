@@ -1,7 +1,7 @@
 package constant
 
-// AuctionFee is the fixed platform fee applied to every auction.
-const AuctionFee float64 = 5000
+// AuctionFeePercent is the platform fee percentage charged on the winning bid.
+const AuctionFeePercent float64 = 5
 
 // AuctionStatus values represent the lifecycle of an auction.
 const (
@@ -13,6 +13,7 @@ const (
 	AuctionStatusWaitingForShipment       = "WAITING_FOR_SHIPMENT"
 	AuctionStatusShipped                  = "SHIPPED"
 	AuctionStatusDelivered                = "DELIVERED"
+	AuctionStatusSellerFailedToShip       = "SELLER_FAILED_TO_SHIP"
 	AuctionStatusCancelled                = "CANCELLED"
 	AuctionStatusCompleted                = "COMPLETED"
 )
@@ -30,6 +31,7 @@ const (
 	PaymentStatusWaitingForPayment = "WAITING_FOR_PAYMENT"
 	PaymentStatusCancelled         = "CANCELLED"
 	PaymentStatusCompleted         = "COMPLETED"
+	PaymentStatusRefunded          = "REFUNDED"
 	PaymentStatusExpired           = "EXPIRED"
 	PaymentStatusFailed            = "FAILED"
 )

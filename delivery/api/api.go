@@ -188,6 +188,9 @@ func registerRoutes(router *gin.Engine, container *manager.Container, hub *ws.Hu
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	publicApiGroup := router.Group("/")
+	RegisterBiteshipWebhookApi(publicApiGroup, &baseApi, container.UseCaseManager())
+
 	apiGroup := router.Group("/")
 	middleware.JWTHandler(apiGroup, container.UseCaseManager().AuthUseCase())
 

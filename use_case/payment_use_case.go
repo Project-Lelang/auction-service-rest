@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"math"
 	"strconv"
 	"time"
 
 	"auction-service/constant"
 	"auction-service/delivery/dto_request"
 	"auction-service/delivery/dto_response"
+	"auction-service/global"
 	"auction-service/infrastructure"
 	"auction-service/model"
 	"auction-service/repository"
@@ -48,6 +50,14 @@ func NewPaymentUseCase(repositoryManager repository.RepositoryManager, midtransC
 		biteshipClient:    biteshipClient,
 		taskQueue:         taskQueue,
 	}
+}
+
+func roundMoney(amount float64) float64 {
+	return math.Round(amount*100) / 100
+}
+
+func calculateAuctionFee(amount float64) float64 {
+	return roundMoney(amount * constant.AuctionFeePercent / 100)
 }
 
 func (u *paymentUseCase) GetByAuction(ctx context.Context, request dto_request.AuctionPaymentGetRequest) model.Payment {
@@ -119,7 +129,21 @@ func (u *paymentUseCase) createPaymentForWinner(
 	bid model.AuctionBid,
 	buyer model.User,
 ) (*model.Payment, error) {
-	amount := bid.Amount + auction.Fee
+	feeAmount := calculateAuctionFee(bid.Amount)
+	amount := roundMoney(bid.Amount)
+
+	if updatedAuction, err := u.repositoryManager.AuctionRepository().Update(
+		ctx,
+		auction.Id,
+		auction.StartingPrice,
+		auction.StartTime,
+		auction.EndTime,
+		feeAmount,
+	); err == nil && updatedAuction != nil {
+		auction.Fee = updatedAuction.Fee
+	} else if err != nil {
+		return nil, err
+	}
 
 	expiredAt := util.CurrentDateTime().Add(24 * time.Hour)
 
@@ -148,6 +172,14 @@ func (u *paymentUseCase) createPaymentForWinner(
 			TransactionDetails: infrastructure.MidtransTransactionDetails{
 				OrderId:     paymentId,
 				GrossAmount: amount,
+			},
+			ItemDetails: []infrastructure.MidtransItemDetail{
+				{
+					Id:       "auction-" + paymentId + "-winning-bid",
+					Name:     "Winning bid",
+					Price:    roundMoney(bid.Amount),
+					Quantity: 1,
+				},
 			},
 			CustomerDetails: infrastructure.MidtransCustomerDetails{
 				FirstName: buyer.Fullname,
@@ -292,6 +324,15 @@ func (u *paymentUseCase) onPaymentCompleted(ctx context.Context, payment model.P
 	}
 	if err := u.repositoryManager.ShipmentRepository().Insert(ctx, &shipment); err != nil {
 		return err
+	}
+	buyerAddressDeadline := util.CurrentDateTime().Add(time.Duration(global.GetConfig().ShipmentDeadline.BuyerAddressHours) * time.Hour)
+	updatedShipment, err := u.repositoryManager.ShipmentRepository().UpdateBuyerAddressDeadline(ctx, shipment.Id, buyerAddressDeadline)
+	if err != nil {
+		return err
+	}
+	shipment = *updatedShipment
+	if u.taskQueue != nil {
+		_ = u.taskQueue.EnqueueShipmentAddressDue(shipment.Id, buyerAddressDeadline.Add(time.Duration(global.GetConfig().ShipmentDeadline.DeadlineGraceMinutes)*time.Minute).Time())
 	}
 
 	// Best-effort: compute Biteship estimated costs and store on shipment

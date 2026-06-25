@@ -375,6 +375,8 @@ func (u *productUseCase) OwnRequest(ctx context.Context, request dto_request.Own
 	if product.UserId != userClaims.UserId {
 		panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
 	}
+
+	// Validate that the product can transition from its current status to REQUEST.
 	if !constant.ValidProductStatusTransitionFor(product.Status, constant.ProductStatusRequest) {
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageProductInvalidStatusTransition))
 	}

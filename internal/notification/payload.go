@@ -10,22 +10,35 @@ const (
 	RoleBuyer  = "buyer"
 	RoleSeller = "seller"
 
-	EventOutbid         = "OUTBID"
-	EventWinAwaitingPay = "WIN_AWAITING_PAY"
-	EventAuctionEnd     = "AUCTION_END"
-	EventAuctionUnpaid  = "AUCTION_UNPAID"
-	EventAuctionStart   = "AUCTION_START"
+	EventOutbid                 = "OUTBID"
+	EventWinAwaitingPay         = "WIN_AWAITING_PAY"
+	EventAuctionEnd             = "AUCTION_END"
+	EventAuctionUnpaid          = "AUCTION_UNPAID"
+	EventAuctionStart           = "AUCTION_START"
+	EventBuyerAddressExpired    = "BUYER_ADDRESS_EXPIRED"
+	EventShipmentDelivered      = "SHIPMENT_DELIVERED"
+	EventShipmentRefunded       = "SHIPMENT_REFUNDED"
+	EventShipmentAutoCompleted  = "SHIPMENT_AUTO_COMPLETED"
+	EventShipmentDeadlineMissed = "SHIPMENT_DEADLINE_MISSED"
 )
 
 var eventsByRole = map[string]map[string]struct{}{
 	RoleBuyer: {
-		EventOutbid:         {},
-		EventWinAwaitingPay: {},
+		EventOutbid:                {},
+		EventWinAwaitingPay:        {},
+		EventBuyerAddressExpired:   {},
+		EventShipmentDelivered:     {},
+		EventShipmentRefunded:      {},
+		EventShipmentAutoCompleted: {},
 	},
 	RoleSeller: {
-		EventAuctionEnd:    {},
-		EventAuctionUnpaid: {},
-		EventAuctionStart:  {},
+		EventAuctionEnd:             {},
+		EventAuctionUnpaid:          {},
+		EventAuctionStart:           {},
+		EventBuyerAddressExpired:    {},
+		EventShipmentDelivered:      {},
+		EventShipmentAutoCompleted:  {},
+		EventShipmentDeadlineMissed: {},
 	},
 }
 

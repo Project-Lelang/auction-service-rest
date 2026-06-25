@@ -3,7 +3,10 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"auction-service/constant"
+	"auction-service/data_type"
 	"auction-service/infrastructure"
 	"auction-service/model"
 	"auction-service/util"
@@ -18,12 +21,24 @@ type ShipmentRepository interface {
 
 	// read
 	GetById(ctx context.Context, id int64) (*model.Shipment, error)
+	GetByIdForUpdate(ctx context.Context, id int64) (*model.Shipment, error)
 	GetByAuctionBidId(ctx context.Context, auctionBidId int64) (*model.Shipment, error)
+	GetByTrackingIdentifier(ctx context.Context, identifiers []string) (*model.Shipment, error)
 	Fetch(ctx context.Context, options ...model.ShipmentQueryOption) ([]model.Shipment, error)
+	FetchPendingAddressDeadline(ctx context.Context) ([]model.Shipment, error)
+	FetchPendingShipDeadline(ctx context.Context) ([]model.Shipment, error)
+	FetchPendingDeliveryTracking(ctx context.Context) ([]model.Shipment, error)
+	FetchPendingReceiveDeadline(ctx context.Context) ([]model.Shipment, error)
 
 	// update
 	UpdateShipped(ctx context.Context, id int64, trackingNumber string, courierCode string, serviceCode string, shippingCost float64, biteshipOrderId string) (*model.Shipment, error)
 	UpdateReceived(ctx context.Context, id int64, deliveryProofImagePath string) (*model.Shipment, error)
+	UpdateAutoReceived(ctx context.Context, id int64) (*model.Shipment, error)
+	UpdateBuyerAddressFailed(ctx context.Context, id int64) (*model.Shipment, error)
+	UpdateSellerFailed(ctx context.Context, id int64) (*model.Shipment, error)
+	UpdateBuyerAddressDeadline(ctx context.Context, id int64, buyerAddressDeadlineAt data_type.DateTime) (*model.Shipment, error)
+	UpdateShipDeadline(ctx context.Context, id int64, shipDeadlineAt data_type.DateTime) (*model.Shipment, error)
+	UpdateDelivered(ctx context.Context, id int64, receiveDeadlineAt data_type.DateTime) (*model.Shipment, error)
 	UpdateBuyerAddress(ctx context.Context, id int64, buyerAddressId int64, snapshot string) (*model.Shipment, error)
 	UpdateSellerAddress(ctx context.Context, id int64, sellerAddressId int64, snapshot string) (*model.Shipment, error)
 	UpdateEstimatedCosts(ctx context.Context, id int64, estimatedCosts string) (*model.Shipment, error)
@@ -87,10 +102,51 @@ func (r *shipmentRepository) GetById(ctx context.Context, id int64) (*model.Ship
 	return r.getInternal(ctx, stmt)
 }
 
+func (r *shipmentRepository) GetByIdForUpdate(ctx context.Context, id int64) (*model.Shipment, error) {
+	query := fmt.Sprintf(
+		"SELECT %s.* FROM %s WHERE %s.id = ? LIMIT 1 FOR UPDATE",
+		r.alias(), r.fromTable(), r.alias(),
+	)
+	s := model.Shipment{}
+	dt := dbtx(r.db, ctx)
+	if err := dt.GetContext(ctx, &s, query, id); err != nil {
+		return nil, translateSqlError(err)
+	}
+	return &s, nil
+}
+
 func (r *shipmentRepository) GetByAuctionBidId(ctx context.Context, auctionBidId int64) (*model.Shipment, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("auction_bid_id"): auctionBidId}).
+		Limit(1)
+	return r.getInternal(ctx, stmt)
+}
+
+func (r *shipmentRepository) GetByTrackingIdentifier(ctx context.Context, identifiers []string) (*model.Shipment, error) {
+	clean := make([]string, 0, len(identifiers))
+	seen := map[string]struct{}{}
+	for _, identifier := range identifiers {
+		identifier = strings.TrimSpace(identifier)
+		if identifier == "" {
+			continue
+		}
+		if _, ok := seen[identifier]; ok {
+			continue
+		}
+		seen[identifier] = struct{}{}
+		clean = append(clean, identifier)
+	}
+	if len(clean) == 0 {
+		return nil, constant.ErrNoData
+	}
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Or{
+			squirrel.Eq{r.f("tracking_number"): clean},
+			squirrel.Eq{r.f("biteship_order_id"): clean},
+		}).
+		OrderBy(r.f("created_at") + " DESC").
 		Limit(1)
 	return r.getInternal(ctx, stmt)
 }
@@ -105,6 +161,61 @@ func (r *shipmentRepository) Fetch(ctx context.Context, options ...model.Shipmen
 	return r.fetchInternal(ctx, stmt)
 }
 
+func (r *shipmentRepository) FetchPendingAddressDeadline(ctx context.Context) ([]model.Shipment, error) {
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Join("auction_bids ab ON ab.id = " + r.f("auction_bid_id")).
+		Join("auctions a ON a.id = ab.auction_id").
+		Where(squirrel.Eq{"a.status": constant.AuctionStatusWaitingForBuyerAddress}).
+		Where(squirrel.Expr(r.f("buyer_address_failed_at") + " IS NULL")).
+		Where(squirrel.Expr(r.f("buyer_address_deadline_at") + " IS NOT NULL")).
+		OrderBy(r.f("buyer_address_deadline_at") + " ASC")
+	return r.fetchInternal(ctx, stmt)
+}
+
+func (r *shipmentRepository) FetchPendingShipDeadline(ctx context.Context) ([]model.Shipment, error) {
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Join("auction_bids ab ON ab.id = " + r.f("auction_bid_id")).
+		Join("auctions a ON a.id = ab.auction_id").
+		Where(squirrel.Eq{"a.status": constant.AuctionStatusWaitingForShipment}).
+		Where(squirrel.Expr(r.f("shipped_at") + " IS NULL")).
+		Where(squirrel.Expr(r.f("seller_failed_at") + " IS NULL")).
+		Where(squirrel.Expr(r.f("ship_deadline_at") + " IS NOT NULL")).
+		OrderBy(r.f("ship_deadline_at") + " ASC")
+	return r.fetchInternal(ctx, stmt)
+}
+
+func (r *shipmentRepository) FetchPendingReceiveDeadline(ctx context.Context) ([]model.Shipment, error) {
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Join("auction_bids ab ON ab.id = " + r.f("auction_bid_id")).
+		Join("auctions a ON a.id = ab.auction_id").
+		Where(squirrel.Eq{"a.status": constant.AuctionStatusShipped}).
+		Where(squirrel.Expr(r.f("shipped_at") + " IS NOT NULL")).
+		Where(squirrel.Expr(r.f("received_at") + " IS NULL")).
+		Where(squirrel.Expr(r.f("seller_failed_at") + " IS NULL")).
+		Where(squirrel.Expr(r.f("receive_deadline_at") + " IS NOT NULL")).
+		OrderBy(r.f("receive_deadline_at") + " ASC")
+	return r.fetchInternal(ctx, stmt)
+}
+
+func (r *shipmentRepository) FetchPendingDeliveryTracking(ctx context.Context) ([]model.Shipment, error) {
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Join("auction_bids ab ON ab.id = " + r.f("auction_bid_id")).
+		Join("auctions a ON a.id = ab.auction_id").
+		Where(squirrel.Eq{"a.status": constant.AuctionStatusShipped}).
+		Where(squirrel.Expr(r.f("tracking_number") + " IS NOT NULL")).
+		Where(squirrel.Expr(r.f("shipped_at") + " IS NOT NULL")).
+		Where(squirrel.Expr(r.f("delivered_at") + " IS NULL")).
+		Where(squirrel.Expr(r.f("receive_deadline_at") + " IS NULL")).
+		Where(squirrel.Expr(r.f("received_at") + " IS NULL")).
+		Where(squirrel.Expr(r.f("seller_failed_at") + " IS NULL")).
+		OrderBy(r.f("shipped_at") + " ASC")
+	return r.fetchInternal(ctx, stmt)
+}
+
 func (r *shipmentRepository) UpdateShipped(ctx context.Context, id int64, trackingNumber string, courierCode string, serviceCode string, shippingCost float64, biteshipOrderId string) (*model.Shipment, error) {
 	now := util.CurrentDateTime()
 	if err := update(r.db, ctx, r.tableName(),
@@ -116,6 +227,92 @@ func (r *shipmentRepository) UpdateShipped(ctx context.Context, id int64, tracki
 			"biteship_order_id": biteshipOrderId,
 			"shipped_at":        now,
 			"updated_at":        now,
+		},
+		squirrel.Eq{"id": id},
+	); err != nil {
+		return nil, err
+	}
+	return r.GetById(ctx, id)
+}
+
+func (r *shipmentRepository) UpdateDelivered(ctx context.Context, id int64, receiveDeadlineAt data_type.DateTime) (*model.Shipment, error) {
+	now := util.CurrentDateTime()
+	if err := update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"delivered_at":        now,
+			"receive_deadline_at": receiveDeadlineAt,
+			"updated_at":          now,
+		},
+		squirrel.Eq{"id": id},
+	); err != nil {
+		return nil, err
+	}
+	return r.GetById(ctx, id)
+}
+
+func (r *shipmentRepository) UpdateAutoReceived(ctx context.Context, id int64) (*model.Shipment, error) {
+	now := util.CurrentDateTime()
+	if err := update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"received_at":      now,
+			"auto_received_at": now,
+			"updated_at":       now,
+		},
+		squirrel.Eq{"id": id},
+	); err != nil {
+		return nil, err
+	}
+	return r.GetById(ctx, id)
+}
+
+func (r *shipmentRepository) UpdateBuyerAddressFailed(ctx context.Context, id int64) (*model.Shipment, error) {
+	now := util.CurrentDateTime()
+	if err := update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"buyer_address_failed_at": now,
+			"updated_at":              now,
+		},
+		squirrel.Eq{"id": id},
+	); err != nil {
+		return nil, err
+	}
+	return r.GetById(ctx, id)
+}
+
+func (r *shipmentRepository) UpdateSellerFailed(ctx context.Context, id int64) (*model.Shipment, error) {
+	now := util.CurrentDateTime()
+	if err := update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"seller_failed_at": now,
+			"updated_at":       now,
+		},
+		squirrel.Eq{"id": id},
+	); err != nil {
+		return nil, err
+	}
+	return r.GetById(ctx, id)
+}
+
+func (r *shipmentRepository) UpdateBuyerAddressDeadline(ctx context.Context, id int64, buyerAddressDeadlineAt data_type.DateTime) (*model.Shipment, error) {
+	now := util.CurrentDateTime()
+	if err := update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"buyer_address_deadline_at": buyerAddressDeadlineAt,
+			"updated_at":                now,
+		},
+		squirrel.Eq{"id": id},
+	); err != nil {
+		return nil, err
+	}
+	return r.GetById(ctx, id)
+}
+
+func (r *shipmentRepository) UpdateShipDeadline(ctx context.Context, id int64, shipDeadlineAt data_type.DateTime) (*model.Shipment, error) {
+	now := util.CurrentDateTime()
+	if err := update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"ship_deadline_at": shipDeadlineAt,
+			"updated_at":       now,
 		},
 		squirrel.Eq{"id": id},
 	); err != nil {

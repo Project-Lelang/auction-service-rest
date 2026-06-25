@@ -2,15 +2,21 @@ package use_case
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strconv"
 	"strings"
+	"time"
 
 	"auction-service/constant"
 	"auction-service/delivery/dto_request"
 	"auction-service/delivery/dto_response"
+	"auction-service/global"
 	"auction-service/infrastructure"
+	"auction-service/internal/notification"
 	"auction-service/model"
 	"auction-service/repository"
+	"auction-service/util"
 )
 
 // ShipmentUseCase manages shipment lifecycle operations.
@@ -22,18 +28,48 @@ type ShipmentUseCase interface {
 	UpdateBuyerAddress(ctx context.Context, request dto_request.AuctionShipmentUpdateAddressRequest) model.Shipment
 	UpdateSellerAddress(ctx context.Context, request dto_request.AuctionShipmentUpdateAddressRequest) model.Shipment
 	GetTracking(ctx context.Context, request dto_request.AuctionShipmentGetTrackingRequest) map[string]interface{}
+	HandleShipmentAddressDeadline(ctx context.Context, shipmentId int64) error
+	HandleShipmentShipDeadline(ctx context.Context, shipmentId int64) error
+	HandleShipmentTrackingCheck(ctx context.Context, shipmentId int64) error
+	HandleShipmentReceiveDeadline(ctx context.Context, shipmentId int64) error
+	HandleBiteshipWebhook(ctx context.Context, payload map[string]interface{}) error
+	RecoverShipmentDeadlines(ctx context.Context) error
 }
 
 type shipmentUseCase struct {
 	repositoryManager repository.RepositoryManager
 	biteshipClient    infrastructure.BiteshipClient
+	taskQueue         TaskQueue
+	notificationQueue NotificationPublisher
 }
 
-func NewShipmentUseCase(repositoryManager repository.RepositoryManager, biteshipClient infrastructure.BiteshipClient) ShipmentUseCase {
+func NewShipmentUseCase(repositoryManager repository.RepositoryManager, biteshipClient infrastructure.BiteshipClient, taskQueue TaskQueue, notificationQueue NotificationPublisher) ShipmentUseCase {
 	return &shipmentUseCase{
 		repositoryManager: repositoryManager,
 		biteshipClient:    biteshipClient,
+		taskQueue:         taskQueue,
+		notificationQueue: notificationQueue,
 	}
+}
+
+func buyerAddressDuration() time.Duration {
+	return time.Duration(global.GetConfig().ShipmentDeadline.BuyerAddressHours) * time.Hour
+}
+
+func sellerShipDuration() time.Duration {
+	return time.Duration(global.GetConfig().ShipmentDeadline.SellerShipHours) * time.Hour
+}
+
+func buyerReceiveDuration() time.Duration {
+	return time.Duration(global.GetConfig().ShipmentDeadline.BuyerReceiveHours) * time.Hour
+}
+
+func trackingCheckDuration() time.Duration {
+	return time.Duration(global.GetConfig().ShipmentDeadline.TrackingCheckIntervalMins) * time.Minute
+}
+
+func shipmentDeadlineGrace() time.Duration {
+	return time.Duration(global.GetConfig().ShipmentDeadline.DeadlineGraceMinutes) * time.Minute
 }
 
 func (u *shipmentUseCase) mustGetAuctionShipment(ctx context.Context, auctionId int64, shipmentId int64) (model.Auction, model.Shipment) {
@@ -204,6 +240,12 @@ func (u *shipmentUseCase) Ship(ctx context.Context, request dto_request.AuctionS
 	_, err = u.repositoryManager.ProductRepository().UpdateStatus(ctx, auction.ProductId, constant.ProductStatusShipped)
 	panicIfErr(err)
 
+	if u.taskQueue != nil {
+		if err := u.taskQueue.EnqueueShipmentTrackCheck(updated.Id, time.Now().Add(trackingCheckDuration())); err != nil {
+			log.Printf("[shipment worker] enqueue tracking check for %d failed: %v", updated.Id, err)
+		}
+	}
+
 	return *updated
 }
 
@@ -225,36 +267,8 @@ func (u *shipmentUseCase) Receive(ctx context.Context, request dto_request.Aucti
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageShipmentAlreadyReceived))
 	}
 
-	var updated *model.Shipment
-	panicIfErr(u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
-		var err error
-		updated, err = u.repositoryManager.ShipmentRepository().UpdateReceived(ctx, shipment.Id, request.DeliveryProofImagePath)
-		if err != nil {
-			return err
-		}
-
-		bid, err := u.repositoryManager.AuctionBidRepository().GetById(ctx, shipment.AuctionBidId)
-		if err != nil {
-			return err
-		}
-
-		product, err := u.repositoryManager.ProductRepository().GetById(ctx, auction.ProductId)
-		if err != nil {
-			return err
-		}
-
-		if _, err = u.repositoryManager.UserRepository().DepositBalance(ctx, product.UserId, bid.Amount); err != nil {
-			return err
-		}
-
-		_, err = u.repositoryManager.AuctionRepository().UpdateStatus(ctx, auction.Id, constant.AuctionStatusCompleted)
-		if err != nil {
-			return err
-		}
-
-		_, err = u.repositoryManager.ProductRepository().UpdateStatus(ctx, auction.ProductId, constant.ProductStatusCompleted)
-		return err
-	}))
+	updated, err := u.completeShipment(ctx, auction, shipment, &request.DeliveryProofImagePath, false)
+	panicIfErr(err)
 
 	return *updated
 }
@@ -276,6 +290,10 @@ func (u *shipmentUseCase) UpdateBuyerAddress(ctx context.Context, request dto_re
 	if auction.Status != constant.AuctionStatusWaitingForBuyerAddress {
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionNotWaitingForBuyerAddress))
 	}
+	if !shipment.BuyerAddressDeadlineAt.IsNil() && !shipment.BuyerAddressDeadlineAt.DateTime().Time().After(time.Now()) {
+		_ = u.HandleShipmentAddressDeadline(ctx, shipment.Id)
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionNotWaitingForBuyerAddress))
+	}
 
 	// Verify the address belongs to the buyer
 	address, err := u.repositoryManager.UserAddressRepository().GetById(ctx, request.AddressId)
@@ -295,6 +313,15 @@ func (u *shipmentUseCase) UpdateBuyerAddress(ctx context.Context, request dto_re
 	// Advance product status to WAITING_FOR_SHIPMENT
 	_, err = u.repositoryManager.ProductRepository().UpdateStatus(ctx, auction.ProductId, constant.ProductStatusWaitingForShipment)
 	panicIfErr(err)
+
+	shipDeadline := util.CurrentDateTime().Add(sellerShipDuration())
+	updated, err = u.repositoryManager.ShipmentRepository().UpdateShipDeadline(ctx, shipment.Id, shipDeadline)
+	panicIfErr(err)
+	if u.taskQueue != nil {
+		if err := u.taskQueue.EnqueueShipmentShipDue(updated.Id, shipDeadline.Add(shipmentDeadlineGrace()).Time()); err != nil {
+			log.Printf("[shipment worker] enqueue ship deadline for %d failed: %v", updated.Id, err)
+		}
+	}
 
 	// FOR TESTING PURPOSES: if EstimatedCosts is empty, set it to a non-empty JSON so that the shipping flow can proceed without calling the Biteship rates API.
 	if updated.EstimatedCosts == nil || *updated.EstimatedCosts == "" {
@@ -411,4 +438,488 @@ func (u *shipmentUseCase) GetTracking(ctx context.Context, request dto_request.A
 	panicIfErr(err)
 
 	return result
+}
+
+func (u *shipmentUseCase) completeShipment(ctx context.Context, auction model.Auction, shipment model.Shipment, deliveryProofImagePath *string, auto bool) (*model.Shipment, error) {
+	var updated *model.Shipment
+	err := u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+		lockedShipment, err := u.repositoryManager.ShipmentRepository().GetByIdForUpdate(ctx, shipment.Id)
+		if err != nil {
+			return err
+		}
+		if !lockedShipment.ReceivedAt.IsNil() {
+			updated = lockedShipment
+			return nil
+		}
+		if lockedShipment.ShippedAt.IsNil() || !lockedShipment.SellerFailedAt.IsNil() {
+			return nil
+		}
+
+		if auto {
+			updated, err = u.repositoryManager.ShipmentRepository().UpdateAutoReceived(ctx, lockedShipment.Id)
+		} else {
+			if deliveryProofImagePath == nil {
+				return nil
+			}
+			updated, err = u.repositoryManager.ShipmentRepository().UpdateReceived(ctx, lockedShipment.Id, *deliveryProofImagePath)
+		}
+		if err != nil {
+			return err
+		}
+
+		bid, err := u.repositoryManager.AuctionBidRepository().GetById(ctx, lockedShipment.AuctionBidId)
+		if err != nil {
+			return err
+		}
+
+		product, err := u.repositoryManager.ProductRepository().GetById(ctx, auction.ProductId)
+		if err != nil {
+			return err
+		}
+
+		sellerRevenue := roundMoney(bid.Amount - calculateAuctionFee(bid.Amount))
+		if _, err = u.repositoryManager.UserRepository().DepositBalance(ctx, product.UserId, sellerRevenue); err != nil {
+			return err
+		}
+
+		if _, err = u.repositoryManager.AuctionRepository().UpdateStatus(ctx, auction.Id, constant.AuctionStatusCompleted); err != nil {
+			return err
+		}
+
+		_, err = u.repositoryManager.ProductRepository().UpdateStatus(ctx, auction.ProductId, constant.ProductStatusCompleted)
+		return err
+	})
+	return updated, err
+}
+
+func (u *shipmentUseCase) refundCompletedPayment(ctx context.Context, auctionId int64) (*model.Payment, error) {
+	payment, err := u.repositoryManager.PaymentRepository().GetCompletedByAuctionId(ctx, auctionId)
+	if err == constant.ErrNoData {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if _, err = u.repositoryManager.PaymentRepository().UpdateStatus(ctx, payment.Id, constant.PaymentStatusRefunded); err != nil {
+		return nil, err
+	}
+	if _, err = u.repositoryManager.UserRepository().DepositBalance(ctx, payment.UserId, payment.Amount); err != nil {
+		return nil, err
+	}
+	payment.Status = constant.PaymentStatusRefunded
+	return payment, nil
+}
+
+func (u *shipmentUseCase) HandleShipmentAddressDeadline(ctx context.Context, shipmentId int64) error {
+	auction, shipment := u.mustGetAuctionShipmentFromShipmentId(ctx, shipmentId)
+	if auction.Status != constant.AuctionStatusWaitingForBuyerAddress ||
+		shipment.BuyerAddressDeadlineAt.IsNil() ||
+		!shipment.BuyerAddressFailedAt.IsNil() ||
+		shipment.BuyerAddressDeadlineAt.DateTime().Time().After(time.Now()) {
+		return nil
+	}
+
+	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
+	var payment *model.Payment
+
+	err := u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+		lockedShipment, err := u.repositoryManager.ShipmentRepository().GetByIdForUpdate(ctx, shipment.Id)
+		if err != nil {
+			return err
+		}
+		if !lockedShipment.BuyerAddressFailedAt.IsNil() {
+			return nil
+		}
+		if _, err = u.repositoryManager.ShipmentRepository().UpdateBuyerAddressFailed(ctx, lockedShipment.Id); err != nil {
+			return err
+		}
+		if _, err = u.repositoryManager.AuctionRepository().UpdateStatus(ctx, auction.Id, constant.AuctionStatusWaitingForSellerDecision); err != nil {
+			return err
+		}
+		if _, err = u.repositoryManager.ProductRepository().UpdateStatus(ctx, auction.ProductId, constant.ProductStatusWaitingForSellerDecision); err != nil {
+			return err
+		}
+
+		winner, err := u.repositoryManager.AuctionWinnerRepository().GetActiveByAuctionIdForUpdate(ctx, auction.Id)
+		if err != nil && err != constant.ErrNoData {
+			return err
+		}
+		if winner != nil {
+			if _, err = u.repositoryManager.AuctionWinnerRepository().UpdateStatus(ctx, winner.Id, constant.AuctionWinnerStatusCancelled); err != nil {
+				return err
+			}
+		}
+
+		payment, err = u.refundCompletedPayment(ctx, auction.Id)
+		if err != nil {
+			return err
+		}
+
+		msg := "Buyer did not confirm shipping address before the deadline"
+		return u.repositoryManager.ProductStatusHistoryRepository().Insert(ctx, &model.ProductStatusHistory{
+			ProductId: auction.ProductId,
+			Status:    constant.ProductStatusWaitingForSellerDecision,
+			Message:   &msg,
+		})
+	})
+	if err != nil {
+		return err
+	}
+
+	ref := auction.Id
+	insertUserNotification(ctx, u.repositoryManager, shipment.UserId, "Address confirmation expired", "You missed the address confirmation deadline, so your payment was refunded to your balance.", "BUYER_ADDRESS_EXPIRED", &ref)
+	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Buyer address deadline missed", "Buyer did not confirm the shipping address before the deadline. You can relist or offer the auction to the next bidder.", "BUYER_ADDRESS_EXPIRED", &ref)
+	if payment != nil {
+		u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBuyer, notification.EventBuyerAddressExpired, auction.Id, "Address confirmation expired", "You missed the address confirmation deadline, so your payment was refunded.")
+	}
+	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventBuyerAddressExpired, auction.Id, "Buyer address deadline missed", "Buyer did not confirm the shipping address before the deadline.")
+	return nil
+}
+
+func (u *shipmentUseCase) HandleShipmentShipDeadline(ctx context.Context, shipmentId int64) error {
+	auction, shipment := u.mustGetAuctionShipmentFromShipmentId(ctx, shipmentId)
+	if auction.Status != constant.AuctionStatusWaitingForShipment ||
+		shipment.ShipDeadlineAt.IsNil() ||
+		!shipment.ShippedAt.IsNil() ||
+		!shipment.SellerFailedAt.IsNil() ||
+		shipment.ShipDeadlineAt.DateTime().Time().After(time.Now()) {
+		return nil
+	}
+
+	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
+
+	err := u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+		lockedShipment, err := u.repositoryManager.ShipmentRepository().GetByIdForUpdate(ctx, shipment.Id)
+		if err != nil {
+			return err
+		}
+		if !lockedShipment.ShippedAt.IsNil() || !lockedShipment.SellerFailedAt.IsNil() {
+			return nil
+		}
+
+		if _, err = u.repositoryManager.ShipmentRepository().UpdateSellerFailed(ctx, lockedShipment.Id); err != nil {
+			return err
+		}
+		if _, err = u.repositoryManager.AuctionRepository().UpdateStatus(ctx, auction.Id, constant.AuctionStatusSellerFailedToShip); err != nil {
+			return err
+		}
+		if _, err = u.repositoryManager.ProductRepository().UpdateStatus(ctx, auction.ProductId, constant.ProductStatusSellerFailedToShip); err != nil {
+			return err
+		}
+
+		if _, err = u.refundCompletedPayment(ctx, auction.Id); err != nil {
+			return err
+		}
+
+		msg := "Seller did not ship before the deadline"
+		return u.repositoryManager.ProductStatusHistoryRepository().Insert(ctx, &model.ProductStatusHistory{
+			ProductId: auction.ProductId,
+			Status:    constant.ProductStatusSellerFailedToShip,
+			Message:   &msg,
+		})
+	})
+	if err != nil {
+		return err
+	}
+
+	ref := auction.Id
+	insertUserNotification(ctx, u.repositoryManager, shipment.UserId, "Order refunded", "Seller did not ship before the deadline, so your payment was refunded to your balance.", "SHIPMENT_REFUNDED", &ref)
+	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Shipment deadline missed", "You missed the shipping deadline for this auction.", "SHIPMENT_DEADLINE_MISSED", &ref)
+	u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBuyer, notification.EventShipmentRefunded, auction.Id, "Order refunded", "Seller did not ship before the deadline, so your payment was refunded.")
+	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventShipmentDeadlineMissed, auction.Id, "Shipment deadline missed", "You missed the shipping deadline for this auction.")
+	return nil
+}
+
+func (u *shipmentUseCase) HandleShipmentTrackingCheck(ctx context.Context, shipmentId int64) error {
+	auction, shipment := u.mustGetAuctionShipmentFromShipmentId(ctx, shipmentId)
+	if auction.Status != constant.AuctionStatusShipped ||
+		shipment.TrackingNumber == nil ||
+		shipment.ShippedAt.IsNil() ||
+		!shipment.DeliveredAt.IsNil() ||
+		!shipment.ReceivedAt.IsNil() ||
+		!shipment.SellerFailedAt.IsNil() {
+		return nil
+	}
+	if u.biteshipClient == nil {
+		return nil
+	}
+
+	tracking, err := u.biteshipClient.GetTracking(*shipment.TrackingNumber)
+	if err != nil {
+		log.Printf("[shipment worker] tracking check shipment %d failed: %v", shipment.Id, err)
+		u.reenqueueTrackingCheck(shipment.Id)
+		return nil
+	}
+	if !isBiteshipDeliveredTracking(tracking) {
+		u.reenqueueTrackingCheck(shipment.Id)
+		return nil
+	}
+
+	_, _ = auction, shipment
+	return u.markShipmentDelivered(ctx, shipmentId)
+}
+
+func (u *shipmentUseCase) HandleBiteshipWebhook(ctx context.Context, payload map[string]interface{}) error {
+	if !isBiteshipDeliveredTracking(payload) {
+		return nil
+	}
+	identifiers := extractBiteshipTrackingIdentifiers(payload)
+	shipment, err := u.repositoryManager.ShipmentRepository().GetByTrackingIdentifier(ctx, identifiers)
+	if err == constant.ErrNoData {
+		log.Printf("[biteship webhook] delivered event ignored: shipment not found identifiers=%v", identifiers)
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return u.markShipmentDelivered(ctx, shipment.Id)
+}
+
+func (u *shipmentUseCase) HandleShipmentReceiveDeadline(ctx context.Context, shipmentId int64) error {
+	auction, shipment := u.mustGetAuctionShipmentFromShipmentId(ctx, shipmentId)
+	if auction.Status != constant.AuctionStatusShipped ||
+		shipment.ReceiveDeadlineAt.IsNil() ||
+		shipment.ShippedAt.IsNil() ||
+		!shipment.ReceivedAt.IsNil() ||
+		!shipment.SellerFailedAt.IsNil() ||
+		shipment.ReceiveDeadlineAt.DateTime().Time().After(time.Now()) {
+		return nil
+	}
+
+	updated, err := u.completeShipment(ctx, auction, shipment, nil, true)
+	if err != nil {
+		return err
+	}
+	if updated == nil {
+		return nil
+	}
+
+	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
+	ref := auction.Id
+	insertUserNotification(ctx, u.repositoryManager, shipment.UserId, "Order auto-completed", "Receipt confirmation deadline passed, so the order was completed automatically.", "SHIPMENT_AUTO_COMPLETED", &ref)
+	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Order completed", "Buyer confirmation deadline passed, so the order was completed automatically.", "SHIPMENT_AUTO_COMPLETED", &ref)
+	u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBuyer, notification.EventShipmentAutoCompleted, auction.Id, "Order auto-completed", "Receipt confirmation deadline passed, so the order was completed automatically.")
+	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventShipmentAutoCompleted, auction.Id, "Order completed", "Buyer confirmation deadline passed, so the order was completed automatically.")
+	return nil
+}
+
+func (u *shipmentUseCase) RecoverShipmentDeadlines(ctx context.Context) error {
+	shipments, err := u.repositoryManager.ShipmentRepository().FetchPendingAddressDeadline(ctx)
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	for _, shipment := range shipments {
+		if shipment.BuyerAddressDeadlineAt.DateTime().Time().After(now) {
+			if u.taskQueue != nil {
+				if err := u.taskQueue.EnqueueShipmentAddressDue(shipment.Id, shipment.BuyerAddressDeadlineAt.DateTime().Add(shipmentDeadlineGrace()).Time()); err != nil {
+					log.Printf("[startup] re-enqueue address deadline shipment %d failed: %v", shipment.Id, err)
+				}
+			}
+			continue
+		}
+		log.Printf("[startup] recovering overdue address deadline shipment %d", shipment.Id)
+		if err := u.HandleShipmentAddressDeadline(ctx, shipment.Id); err != nil {
+			log.Printf("[startup] recover address deadline shipment %d failed: %v", shipment.Id, err)
+		}
+	}
+
+	shipments, err = u.repositoryManager.ShipmentRepository().FetchPendingShipDeadline(ctx)
+	if err != nil {
+		return err
+	}
+	for _, shipment := range shipments {
+		if shipment.ShipDeadlineAt.DateTime().Time().After(now) {
+			if u.taskQueue != nil {
+				if err := u.taskQueue.EnqueueShipmentShipDue(shipment.Id, shipment.ShipDeadlineAt.DateTime().Add(shipmentDeadlineGrace()).Time()); err != nil {
+					log.Printf("[startup] re-enqueue ship deadline shipment %d failed: %v", shipment.Id, err)
+				}
+			}
+			continue
+		}
+		log.Printf("[startup] recovering overdue ship deadline shipment %d", shipment.Id)
+		if err := u.HandleShipmentShipDeadline(ctx, shipment.Id); err != nil {
+			log.Printf("[startup] recover ship deadline shipment %d failed: %v", shipment.Id, err)
+		}
+	}
+
+	shipments, err = u.repositoryManager.ShipmentRepository().FetchPendingReceiveDeadline(ctx)
+	if err != nil {
+		return err
+	}
+	for _, shipment := range shipments {
+		if shipment.ReceiveDeadlineAt.DateTime().Time().After(now) {
+			if u.taskQueue != nil {
+				if err := u.taskQueue.EnqueueShipmentReceiveDue(shipment.Id, shipment.ReceiveDeadlineAt.DateTime().Add(shipmentDeadlineGrace()).Time()); err != nil {
+					log.Printf("[startup] re-enqueue receive deadline shipment %d failed: %v", shipment.Id, err)
+				}
+			}
+			continue
+		}
+		log.Printf("[startup] recovering overdue receive deadline shipment %d", shipment.Id)
+		if err := u.HandleShipmentReceiveDeadline(ctx, shipment.Id); err != nil {
+			log.Printf("[startup] recover receive deadline shipment %d failed: %v", shipment.Id, err)
+		}
+	}
+
+	shipments, err = u.repositoryManager.ShipmentRepository().FetchPendingDeliveryTracking(ctx)
+	if err != nil {
+		return err
+	}
+	for _, shipment := range shipments {
+		if u.taskQueue != nil {
+			if err := u.taskQueue.EnqueueShipmentTrackCheck(shipment.Id, time.Now().Add(trackingCheckDuration())); err != nil {
+				log.Printf("[startup] re-enqueue tracking check shipment %d failed: %v", shipment.Id, err)
+			}
+		}
+	}
+	return nil
+}
+
+func (u *shipmentUseCase) mustGetAuctionShipmentFromShipmentId(ctx context.Context, shipmentId int64) (model.Auction, model.Shipment) {
+	shipment := mustGetShipment(ctx, u.repositoryManager, shipmentId)
+	bid := mustGetAuctionBid(ctx, u.repositoryManager, shipment.AuctionBidId)
+	auction := mustGetAuction(ctx, u.repositoryManager, bid.AuctionId)
+	return auction, shipment
+}
+
+func (u *shipmentUseCase) markShipmentDelivered(ctx context.Context, shipmentId int64) error {
+	auction, shipment := u.mustGetAuctionShipmentFromShipmentId(ctx, shipmentId)
+	if auction.Status != constant.AuctionStatusShipped ||
+		shipment.ShippedAt.IsNil() ||
+		!shipment.DeliveredAt.IsNil() ||
+		!shipment.ReceivedAt.IsNil() ||
+		!shipment.SellerFailedAt.IsNil() {
+		return nil
+	}
+
+	receiveDeadline := util.CurrentDateTime().Add(buyerReceiveDuration())
+	updated, err := u.repositoryManager.ShipmentRepository().UpdateDelivered(ctx, shipment.Id, receiveDeadline)
+	if err != nil {
+		return err
+	}
+	if u.taskQueue != nil {
+		if err := u.taskQueue.EnqueueShipmentReceiveDue(updated.Id, receiveDeadline.Add(shipmentDeadlineGrace()).Time()); err != nil {
+			log.Printf("[shipment worker] enqueue receive deadline for %d failed: %v", updated.Id, err)
+		}
+	}
+
+	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
+	ref := auction.Id
+	insertUserNotification(ctx, u.repositoryManager, shipment.UserId, "Package delivered", "Courier tracking says your package has been delivered. Please confirm receipt before the deadline.", "SHIPMENT_DELIVERED", &ref)
+	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Package delivered", "Courier tracking says the package has been delivered. Buyer confirmation deadline has started.", "SHIPMENT_DELIVERED", &ref)
+	u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBuyer, notification.EventShipmentDelivered, auction.Id, "Package delivered", "Courier tracking says your package has been delivered. Please confirm receipt before the deadline.")
+	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventShipmentDelivered, auction.Id, "Package delivered", "Courier tracking says the package has been delivered. Buyer confirmation deadline has started.")
+	return nil
+}
+
+func (u *shipmentUseCase) publishShipmentNotification(ctx context.Context, userId int64, role string, eventType string, auctionId int64, title string, body string) {
+	publishAuctionNotification(ctx, u.notificationQueue, notification.Payload{
+		UserId:    userId,
+		Role:      role,
+		EventType: eventType,
+		AuctionId: auctionId,
+		Title:     title,
+		Body:      body,
+		DataPayload: map[string]string{
+			"auction_url": auctionURL(auctionId),
+			"auction_id":  strconv.FormatInt(auctionId, 10),
+		},
+	})
+}
+
+func (u *shipmentUseCase) reenqueueTrackingCheck(shipmentId int64) {
+	if u.taskQueue == nil {
+		return
+	}
+	if err := u.taskQueue.EnqueueShipmentTrackCheck(shipmentId, time.Now().Add(trackingCheckDuration())); err != nil {
+		log.Printf("[shipment worker] re-enqueue tracking check for %d failed: %v", shipmentId, err)
+	}
+}
+
+func isBiteshipDeliveredTracking(value interface{}) bool {
+	switch v := value.(type) {
+	case map[string]interface{}:
+		for key, raw := range v {
+			lowerKey := strings.ToLower(key)
+			if strings.Contains(lowerKey, "status") || strings.Contains(lowerKey, "state") {
+				if isDeliveredStatus(raw) {
+					return true
+				}
+			}
+			if isBiteshipDeliveredTracking(raw) {
+				return true
+			}
+		}
+	case []interface{}:
+		for _, item := range v {
+			if isBiteshipDeliveredTracking(item) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isDeliveredStatus(value interface{}) bool {
+	text := strings.ToLower(strings.TrimSpace(toStatusString(value)))
+	if text == "" {
+		return false
+	}
+	deliveredStatuses := []string{
+		"delivered",
+		"received",
+		"completed",
+		"success",
+		"terkirim",
+		"diterima",
+	}
+	for _, status := range deliveredStatuses {
+		if text == status || strings.Contains(text, status) {
+			return true
+		}
+	}
+	return false
+}
+
+func toStatusString(value interface{}) string {
+	switch v := value.(type) {
+	case string:
+		return v
+	case fmt.Stringer:
+		return v.String()
+	case float64, float32, int, int64, int32, uint, uint64, uint32:
+		return fmt.Sprint(v)
+	default:
+		return ""
+	}
+}
+
+func extractBiteshipTrackingIdentifiers(value interface{}) []string {
+	var out []string
+	var walk func(interface{})
+	walk = func(v interface{}) {
+		switch current := v.(type) {
+		case map[string]interface{}:
+			for key, raw := range current {
+				lowerKey := strings.ToLower(key)
+				if strings.Contains(lowerKey, "tracking") ||
+					strings.Contains(lowerKey, "waybill") ||
+					lowerKey == "awb" ||
+					lowerKey == "awb_id" ||
+					lowerKey == "resi" {
+					if text := toStatusString(raw); strings.TrimSpace(text) != "" {
+						out = append(out, strings.TrimSpace(text))
+					}
+				}
+				walk(raw)
+			}
+		case []interface{}:
+			for _, item := range current {
+				walk(item)
+			}
+		}
+	}
+	walk(value)
+	return out
 }

@@ -16,6 +16,7 @@ import (
 type BiteshipApi struct {
 	*api
 	biteshipUseCase use_case.BiteshipUseCase
+	shipmentUseCase use_case.ShipmentUseCase
 }
 
 // SearchAreas godoc
@@ -45,12 +46,50 @@ func (a *BiteshipApi) SearchAreas() gin.HandlerFunc {
 	})
 }
 
+// HandleWebhook godoc
+//
+//	@Router		/biteship/webhooks [post]
+//	@Summary	Receive Biteship order/tracking webhook
+//	@tags		Biteship
+//	@Accept		json
+//	@Param		body	body	map[string]interface{}	true	"Raw Biteship webhook payload"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.SuccessResponse
+func (a *BiteshipApi) HandleWebhook() gin.HandlerFunc {
+	return a.Guest(func(ctx apiContext) {
+		var payload map[string]interface{}
+		ctx.mustBind(&payload)
+
+		if a.shipmentUseCase != nil {
+			if err := a.shipmentUseCase.HandleBiteshipWebhook(ctx.context(), payload); err != nil {
+				panic(err)
+			}
+		}
+
+		ctx.json(http.StatusOK, dto_response.SuccessResponse{
+			Message: "ok",
+		})
+	})
+}
+
 func RegisterBiteshipApi(router gin.IRouter, baseApi *api, useCaseManager use_case.UseCaseManager) {
 	a := &BiteshipApi{
 		api:             baseApi,
 		biteshipUseCase: useCaseManager.BiteshipUseCase(),
+		shipmentUseCase: useCaseManager.ShipmentUseCase(),
 	}
 
 	group := router.Group("/biteship")
 	group.POST("/areas/filter", a.SearchAreas())
+}
+
+func RegisterBiteshipWebhookApi(router gin.IRouter, baseApi *api, useCaseManager use_case.UseCaseManager) {
+	a := &BiteshipApi{
+		api:             baseApi,
+		biteshipUseCase: useCaseManager.BiteshipUseCase(),
+		shipmentUseCase: useCaseManager.ShipmentUseCase(),
+	}
+
+	group := router.Group("/biteship")
+	group.POST("/webhooks", a.HandleWebhook())
 }

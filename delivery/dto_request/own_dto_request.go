@@ -62,6 +62,8 @@ type OwnRoleRequestCreateRequest struct {
 	IdentityImagePath       *string `json:"identity_image_path"       validate:"omitempty,max=500"           example:"/uploads/identity.jpg"`
 	SelfieIdentityImagePath *string `json:"selfie_identity_image_path" validate:"omitempty,max=500"          example:"/uploads/selfie.jpg"`
 	BankAccountNumber       *string `json:"bank_account_number"       validate:"omitempty,max=50"            example:"1234567890"`
+	BankAccountName         *string `json:"bank_account_name"         validate:"omitempty,max=255"           example:"John Doe"`
+	BankName                *string `json:"bank_name"                 validate:"omitempty,max=255"           example:"Bank ABC"`
 } // @name OwnRoleRequestCreateRequest
 
 type OwnWithdrawalRequestCreateRequest struct {

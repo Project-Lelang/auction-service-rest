@@ -2,16 +2,17 @@ package constant
 
 const (
 	// auth
-	LanguageAuthInvalidCredentials     = "AUTH.INVALID_CREDENTIALS"
-	LanguageAuthWrongPassword          = "AUTH.WRONG_PASSWORD"
-	LanguageAuthAccountNotRegistered   = "AUTH.ACCOUNT_NOT_REGISTERED"
-	LanguageAuthTokenExpired           = "AUTH.TOKEN_EXPIRED"
-	LanguageAuthTokenInvalid           = "AUTH.TOKEN_INVALID"
-	LanguageAuthRefreshTokenExpired    = "AUTH.REFRESH_TOKEN_EXPIRED"
-	LanguageAuthRefreshTokenInvalid    = "AUTH.REFRESH_TOKEN_INVALID"
-	LanguageAuthLoggedOut              = "AUTH.LOGGED_OUT"
-	LanguageAuthOtpInvalid             = "AUTH.OTP_INVALID"
-	LanguageAuthPhoneAlreadyRegistered = "AUTH.PHONE_ALREADY_REGISTERED"
+	LanguageAuthInvalidCredentials      = "AUTH.INVALID_CREDENTIALS"
+	LanguageAuthWrongPassword           = "AUTH.WRONG_PASSWORD"
+	LanguageAuthAccountNotRegistered    = "AUTH.ACCOUNT_NOT_REGISTERED"
+	LanguageAuthTokenExpired            = "AUTH.TOKEN_EXPIRED"
+	LanguageAuthTokenInvalid            = "AUTH.TOKEN_INVALID"
+	LanguageAuthRefreshTokenExpired     = "AUTH.REFRESH_TOKEN_EXPIRED"
+	LanguageAuthRefreshTokenInvalid     = "AUTH.REFRESH_TOKEN_INVALID"
+	LanguageAuthLoggedOut               = "AUTH.LOGGED_OUT"
+	LanguageAuthOtpInvalid              = "AUTH.OTP_INVALID"
+	LanguageAuthResetPasswordOtpInvalid = "AUTH.RESET_PASSWORD_OTP_INVALID"
+	LanguageAuthEmailAlreadyRegistered  = "AUTH.EMAIL_ALREADY_REGISTERED"
 
 	// user
 	LanguageUserNotFound          = "USER.NOT_FOUND"

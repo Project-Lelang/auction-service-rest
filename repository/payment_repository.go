@@ -20,6 +20,7 @@ type PaymentRepository interface {
 	// read
 	GetById(ctx context.Context, id int64) (*model.Payment, error)
 	GetActiveByAuctionId(ctx context.Context, auctionId int64) (*model.Payment, error)
+	GetCompletedByAuctionId(ctx context.Context, auctionId int64) (*model.Payment, error)
 	Fetch(ctx context.Context, options ...model.PaymentQueryOption) ([]model.Payment, error)
 	FetchByAuctionIds(ctx context.Context, auctionIds []int64) ([]model.Payment, error)
 	Count(ctx context.Context, options ...model.PaymentQueryOption) (int64, error)
@@ -98,6 +99,16 @@ func (r *paymentRepository) GetActiveByAuctionId(ctx context.Context, auctionId 
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("auction_id"): auctionId}).
 		Where(squirrel.Eq{r.f("status"): constant.PaymentStatusWaitingForPayment}).
+		OrderBy(r.f("created_at") + " DESC").
+		Limit(1)
+	return r.getInternal(ctx, stmt)
+}
+
+func (r *paymentRepository) GetCompletedByAuctionId(ctx context.Context, auctionId int64) (*model.Payment, error) {
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("auction_id"): auctionId}).
+		Where(squirrel.Eq{r.f("status"): constant.PaymentStatusCompleted}).
 		OrderBy(r.f("created_at") + " DESC").
 		Limit(1)
 	return r.getInternal(ctx, stmt)

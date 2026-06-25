@@ -74,7 +74,7 @@ func NewContainer(hub *ws.Hub) *Container {
 	bidUseCase := use_case.NewBidUseCase(repoManager, notificationQueue, hub)
 	winnerUseCase := use_case.NewWinnerUseCase(repoManager)
 	paymentUseCase := use_case.NewPaymentUseCase(repoManager, infraManager.GetMidtransClient(), infraManager.GetTaskQueueClient(), infraManager.GetBiteshipClient(), notificationQueue)
-	shipmentUseCase := use_case.NewShipmentUseCase(repoManager, infraManager.GetBiteshipClient())
+	shipmentUseCase := use_case.NewShipmentUseCase(repoManager, infraManager.GetBiteshipClient(), infraManager.GetTaskQueueClient(), notificationQueue)
 	userAddressUseCase := use_case.NewUserAddressUseCase(repoManager)
 	biteshipUseCase := use_case.NewBiteshipUseCase(infraManager.GetBiteshipClient())
 	notificationUseCase := use_case.NewNotificationUseCase(repoManager)

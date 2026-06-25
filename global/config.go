@@ -75,6 +75,14 @@ type NotificationConfig struct {
 	RetryBaseMs int    `yaml:"retry_base_ms"`
 }
 
+type ShipmentDeadlineConfig struct {
+	BuyerAddressHours         int `yaml:"buyer_address_hours"`
+	SellerShipHours           int `yaml:"seller_ship_hours"`
+	BuyerReceiveHours         int `yaml:"buyer_receive_hours"`
+	TrackingCheckIntervalMins int `yaml:"tracking_check_interval_minutes"`
+	DeadlineGraceMinutes      int `yaml:"deadline_grace_minutes"`
+}
+
 type FirebaseConfig struct {
 	ServiceAccountPath string `yaml:"service_account_path"`
 }
@@ -93,26 +101,27 @@ type YamlConfig struct {
 	timeLocation       *time.Location
 	BaseDir            string
 	StorageDir         string
-	AppName            string             `yaml:"app_name"`
-	Environment        string             `yaml:"environment"`
-	IsDebug            bool               `yaml:"debug"`
-	LogChannel         []string           `yaml:"log_channel"`
-	Timezone           string             `yaml:"timezone"`
-	Port               uint               `yaml:"port"`
-	Uri                string             `yaml:"uri"`
-	FeUri              string             `yaml:"fe_uri"`
-	CorsAllowedOrigins []string           `yaml:"cors_allowed_origins"`
-	Mysql              MysqlConfig        `yaml:"mysql"`
-	JwtConfig          JwtConfig          `yaml:"jwt"`
-	SuperAdmin         SuperAdminConfig   `yaml:"super_admin"`
-	Filesystem         FilesystemConfig   `yaml:"filesystem"`
-	Supabase           *SupabaseConfig    `yaml:"supabase"`
-	Midtrans           *MidtransConfig    `yaml:"midtrans"`
-	Biteship           *BiteshipConfig    `yaml:"biteship"`
-	Redis              RedisConfig        `yaml:"redis"`
-	Notification       NotificationConfig `yaml:"notification"`
-	Firebase           *FirebaseConfig    `yaml:"firebase"`
-	Email              EmailConfig        `yaml:"email"`
+	AppName            string                 `yaml:"app_name"`
+	Environment        string                 `yaml:"environment"`
+	IsDebug            bool                   `yaml:"debug"`
+	LogChannel         []string               `yaml:"log_channel"`
+	Timezone           string                 `yaml:"timezone"`
+	Port               uint                   `yaml:"port"`
+	Uri                string                 `yaml:"uri"`
+	FeUri              string                 `yaml:"fe_uri"`
+	CorsAllowedOrigins []string               `yaml:"cors_allowed_origins"`
+	Mysql              MysqlConfig            `yaml:"mysql"`
+	JwtConfig          JwtConfig              `yaml:"jwt"`
+	SuperAdmin         SuperAdminConfig       `yaml:"super_admin"`
+	Filesystem         FilesystemConfig       `yaml:"filesystem"`
+	Supabase           *SupabaseConfig        `yaml:"supabase"`
+	Midtrans           *MidtransConfig        `yaml:"midtrans"`
+	Biteship           *BiteshipConfig        `yaml:"biteship"`
+	Redis              RedisConfig            `yaml:"redis"`
+	Notification       NotificationConfig     `yaml:"notification"`
+	ShipmentDeadline   ShipmentDeadlineConfig `yaml:"shipment_deadline"`
+	Firebase           *FirebaseConfig        `yaml:"firebase"`
+	Email              EmailConfig            `yaml:"email"`
 }
 
 var config YamlConfig
@@ -177,6 +186,21 @@ func LoadConfig() error {
 	}
 	if config.Notification.RetryBaseMs == 0 {
 		config.Notification.RetryBaseMs = 500
+	}
+	if config.ShipmentDeadline.BuyerAddressHours == 0 {
+		config.ShipmentDeadline.BuyerAddressHours = 24
+	}
+	if config.ShipmentDeadline.SellerShipHours == 0 {
+		config.ShipmentDeadline.SellerShipHours = 72
+	}
+	if config.ShipmentDeadline.BuyerReceiveHours == 0 {
+		config.ShipmentDeadline.BuyerReceiveHours = 168
+	}
+	if config.ShipmentDeadline.TrackingCheckIntervalMins == 0 {
+		config.ShipmentDeadline.TrackingCheckIntervalMins = 60
+	}
+	if config.ShipmentDeadline.DeadlineGraceMinutes == 0 {
+		config.ShipmentDeadline.DeadlineGraceMinutes = 5
 	}
 	if config.Email.Port == 0 {
 		config.Email.Port = 587

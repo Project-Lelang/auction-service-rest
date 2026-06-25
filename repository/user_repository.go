@@ -28,8 +28,9 @@ type UserRepository interface {
 
 	// update
 	Update(ctx context.Context, id int64, fullname string, birth data_type.DateTime, gender *string) (*model.User, error)
+	UpdatePassword(ctx context.Context, id int64, hashedPassword string) error
 	UpdateIdentityInfo(ctx context.Context, id int64, nik string, identityImagePath string, selfieIdentityImagePath string) error
-	UpdateBankAccountNumber(ctx context.Context, id int64, bankAccountNumber string) error
+	UpdateBankAccountInfo(ctx context.Context, id int64, bankAccountNumber string, bankAccountName string, bankName string) error
 	DepositBalance(ctx context.Context, id int64, amount float64) (*model.User, error)
 	WithdrawBalance(ctx context.Context, id int64, amount float64) (*model.User, error)
 	SoftDelete(ctx context.Context, id int64) error
@@ -174,6 +175,16 @@ func (r *userRepository) Update(ctx context.Context, id int64, fullname string, 
 	return r.GetById(ctx, id)
 }
 
+func (r *userRepository) UpdatePassword(ctx context.Context, id int64, hashedPassword string) error {
+	return update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"password":   hashedPassword,
+			"updated_at": util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	)
+}
+
 func (r *userRepository) SoftDelete(ctx context.Context, id int64) error {
 	return update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
@@ -196,10 +207,12 @@ func (r *userRepository) UpdateIdentityInfo(ctx context.Context, id int64, nik s
 	)
 }
 
-func (r *userRepository) UpdateBankAccountNumber(ctx context.Context, id int64, bankAccountNumber string) error {
+func (r *userRepository) UpdateBankAccountInfo(ctx context.Context, id int64, bankAccountNumber string, bankAccountName string, bankName string) error {
 	return update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
 			"bank_account_number": bankAccountNumber,
+			"bank_account_name":   bankAccountName,
+			"bank_name":           bankName,
 			"updated_at":          util.CurrentDateTime(),
 		},
 		squirrel.Eq{"id": id},

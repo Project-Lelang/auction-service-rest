@@ -16,6 +16,59 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/auctions/dashboard-report": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Auction"
+                ],
+                "summary": "Get daily auction revenue and count report for admin dashboard",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date filter (YYYY-MM-DD)",
+                        "name": "start_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date filter (YYYY-MM-DD)",
+                        "name": "end_date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto_response.DashboardDailyReport"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/admin/auth/login": {
             "post": {
                 "consumes": [
@@ -1948,6 +2001,39 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/forgot-password": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Request password reset OTP by email",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuthForgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "consumes": [
@@ -2037,7 +2123,7 @@ const docTemplate = `{
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Request OTP for phone verification",
+                "summary": "Request OTP for email verification",
                 "parameters": [
                     {
                         "description": "Body Request",
@@ -2046,6 +2132,39 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/AuthOtpRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/reset-password": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Reset password using email OTP",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuthResetPasswordRequest"
                         }
                     }
                 ],
@@ -2152,6 +2271,40 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/biteship/webhooks": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Biteship"
+                ],
+                "summary": "Receive Biteship order/tracking webhook",
+                "parameters": [
+                    {
+                        "description": "Raw Biteship webhook payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/SuccessResponse"
                         }
                     }
                 }
@@ -4255,14 +4408,19 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "birth",
+                "email",
                 "fullname",
-                "password",
-                "phone"
+                "password"
             ],
             "properties": {
                 "birth": {
                     "type": "string",
                     "example": "1990-01-15"
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "admin@example.com"
                 },
                 "fullname": {
                     "type": "string",
@@ -4282,11 +4440,6 @@ const docTemplate = `{
                     "maxLength": 255,
                     "minLength": 8,
                     "example": "password123"
-                },
-                "phone": {
-                    "type": "string",
-                    "maxLength": 20,
-                    "example": "+6281234567891"
                 }
             }
         },
@@ -4405,7 +4558,7 @@ const docTemplate = `{
                                 "enum": [
                                     "id",
                                     "fullname",
-                                    "phone",
+                                    "email",
                                     "birth",
                                     "gender",
                                     "created_at",
@@ -4721,36 +4874,49 @@ const docTemplate = `{
                 }
             }
         },
+        "AuthForgotPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "user@example.com"
+                }
+            }
+        },
         "AuthLoginRequest": {
             "type": "object",
             "required": [
-                "password",
-                "phone"
+                "email",
+                "password"
             ],
             "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "user@example.com"
+                },
                 "password": {
                     "type": "string",
                     "maxLength": 255,
                     "minLength": 8,
                     "example": "password123"
-                },
-                "phone": {
-                    "type": "string",
-                    "maxLength": 20,
-                    "example": "+6281234567890"
                 }
             }
         },
         "AuthOtpRequest": {
             "type": "object",
             "required": [
-                "phone"
+                "email"
             ],
             "properties": {
-                "phone": {
+                "email": {
                     "type": "string",
-                    "maxLength": 20,
-                    "example": "+6281234567890"
+                    "maxLength": 255,
+                    "example": "user@example.com"
                 }
             }
         },
@@ -4758,15 +4924,20 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "birth",
+                "email",
                 "fullname",
                 "otp",
-                "password",
-                "phone"
+                "password"
             ],
             "properties": {
                 "birth": {
                     "type": "string",
                     "example": "1990-01-15"
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "user@example.com"
                 },
                 "fullname": {
                     "type": "string",
@@ -4790,11 +4961,31 @@ const docTemplate = `{
                     "maxLength": 255,
                     "minLength": 8,
                     "example": "password123"
-                },
-                "phone": {
+                }
+            }
+        },
+        "AuthResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "otp",
+                "password"
+            ],
+            "properties": {
+                "email": {
                     "type": "string",
-                    "maxLength": 20,
-                    "example": "+6281234567890"
+                    "maxLength": 255,
+                    "example": "user@example.com"
+                },
+                "otp": {
+                    "type": "string",
+                    "example": "123456"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 8,
+                    "example": "newPassword123"
                 }
             }
         },
@@ -5348,10 +5539,20 @@ const docTemplate = `{
                 "role"
             ],
             "properties": {
+                "bank_account_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "John Doe"
+                },
                 "bank_account_number": {
                     "type": "string",
                     "maxLength": 50,
                     "example": "1234567890"
+                },
+                "bank_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "Bank ABC"
                 },
                 "identity_image_path": {
                     "type": "string",
@@ -5585,7 +5786,16 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 2
                 },
+                "auto_received_at": {
+                    "type": "string"
+                },
                 "biteship_order_id": {
+                    "type": "string"
+                },
+                "buyer_address_deadline_at": {
+                    "type": "string"
+                },
+                "buyer_address_failed_at": {
                     "type": "string"
                 },
                 "buyer_address_id": {
@@ -5598,6 +5808,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "created_at": {
+                    "type": "string"
+                },
+                "delivered_at": {
                     "type": "string"
                 },
                 "delivery_proof_image_path": {
@@ -5613,6 +5826,9 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 1
                 },
+                "receive_deadline_at": {
+                    "type": "string"
+                },
                 "received_at": {
                     "type": "string"
                 },
@@ -5622,7 +5838,13 @@ const docTemplate = `{
                 "seller_address_snapshot": {
                     "$ref": "#/definitions/model.ShipmentAddressSnapshot"
                 },
+                "seller_failed_at": {
+                    "type": "string"
+                },
                 "service_code": {
+                    "type": "string"
+                },
+                "ship_deadline_at": {
                     "type": "string"
                 },
                 "shipped_at": {
@@ -5928,6 +6150,10 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                },
                 "fullname": {
                     "type": "string",
                     "example": "John Doe"
@@ -5953,10 +6179,6 @@ const docTemplate = `{
                 },
                 "nik": {
                     "type": "string"
-                },
-                "phone": {
-                    "type": "string",
-                    "example": "+6281234567890"
                 },
                 "roles": {
                     "type": "array",
@@ -6182,6 +6404,20 @@ const docTemplate = `{
                         "REQUESTED",
                         "COMPLETED"
                     ]
+                }
+            }
+        },
+        "dto_response.DashboardDailyReport": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "total_auctions": {
+                    "type": "integer"
+                },
+                "total_revenue": {
+                    "type": "number"
                 }
             }
         },

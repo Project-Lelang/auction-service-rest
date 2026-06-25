@@ -12,11 +12,15 @@ import (
 )
 
 const (
-	TypeAuctionStart      = "auction:start"
-	TypeAuctionClose      = "auction:close"
-	TypePaymentExpiry     = "payment:expire"
-	taskQueueName         = "default"
-	taskRetentionDuration = 24 * time.Hour
+	TypeAuctionStart       = "auction:start"
+	TypeAuctionClose       = "auction:close"
+	TypePaymentExpiry      = "payment:expire"
+	TypeShipmentAddressDue = "shipment:address_due"
+	TypeShipmentShipDue    = "shipment:ship_due"
+	TypeShipmentTrackCheck = "shipment:track_check"
+	TypeShipmentReceiveDue = "shipment:receive_due"
+	taskQueueName          = "default"
+	taskRetentionDuration  = 24 * time.Hour
 )
 
 // AuctionTaskPayload is the JSON payload carried by auction lifecycle tasks.
@@ -29,11 +33,20 @@ type PaymentTaskPayload struct {
 	PaymentId int64 `json:"payment_id"`
 }
 
+// ShipmentTaskPayload is the JSON payload carried by shipment deadline tasks.
+type ShipmentTaskPayload struct {
+	ShipmentId int64 `json:"shipment_id"`
+}
+
 // TaskQueueClient schedules and manages auction lifecycle tasks.
 type TaskQueueClient interface {
 	EnqueueAuctionStart(AuctionId int64, processAt time.Time) error
 	EnqueueAuctionClose(AuctionId int64, processAt time.Time) error
 	EnqueuePaymentExpiry(PaymentId int64, processAt time.Time) error
+	EnqueueShipmentAddressDue(ShipmentId int64, processAt time.Time) error
+	EnqueueShipmentShipDue(ShipmentId int64, processAt time.Time) error
+	EnqueueShipmentTrackCheck(ShipmentId int64, processAt time.Time) error
+	EnqueueShipmentReceiveDue(ShipmentId int64, processAt time.Time) error
 	// ReplaceAuctionStart deletes any existing scheduled start task for the
 	// auction then re-enqueues it at the new time. Used when OwnUpdate changes
 	// the start/end times of a SCHEDULED auction.
@@ -92,6 +105,26 @@ func (c *asynqTaskQueueClient) EnqueueAuctionClose(auctionId int64, processAt ti
 func (c *asynqTaskQueueClient) EnqueuePaymentExpiry(paymentId int64, processAt time.Time) error {
 	payload, _ := json.Marshal(PaymentTaskPayload{PaymentId: paymentId})
 	return c.enqueue(TypePaymentExpiry, fmt.Sprintf("%s:%d", TypePaymentExpiry, paymentId), payload, processAt)
+}
+
+func (c *asynqTaskQueueClient) EnqueueShipmentAddressDue(shipmentId int64, processAt time.Time) error {
+	payload, _ := json.Marshal(ShipmentTaskPayload{ShipmentId: shipmentId})
+	return c.enqueue(TypeShipmentAddressDue, fmt.Sprintf("%s:%d", TypeShipmentAddressDue, shipmentId), payload, processAt)
+}
+
+func (c *asynqTaskQueueClient) EnqueueShipmentShipDue(shipmentId int64, processAt time.Time) error {
+	payload, _ := json.Marshal(ShipmentTaskPayload{ShipmentId: shipmentId})
+	return c.enqueue(TypeShipmentShipDue, fmt.Sprintf("%s:%d", TypeShipmentShipDue, shipmentId), payload, processAt)
+}
+
+func (c *asynqTaskQueueClient) EnqueueShipmentTrackCheck(shipmentId int64, processAt time.Time) error {
+	payload, _ := json.Marshal(ShipmentTaskPayload{ShipmentId: shipmentId})
+	return c.enqueue(TypeShipmentTrackCheck, fmt.Sprintf("%s:%d:%d", TypeShipmentTrackCheck, shipmentId, processAt.Unix()), payload, processAt)
+}
+
+func (c *asynqTaskQueueClient) EnqueueShipmentReceiveDue(shipmentId int64, processAt time.Time) error {
+	payload, _ := json.Marshal(ShipmentTaskPayload{ShipmentId: shipmentId})
+	return c.enqueue(TypeShipmentReceiveDue, fmt.Sprintf("%s:%d", TypeShipmentReceiveDue, shipmentId), payload, processAt)
 }
 
 func (c *asynqTaskQueueClient) ReplaceAuctionStart(auctionId int64, processAt time.Time) error {

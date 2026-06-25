@@ -128,7 +128,7 @@ func (a *AdminRoleRequestApi) GetUserRoleRequests() gin.HandlerFunc {
 //	@tags		Admin Role Requests
 //	@Security	BearerAuth
 //	@Param		userId		path	int	true	"User ID"
-//	@Param		requestId	path	int		true	"Request ID"
+//	@Param		requestId	path	int	true	"Request ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.SuccessResponse
 func (a *AdminRoleRequestApi) ApproveRoleRequest() gin.HandlerFunc {
@@ -146,7 +146,7 @@ func (a *AdminRoleRequestApi) ApproveRoleRequest() gin.HandlerFunc {
 //	@Summary	Admin — Reject a role request
 //	@tags		Admin Role Requests
 //	@Security	BearerAuth
-//	@Param		userId		path	int									true	"User ID"
+//	@Param		userId		path	int										true	"User ID"
 //	@Param		requestId	path	int										true	"Request ID"
 //	@Param		body		body	dto_request.RoleRequestRejectRequest	true	"Reject Reason"
 //	@Produce	json

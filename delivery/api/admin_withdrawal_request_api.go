@@ -88,7 +88,7 @@ func (a *AdminWithdrawalRequestApi) Fetch() gin.HandlerFunc {
 //	@tags		Admin Withdrawal Requests
 //	@Security	BearerAuth
 //	@Param		userId				path	int	true	"User ID"
-//	@Param		withdrawalRequestId	path	int		true	"Withdrawal Request ID"
+//	@Param		withdrawalRequestId	path	int	true	"Withdrawal Request ID"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response
 func (a *AdminWithdrawalRequestApi) CompleteWithdrawalRequest() gin.HandlerFunc {

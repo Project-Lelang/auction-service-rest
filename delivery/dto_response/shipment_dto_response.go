@@ -24,8 +24,15 @@ type ShipmentResponse struct {
 	TrackingNumber         *string                        `json:"tracking_number,omitempty"`
 	CourierCode            *string                        `json:"courier_code,omitempty"`
 	DeliveryProofImagePath *string                        `json:"delivery_proof_image_path,omitempty"`
+	BuyerAddressDeadlineAt data_type.NullDateTime         `json:"buyer_address_deadline_at"`
+	ShipDeadlineAt         data_type.NullDateTime         `json:"ship_deadline_at"`
+	ReceiveDeadlineAt      data_type.NullDateTime         `json:"receive_deadline_at"`
+	DeliveredAt            data_type.NullDateTime         `json:"delivered_at"`
 	ShippedAt              data_type.NullDateTime         `json:"shipped_at"`
 	ReceivedAt             data_type.NullDateTime         `json:"received_at"`
+	AutoReceivedAt         data_type.NullDateTime         `json:"auto_received_at"`
+	BuyerAddressFailedAt   data_type.NullDateTime         `json:"buyer_address_failed_at"`
+	SellerFailedAt         data_type.NullDateTime         `json:"seller_failed_at"`
 	AuctionBid             *AuctionBidResponse            `json:"auction_bid,omitempty"`
 	Timestamp
 } // @name ShipmentResponse
@@ -45,8 +52,15 @@ func NewShipmentResponse(ctx context.Context, s model.Shipment) ShipmentResponse
 		TrackingNumber:         s.TrackingNumber,
 		CourierCode:            s.CourierCode,
 		DeliveryProofImagePath: s.DeliveryProofImagePath,
+		BuyerAddressDeadlineAt: s.BuyerAddressDeadlineAt,
+		ShipDeadlineAt:         s.ShipDeadlineAt,
+		ReceiveDeadlineAt:      s.ReceiveDeadlineAt,
+		DeliveredAt:            s.DeliveredAt,
 		ShippedAt:              s.ShippedAt,
 		ReceivedAt:             s.ReceivedAt,
+		AutoReceivedAt:         s.AutoReceivedAt,
+		BuyerAddressFailedAt:   s.BuyerAddressFailedAt,
+		SellerFailedAt:         s.SellerFailedAt,
 		Timestamp:              Timestamp(s.Timestamp),
 	}
 

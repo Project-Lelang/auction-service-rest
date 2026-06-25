@@ -26,6 +26,8 @@ type AuthUseCase interface {
 	Register(ctx context.Context, request dto_request.AuthRegisterRequest)
 	SaveFcmToken(ctx context.Context, request dto_request.AuthFcmTokenRequest)
 	CreateOtp(ctx context.Context, email string)
+	RequestForgotPassword(ctx context.Context, request dto_request.AuthForgotPasswordRequest)
+	ResetPassword(ctx context.Context, request dto_request.AuthResetPasswordRequest)
 	// Middleware helper
 	Parse(ctx context.Context, token string) (*model.UserClaims, error)
 }
@@ -154,8 +156,8 @@ func (u *authUseCase) CreateOtp(ctx context.Context, email string) {
 	email = normalizeEmail(email)
 	_, err := u.repositoryManager.UserRepository().GetByEmail(ctx, email)
 	if err == nil {
-		// Email already registered; silently succeed to avoid account enumeration.
-		return
+		// return error if user already exists
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthEmailAlreadyRegistered))
 	}
 	if err != constant.ErrNoData {
 		panic(err)
@@ -170,6 +172,59 @@ func (u *authUseCase) CreateOtp(ctx context.Context, email string) {
 	panicIfErr(upsertErr)
 
 	panicIfErr(util.SendOtpEmail(email, otpValue, otpExpiry))
+}
+
+func (u *authUseCase) RequestForgotPassword(ctx context.Context, request dto_request.AuthForgotPasswordRequest) {
+	email := normalizeEmail(request.Email)
+	_, err := u.repositoryManager.UserRepository().GetByEmail(ctx, email)
+	if err != nil {
+		if err == constant.ErrNoData {
+			// Silently succeed to avoid account enumeration.
+			return
+		}
+		panic(err)
+	}
+
+	otpValue, genErr := util.GenerateOTP(6)
+	panicIfErr(genErr)
+
+	const otpExpiry = 5 * time.Minute
+	expiresAt := util.CurrentDateTime().Add(otpExpiry)
+	panicIfErr(u.repositoryManager.OtpRepository().Upsert(ctx, email, otpValue, expiresAt))
+	panicIfErr(util.SendForgotPasswordEmail(email, otpValue, otpExpiry))
+}
+
+func (u *authUseCase) ResetPassword(ctx context.Context, request dto_request.AuthResetPasswordRequest) {
+	email := normalizeEmail(request.Email)
+	user, err := u.repositoryManager.UserRepository().GetByEmail(ctx, email)
+	if err != nil {
+		if err == constant.ErrNoData {
+			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthResetPasswordOtpInvalid))
+		}
+		panic(err)
+	}
+
+	otp, err := u.repositoryManager.OtpRepository().GetByEmail(ctx, email)
+	if err != nil {
+		if err == constant.ErrNoData {
+			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthResetPasswordOtpInvalid))
+		}
+		panic(err)
+	}
+
+	if otp.Verified || otp.ExpiresAt.IsLessThan(util.CurrentDateTime()) || otp.Otp != request.Otp {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthResetPasswordOtpInvalid))
+	}
+
+	hashedPassword, hashErr := util.HashPassword(request.Password)
+	panicIfErr(hashErr)
+
+	panicIfErr(u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+		if err := u.repositoryManager.UserRepository().UpdatePassword(ctx, user.Id, hashedPassword); err != nil {
+			return err
+		}
+		return u.repositoryManager.OtpRepository().MarkVerified(ctx, email)
+	}))
 }
 
 func (u *authUseCase) Parse(ctx context.Context, token string) (*model.UserClaims, error) {

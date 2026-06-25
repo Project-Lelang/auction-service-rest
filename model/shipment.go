@@ -50,8 +50,15 @@ type Shipment struct {
 	TrackingNumber         *string                `db:"tracking_number"`
 	CourierCode            *string                `db:"courier_code"`
 	DeliveryProofImagePath *string                `db:"delivery_proof_image_path"`
+	BuyerAddressDeadlineAt data_type.NullDateTime `db:"buyer_address_deadline_at"`
+	ShipDeadlineAt         data_type.NullDateTime `db:"ship_deadline_at"`
+	ReceiveDeadlineAt      data_type.NullDateTime `db:"receive_deadline_at"`
+	DeliveredAt            data_type.NullDateTime `db:"delivered_at"`
 	ShippedAt              data_type.NullDateTime `db:"shipped_at"`
 	ReceivedAt             data_type.NullDateTime `db:"received_at"`
+	AutoReceivedAt         data_type.NullDateTime `db:"auto_received_at"`
+	BuyerAddressFailedAt   data_type.NullDateTime `db:"buyer_address_failed_at"`
+	SellerFailedAt         data_type.NullDateTime `db:"seller_failed_at"`
 	Timestamp
 
 	// relations
@@ -77,8 +84,15 @@ func (s *Shipment) ToMap() map[string]interface{} {
 		"tracking_number":           s.TrackingNumber,
 		"courier_code":              s.CourierCode,
 		"delivery_proof_image_path": s.DeliveryProofImagePath,
+		"buyer_address_deadline_at": s.BuyerAddressDeadlineAt,
+		"ship_deadline_at":          s.ShipDeadlineAt,
+		"receive_deadline_at":       s.ReceiveDeadlineAt,
+		"delivered_at":              s.DeliveredAt,
 		"shipped_at":                s.ShippedAt,
 		"received_at":               s.ReceivedAt,
+		"auto_received_at":          s.AutoReceivedAt,
+		"buyer_address_failed_at":   s.BuyerAddressFailedAt,
+		"seller_failed_at":          s.SellerFailedAt,
 		"created_at":                s.CreatedAt,
 		"updated_at":                s.UpdatedAt,
 	}

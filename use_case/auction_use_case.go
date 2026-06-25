@@ -25,6 +25,10 @@ type TaskQueue interface {
 	EnqueueAuctionStart(auctionId int64, processAt time.Time) error
 	EnqueueAuctionClose(auctionId int64, processAt time.Time) error
 	EnqueuePaymentExpiry(paymentId int64, processAt time.Time) error
+	EnqueueShipmentAddressDue(shipmentId int64, processAt time.Time) error
+	EnqueueShipmentShipDue(shipmentId int64, processAt time.Time) error
+	EnqueueShipmentTrackCheck(shipmentId int64, processAt time.Time) error
+	EnqueueShipmentReceiveDue(shipmentId int64, processAt time.Time) error
 	ReplaceAuctionStart(auctionId int64, processAt time.Time) error
 }
 
@@ -270,7 +274,7 @@ func (u *auctionUseCase) OwnCreate(ctx context.Context, request dto_request.OwnA
 		StartTime:     request.StartTime,
 		EndTime:       request.EndTime,
 		Status:        constant.AuctionStatusScheduled,
-		Fee:           constant.AuctionFee,
+		Fee:           0,
 	}
 
 	err := u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
@@ -330,7 +334,7 @@ func (u *auctionUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnA
 		request.StartingPrice,
 		request.StartTime,
 		request.EndTime,
-		constant.AuctionFee,
+		0,
 	)
 	panicIfErr(err)
 

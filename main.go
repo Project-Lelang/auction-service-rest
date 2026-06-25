@@ -25,15 +25,15 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-// @title						Auction Service API
-// @version					1.0.0
-// @description				Auction Service REST API
-// @host						localhost:8080
-// @BasePath					/
-// @securityDefinitions.apikey	BearerAuth
-// @in							header
-// @name						Authorization
-// @description				Type "Bearer" followed by a space and JWT token.
+//	@title						Auction Service API
+//	@version					1.0.0
+//	@description				Auction Service REST API
+//	@host						localhost:8080
+//	@BasePath					/
+//	@securityDefinitions.apikey	BearerAuth
+//	@in							header
+//	@name						Authorization
+//	@description				Type "Bearer" followed by a space and JWT token.
 func main() {
 
 	wsHub := ws.NewHub()
@@ -93,6 +93,34 @@ func main() {
 		}
 		return container.UseCaseManager().PaymentUseCase().HandlePaymentExpiry(ctx, p.PaymentId)
 	})
+	mux.HandleFunc(infrastructure.TypeShipmentAddressDue, func(ctx context.Context, t *asynq.Task) error {
+		var p infrastructure.ShipmentTaskPayload
+		if err := json.Unmarshal(t.Payload(), &p); err != nil {
+			return fmt.Errorf("shipment:address_due invalid payload: %w", err)
+		}
+		return container.UseCaseManager().ShipmentUseCase().HandleShipmentAddressDeadline(ctx, p.ShipmentId)
+	})
+	mux.HandleFunc(infrastructure.TypeShipmentShipDue, func(ctx context.Context, t *asynq.Task) error {
+		var p infrastructure.ShipmentTaskPayload
+		if err := json.Unmarshal(t.Payload(), &p); err != nil {
+			return fmt.Errorf("shipment:ship_due invalid payload: %w", err)
+		}
+		return container.UseCaseManager().ShipmentUseCase().HandleShipmentShipDeadline(ctx, p.ShipmentId)
+	})
+	mux.HandleFunc(infrastructure.TypeShipmentTrackCheck, func(ctx context.Context, t *asynq.Task) error {
+		var p infrastructure.ShipmentTaskPayload
+		if err := json.Unmarshal(t.Payload(), &p); err != nil {
+			return fmt.Errorf("shipment:track_check invalid payload: %w", err)
+		}
+		return container.UseCaseManager().ShipmentUseCase().HandleShipmentTrackingCheck(ctx, p.ShipmentId)
+	})
+	mux.HandleFunc(infrastructure.TypeShipmentReceiveDue, func(ctx context.Context, t *asynq.Task) error {
+		var p infrastructure.ShipmentTaskPayload
+		if err := json.Unmarshal(t.Payload(), &p); err != nil {
+			return fmt.Errorf("shipment:receive_due invalid payload: %w", err)
+		}
+		return container.UseCaseManager().ShipmentUseCase().HandleShipmentReceiveDeadline(ctx, p.ShipmentId)
+	})
 	if err := asynqSrv.Start(mux); err != nil {
 		log.Fatalf("asynq worker start error: %v", err)
 	}
@@ -127,6 +155,9 @@ func main() {
 	// Process any payments that expired while the server was down.
 	if err := container.UseCaseManager().PaymentUseCase().RecoverExpiredPayments(context.Background()); err != nil {
 		log.Printf("[startup] RecoverExpiredPayments error: %v", err)
+	}
+	if err := container.UseCaseManager().ShipmentUseCase().RecoverShipmentDeadlines(context.Background()); err != nil {
+		log.Printf("[startup] RecoverShipmentDeadlines error: %v", err)
 	}
 
 	srv := &http.Server{

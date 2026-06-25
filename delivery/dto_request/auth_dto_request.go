@@ -9,6 +9,16 @@ type AuthOtpRequest struct {
 	Email string `json:"email" validate:"required,email,max=255" example:"user@example.com"`
 } // @name AuthOtpRequest
 
+type AuthForgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email,max=255" example:"user@example.com"`
+} // @name AuthForgotPasswordRequest
+
+type AuthResetPasswordRequest struct {
+	Email    string `json:"email" validate:"required,email,max=255" example:"user@example.com"`
+	Otp      string `json:"otp" validate:"required,len=6" example:"123456"`
+	Password string `json:"password" validate:"required,min=8,max=255" example:"newPassword123"`
+} // @name AuthResetPasswordRequest
+
 type AuthRegisterRequest struct {
 	Fullname string  `json:"fullname" validate:"required,max=255" example:"John Doe"`
 	Email    string  `json:"email" validate:"required,email,max=255" example:"user@example.com"`

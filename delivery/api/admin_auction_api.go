@@ -22,8 +22,8 @@ type AdminAuctionApi struct {
 //	@Summary	Get daily auction revenue and count report for admin dashboard
 //	@tags		Admin Auction
 //	@Security	BearerAuth
-//	@Param		start_date	query		string	false	"Start date filter (YYYY-MM-DD)"
-//	@Param		end_date	query		string	false	"End date filter (YYYY-MM-DD)"
+//	@Param		start_date	query	string	false	"Start date filter (YYYY-MM-DD)"
+//	@Param		end_date	query	string	false	"End date filter (YYYY-MM-DD)"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=[]dto_response.DashboardDailyReport}
 func (a *AdminAuctionApi) GetAdminDashboardReport() gin.HandlerFunc {

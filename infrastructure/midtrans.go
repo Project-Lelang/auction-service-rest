@@ -12,6 +12,7 @@ import (
 // MidtransSnapRequest is the request body for the Midtrans Snap API.
 type MidtransSnapRequest struct {
 	TransactionDetails MidtransTransactionDetails `json:"transaction_details"`
+	ItemDetails        []MidtransItemDetail       `json:"item_details,omitempty"`
 	CustomerDetails    MidtransCustomerDetails    `json:"customer_details"`
 	Expiry             *MidtransExpiry            `json:"expiry,omitempty"`
 }
@@ -20,6 +21,15 @@ type MidtransSnapRequest struct {
 type MidtransTransactionDetails struct {
 	OrderId     string  `json:"order_id"`
 	GrossAmount float64 `json:"gross_amount"`
+}
+
+// MidtransItemDetail makes the Snap payload explicit instead of sending only
+// the gross amount.
+type MidtransItemDetail struct {
+	Id       string  `json:"id"`
+	Price    float64 `json:"price"`
+	Quantity int     `json:"quantity"`
+	Name     string  `json:"name"`
 }
 
 // MidtransCustomerDetails holds buyer information passed to Midtrans.
