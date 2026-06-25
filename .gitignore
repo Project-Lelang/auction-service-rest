@@ -9,6 +9,7 @@
 
 # Go build cache
 *.a
+/.gocache/
 
 # Output of `go build`
 /bin/

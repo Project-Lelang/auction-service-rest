@@ -7,25 +7,30 @@ import (
 const ProductTableName = "products"
 
 type Product struct {
-	Id            string    `db:"id"`
-	UserId        string    `db:"user_id"`
-	Name          string    `db:"name"`
-	Description   *string   `db:"description"`
-	Condition     string    `db:"condition"`
-	CoverImageUrl *string   `db:"cover_image_url"`
-	ImageUrls     *string   `db:"image_urls"` // stored as JSON string
-	Status        string  `db:"status"`
+	Id             int64   `db:"id"`
+	UserId         int64   `db:"user_id"`
+	Name           string  `db:"name"`
+	Description    *string `db:"description"`
+	Condition      string  `db:"condition"`
+	CoverImagePath *string `db:"cover_image_path"`
+	ImagePaths     *string `db:"image_paths"` // stored as JSON string
+	WeightGram     int     `db:"weight_gram"`
+	Status         string  `db:"status"`
 	Timestamp
 
 	// relations
 	User            *User                  `db:"-"`
 	StatusHistories []ProductStatusHistory `db:"-"`
+
+	// computed
+	CoverImageLink *string  `db:"-"`
+	ImageLinks     []string `db:"-"`
 }
 
 type ProductQueryOption struct {
 	QueryOption
 
-	UserId    *string
+	UserId    *int64
 	Status    *string
 	Condition *string
 	Search    *string
@@ -49,8 +54,8 @@ func (o *ProductQueryOption) TranslateSorts() {
 	o.Sorts = translated
 }
 
-// ParseImageUrls deserialises the JSON image_urls column value into a string slice.
-func ParseImageUrls(raw *string) []string {
+// ParseImagePaths deserialises the JSON image_paths column value into a string slice.
+func ParseImagePaths(raw *string) []string {
 	if raw == nil || *raw == "" {
 		return []string{}
 	}
@@ -59,29 +64,30 @@ func ParseImageUrls(raw *string) []string {
 	return urls
 }
 
-// MarshalImageUrls serialises a []string to a JSON string for storage.
-func MarshalImageUrls(urls []string) string {
-	b, _ := json.Marshal(urls)
+// MarshalImagePaths serialises a []string to a JSON string for storage.
+func MarshalImagePaths(paths []string) string {
+	b, _ := json.Marshal(paths)
 	return string(b)
 }
 
 func (p *Product) TableName() string { return ProductTableName }
 
 func (p *Product) ToMap() map[string]interface{} {
-	imageUrlsJSON := MarshalImageUrls([]string{})
-	if p.ImageUrls != nil {
-		imageUrlsJSON = *p.ImageUrls
+	imagePathsJSON := MarshalImagePaths([]string{})
+	if p.ImagePaths != nil {
+		imagePathsJSON = *p.ImagePaths
 	}
 	return map[string]interface{}{
-		"id":              p.Id,
-		"user_id":         p.UserId,
-		"name":            p.Name,
-		"description":     p.Description,
-		"condition":       p.Condition,
-		"cover_image_url": p.CoverImageUrl,
-		"image_urls":      imageUrlsJSON,
-		"status":          p.Status,
-		"created_at":      p.CreatedAt,
-		"updated_at":      p.UpdatedAt,
+		"id":               p.Id,
+		"user_id":          p.UserId,
+		"name":             p.Name,
+		"description":      p.Description,
+		"`condition`":      p.Condition,
+		"cover_image_path": p.CoverImagePath,
+		"image_paths":      imagePathsJSON,
+		"weight_gram":      p.WeightGram,
+		"status":           p.Status,
+		"created_at":       p.CreatedAt,
+		"updated_at":       p.UpdatedAt,
 	}
 }

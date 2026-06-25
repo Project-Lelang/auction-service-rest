@@ -34,26 +34,94 @@ type JwtConfig struct {
 }
 
 type SuperAdminConfig struct {
-	Phone    string `yaml:"phone"`
+	Email    string `yaml:"email"`
 	Password string `yaml:"password"`
+}
+
+type FilesystemConfig struct {
+	Type                  string `yaml:"type"`
+	BaseUri               string `yaml:"base_uri"`
+	PresignedUrlSecretKey string `yaml:"presigned_url_secret_key"`
+}
+
+type SupabaseConfig struct {
+	URL        string `yaml:"url"`
+	ServiceKey string `yaml:"service_key"`
+	BucketName string `yaml:"bucket_name"`
+}
+
+type MidtransConfig struct {
+	ServerKey string `yaml:"server_key"`
+	IsSandbox bool   `yaml:"is_sandbox"`
+}
+
+type BiteshipConfig struct {
+	ApiKey string `yaml:"api_key"`
+}
+
+type RedisConfig struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Password string `yaml:"password"`
+	DB       int    `yaml:"db"`
+}
+
+type NotificationConfig struct {
+	Enabled     bool   `yaml:"enabled"`
+	QueueName   string `yaml:"queue_name"`
+	DLQName     string `yaml:"dlq_name"`
+	WorkerCount int    `yaml:"worker_count"`
+	MaxRetries  int    `yaml:"max_retries"`
+	RetryBaseMs int    `yaml:"retry_base_ms"`
+}
+
+type ShipmentDeadlineConfig struct {
+	BuyerAddressHours         int `yaml:"buyer_address_hours"`
+	SellerShipHours           int `yaml:"seller_ship_hours"`
+	BuyerReceiveHours         int `yaml:"buyer_receive_hours"`
+	TrackingCheckIntervalMins int `yaml:"tracking_check_interval_minutes"`
+	DeadlineGraceMinutes      int `yaml:"deadline_grace_minutes"`
+}
+
+type FirebaseConfig struct {
+	ServiceAccountPath string `yaml:"service_account_path"`
+}
+
+type EmailConfig struct {
+	Enabled     bool   `yaml:"enabled"`
+	Host        string `yaml:"host"`
+	Port        int    `yaml:"port"`
+	Username    string `yaml:"username"`
+	Password    string `yaml:"password"`
+	FromAddress string `yaml:"from_address"`
+	FromName    string `yaml:"from_name"`
 }
 
 type YamlConfig struct {
 	timeLocation       *time.Location
 	BaseDir            string
 	StorageDir         string
-	AppName            string           `yaml:"app_name"`
-	Environment        string           `yaml:"environment"`
-	IsDebug            bool             `yaml:"debug"`
-	LogChannel         []string         `yaml:"log_channel"`
-	Timezone           string           `yaml:"timezone"`
-	Port               uint             `yaml:"port"`
-	Uri                string           `yaml:"uri"`
-	FeUri              string           `yaml:"fe_uri"`
-	CorsAllowedOrigins []string         `yaml:"cors_allowed_origins"`
-	Mysql              MysqlConfig      `yaml:"mysql"`
-	JwtConfig          JwtConfig        `yaml:"jwt"`
-	SuperAdmin         SuperAdminConfig `yaml:"super_admin"`
+	AppName            string                 `yaml:"app_name"`
+	Environment        string                 `yaml:"environment"`
+	IsDebug            bool                   `yaml:"debug"`
+	LogChannel         []string               `yaml:"log_channel"`
+	Timezone           string                 `yaml:"timezone"`
+	Port               uint                   `yaml:"port"`
+	Uri                string                 `yaml:"uri"`
+	FeUri              string                 `yaml:"fe_uri"`
+	CorsAllowedOrigins []string               `yaml:"cors_allowed_origins"`
+	Mysql              MysqlConfig            `yaml:"mysql"`
+	JwtConfig          JwtConfig              `yaml:"jwt"`
+	SuperAdmin         SuperAdminConfig       `yaml:"super_admin"`
+	Filesystem         FilesystemConfig       `yaml:"filesystem"`
+	Supabase           *SupabaseConfig        `yaml:"supabase"`
+	Midtrans           *MidtransConfig        `yaml:"midtrans"`
+	Biteship           *BiteshipConfig        `yaml:"biteship"`
+	Redis              RedisConfig            `yaml:"redis"`
+	Notification       NotificationConfig     `yaml:"notification"`
+	ShipmentDeadline   ShipmentDeadlineConfig `yaml:"shipment_deadline"`
+	Firebase           *FirebaseConfig        `yaml:"firebase"`
+	Email              EmailConfig            `yaml:"email"`
 }
 
 var config YamlConfig
@@ -104,6 +172,42 @@ func LoadConfig() error {
 	if config.JwtConfig.RefreshTokenExpiryHours == 0 {
 		config.JwtConfig.RefreshTokenExpiryHours = 168
 	}
+	if config.Notification.QueueName == "" {
+		config.Notification.QueueName = "notif_queue:auction_events"
+	}
+	if config.Notification.DLQName == "" {
+		config.Notification.DLQName = "notif_queue:auction_events:dlq"
+	}
+	if config.Notification.WorkerCount == 0 {
+		config.Notification.WorkerCount = 5
+	}
+	if config.Notification.MaxRetries == 0 {
+		config.Notification.MaxRetries = 3
+	}
+	if config.Notification.RetryBaseMs == 0 {
+		config.Notification.RetryBaseMs = 500
+	}
+	if config.ShipmentDeadline.BuyerAddressHours == 0 {
+		config.ShipmentDeadline.BuyerAddressHours = 24
+	}
+	if config.ShipmentDeadline.SellerShipHours == 0 {
+		config.ShipmentDeadline.SellerShipHours = 72
+	}
+	if config.ShipmentDeadline.BuyerReceiveHours == 0 {
+		config.ShipmentDeadline.BuyerReceiveHours = 168
+	}
+	if config.ShipmentDeadline.TrackingCheckIntervalMins == 0 {
+		config.ShipmentDeadline.TrackingCheckIntervalMins = 60
+	}
+	if config.ShipmentDeadline.DeadlineGraceMinutes == 0 {
+		config.ShipmentDeadline.DeadlineGraceMinutes = 5
+	}
+	if config.Email.Port == 0 {
+		config.Email.Port = 587
+	}
+	if config.Email.FromName == "" {
+		config.Email.FromName = config.AppName
+	}
 
 	return nil
 }
@@ -126,6 +230,14 @@ func GetStorageDir() string {
 
 func GetJwtSecretKey() string {
 	return config.JwtConfig.SecretKey
+}
+
+func GetFilesystem() FilesystemConfig {
+	return config.Filesystem
+}
+
+func GetSupabaseConfig() *SupabaseConfig {
+	return config.Supabase
 }
 
 func GetAppName() string {

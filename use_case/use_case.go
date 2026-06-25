@@ -29,14 +29,44 @@ func panicIfRepositoryError(err error, errNoDataMessage string) {
 	}
 }
 
-func mustGetUser(ctx context.Context, repositoryManager repository.RepositoryManager, id string) model.User {
+func mustGetUser(ctx context.Context, repositoryManager repository.RepositoryManager, id int64) model.User {
 	user, err := repositoryManager.UserRepository().GetById(ctx, id)
 	panicIfRepositoryError(err, constant.LanguageUserNotFound)
 	return *user
 }
 
-func mustGetProduct(ctx context.Context, repositoryManager repository.RepositoryManager, id string) model.Product {
+func mustGetProduct(ctx context.Context, repositoryManager repository.RepositoryManager, id int64) model.Product {
 	product, err := repositoryManager.ProductRepository().GetById(ctx, id)
 	panicIfRepositoryError(err, constant.LanguageProductNotFound)
 	return *product
+}
+
+func mustGetAuction(ctx context.Context, repositoryManager repository.RepositoryManager, id int64) model.Auction {
+	auction, err := repositoryManager.AuctionRepository().GetById(ctx, id)
+	panicIfRepositoryError(err, constant.LanguageAuctionNotFound)
+	return *auction
+}
+
+func mustGetAuctionWinner(ctx context.Context, repositoryManager repository.RepositoryManager, id int64) model.AuctionWinner {
+	winner, err := repositoryManager.AuctionWinnerRepository().GetById(ctx, id)
+	panicIfRepositoryError(err, constant.LanguageWinnerNotFound)
+	return *winner
+}
+
+func mustGetPayment(ctx context.Context, repositoryManager repository.RepositoryManager, id int64) model.Payment {
+	payment, err := repositoryManager.PaymentRepository().GetById(ctx, id)
+	panicIfRepositoryError(err, constant.LanguagePaymentNotFound)
+	return *payment
+}
+
+func mustGetShipment(ctx context.Context, repositoryManager repository.RepositoryManager, id int64) model.Shipment {
+	shipment, err := repositoryManager.ShipmentRepository().GetById(ctx, id)
+	panicIfRepositoryError(err, constant.LanguageShipmentNotFound)
+	return *shipment
+}
+
+func mustGetAuctionBid(ctx context.Context, repositoryManager repository.RepositoryManager, id int64) model.AuctionBid {
+	bid, err := repositoryManager.AuctionBidRepository().GetById(ctx, id)
+	panicIfRepositoryError(err, constant.LanguageBidNotFound)
+	return *bid
 }

@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	"auction-service/delivery/dto_request"
 	"auction-service/delivery/dto_response"
 	"auction-service/use_case"
 
@@ -24,9 +25,10 @@ type ProductApi struct {
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{product=dto_response.ProductResponse}}
 func (a *ProductApi) Get() gin.HandlerFunc {
 	return a.Guest(func(ctx apiContext) {
-		productId := ctx.getParam("productId")
+		var request dto_request.ProductGetRequest
+		request.ProductId = ctx.mustGetParamInt64("productId")
 
-		product := a.productUseCase.Get(ctx.context(), productId)
+		product := a.productUseCase.Get(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{

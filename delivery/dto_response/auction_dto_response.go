@@ -1,0 +1,59 @@
+package dto_response
+
+import (
+	"context"
+
+	"auction-service/data_type"
+	"auction-service/model"
+	"auction-service/util"
+)
+
+// AuctionResponse represents a single auction in API responses.
+type AuctionResponse struct {
+	Id            int64                  `json:"id"             example:"1"`
+	ProductId     int64                  `json:"product_id"     example:"2"`
+	StartingPrice float64                `json:"starting_price" example:"100000"`
+	StartTime     data_type.DateTime     `json:"start_time"`
+	EndTime       data_type.DateTime     `json:"end_time"`
+	Status        string                 `json:"status"         example:"SCHEDULED"`
+	Fee           float64                `json:"fee"            example:"5000"`
+	Product       *ProductResponse       `json:"product,omitempty"`
+	Winner        *AuctionWinnerResponse `json:"winner,omitempty"`
+	Payment       *PaymentResponse       `json:"payment,omitempty"`
+	Bids          []AuctionBidResponse   `json:"bids,omitempty"`
+	Timestamp
+} // @name AuctionResponse
+
+func NewAuctionResponse(ctx context.Context, a model.Auction) AuctionResponse {
+	r := AuctionResponse{
+		Id:            a.Id,
+		ProductId:     a.ProductId,
+		StartingPrice: a.StartingPrice,
+		StartTime:     a.StartTime,
+		EndTime:       a.EndTime,
+		Status:        a.Status,
+		Fee:           a.Fee,
+		Timestamp:     Timestamp(a.Timestamp),
+	}
+
+	if a.Product != nil {
+		r.Product = util.Pointer(NewProductResponse(ctx, *a.Product))
+	}
+
+	if a.Winner != nil {
+		r.Winner = util.Pointer(NewAuctionWinnerResponse(ctx, *a.Winner))
+	}
+
+	if a.Payment != nil {
+		r.Payment = util.Pointer(NewPaymentResponse(ctx, *a.Payment))
+	}
+
+	if len(a.Bids) > 0 {
+		r.Bids = make([]AuctionBidResponse, len(a.Bids))
+		for i, bid := range a.Bids {
+			r.Bids[i] = NewAuctionBidResponse(ctx, *bid)
+		}
+	}
+
+	return r
+}

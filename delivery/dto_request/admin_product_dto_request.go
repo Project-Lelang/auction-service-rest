@@ -15,3 +15,18 @@ type AdminProductFetchRequest struct {
 	Condition *string                `json:"condition" validate:"omitempty,oneof=NEW PRELOVED" example:"NEW"`
 	Search    *string                `json:"search"    validate:"omitempty,max=255"                                            example:"laptop"`
 } // @name AdminProductFetchRequest
+
+type AdminProductFetchStatusHistoriesRequest struct {
+	ProductId int64 `json:"-" swaggerignore:"true"`
+} // @name AdminProductFetchStatusHistoriesRequest
+
+type AdminProductApproveRequest struct {
+	UserId    int64 `uri:"userId"`
+	ProductId int64 `uri:"productId"`
+}
+
+type AdminProductRejectRequest struct {
+	UserId    int64   `uri:"userId"`
+	ProductId int64   `uri:"productId"`
+	Message   *string `json:"message" binding:"required"` // Mandatory rejection reason
+}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"auction-service/constant"
+	"auction-service/data_type"
 	"auction-service/infrastructure"
 	"auction-service/model"
 	"auction-service/util"
@@ -18,15 +19,21 @@ type UserRepository interface {
 	Insert(ctx context.Context, user *model.User) error
 
 	// read
-	GetByPhone(ctx context.Context, phone string) (*model.User, error)
-	GetById(ctx context.Context, id string) (*model.User, error)
-	FindAdminByPhone(ctx context.Context, phone string) (*model.User, error)
-	FetchByIds(ctx context.Context, ids []string) ([]model.User, error)
+	GetByEmail(ctx context.Context, email string) (*model.User, error)
+	GetById(ctx context.Context, id int64) (*model.User, error)
+	FindAdminByEmail(ctx context.Context, email string) (*model.User, error)
+	FetchByIds(ctx context.Context, ids []int64) ([]model.User, error)
 	Fetch(ctx context.Context, options ...model.UserQueryOption) ([]model.User, error)
 	Count(ctx context.Context, options ...model.UserQueryOption) (int64, error)
 
 	// update
-	SoftDelete(ctx context.Context, id string) error
+	Update(ctx context.Context, id int64, fullname string, birth data_type.DateTime, gender *string) (*model.User, error)
+	UpdatePassword(ctx context.Context, id int64, hashedPassword string) error
+	UpdateIdentityInfo(ctx context.Context, id int64, nik string, identityImagePath string, selfieIdentityImagePath string) error
+	UpdateBankAccountInfo(ctx context.Context, id int64, bankAccountNumber string, bankAccountName string, bankName string) error
+	DepositBalance(ctx context.Context, id int64, amount float64) (*model.User, error)
+	WithdrawBalance(ctx context.Context, id int64, amount float64) (*model.User, error)
+	SoftDelete(ctx context.Context, id int64) error
 }
 
 type userRepository struct {
@@ -54,7 +61,7 @@ func (r *userRepository) buildBaseStmt(option model.UserQueryOption) squirrel.Se
 		LeftJoin("user_roles ur ON ur.user_id = u.id")
 
 	if option.Role != nil {
-		stmt = stmt.Where(squirrel.ILike{"ur.role": *option.Role})
+		stmt = stmt.Where(squirrel.Eq{"ur.role": *option.Role})
 	}
 
 	return stmt
@@ -84,15 +91,15 @@ func (r *userRepository) Insert(ctx context.Context, user *model.User) error {
 
 // ------------------------------------------------------------------ read
 
-func (r *userRepository) GetByPhone(ctx context.Context, phone string) (*model.User, error) {
+func (r *userRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
-		Where(squirrel.Eq{r.f("phone"): phone}).
+		Where(squirrel.Eq{r.f("email"): email}).
 		Limit(1)
 	return r.getInternal(ctx, stmt)
 }
 
-func (r *userRepository) GetById(ctx context.Context, id string) (*model.User, error) {
+func (r *userRepository) GetById(ctx context.Context, id int64) (*model.User, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("id"): id}).
@@ -100,11 +107,11 @@ func (r *userRepository) GetById(ctx context.Context, id string) (*model.User, e
 	return r.getInternal(ctx, stmt)
 }
 
-func (r *userRepository) FindAdminByPhone(ctx context.Context, phone string) (*model.User, error) {
+func (r *userRepository) FindAdminByEmail(ctx context.Context, email string) (*model.User, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Join("user_roles ur ON ur.user_id = u.id").
-		Where(squirrel.Eq{r.f("phone"): phone}).
+		Where(squirrel.Eq{r.f("email"): email}).
 		Where(squirrel.Eq{r.f("is_deleted"): false}).
 		Where(squirrel.Or{
 			squirrel.Eq{"ur.role": constant.RoleAdmin},
@@ -126,7 +133,7 @@ func (r *userRepository) Fetch(ctx context.Context, options ...model.UserQueryOp
 	return r.fetchInternal(ctx, stmt)
 }
 
-func (r *userRepository) FetchByIds(ctx context.Context, ids []string) ([]model.User, error) {
+func (r *userRepository) FetchByIds(ctx context.Context, ids []int64) ([]model.User, error) {
 	if len(ids) == 0 {
 		return []model.User{}, nil
 	}
@@ -153,7 +160,32 @@ func (r *userRepository) Count(ctx context.Context, options ...model.UserQueryOp
 
 // ------------------------------------------------------------------ update
 
-func (r *userRepository) SoftDelete(ctx context.Context, id string) error {
+func (r *userRepository) Update(ctx context.Context, id int64, fullname string, birth data_type.DateTime, gender *string) (*model.User, error) {
+	if err := update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"fullname":   fullname,
+			"birth":      birth,
+			"gender":     gender,
+			"updated_at": util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	); err != nil {
+		return nil, err
+	}
+	return r.GetById(ctx, id)
+}
+
+func (r *userRepository) UpdatePassword(ctx context.Context, id int64, hashedPassword string) error {
+	return update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"password":   hashedPassword,
+			"updated_at": util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	)
+}
+
+func (r *userRepository) SoftDelete(ctx context.Context, id int64) error {
 	return update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
 			"is_deleted": true,
@@ -161,4 +193,73 @@ func (r *userRepository) SoftDelete(ctx context.Context, id string) error {
 		},
 		squirrel.Eq{"id": id},
 	)
+}
+
+func (r *userRepository) UpdateIdentityInfo(ctx context.Context, id int64, nik string, identityImagePath string, selfieIdentityImagePath string) error {
+	return update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"nik":                        nik,
+			"identity_image_path":        identityImagePath,
+			"selfie_identity_image_path": selfieIdentityImagePath,
+			"updated_at":                 util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	)
+}
+
+func (r *userRepository) UpdateBankAccountInfo(ctx context.Context, id int64, bankAccountNumber string, bankAccountName string, bankName string) error {
+	return update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"bank_account_number": bankAccountNumber,
+			"bank_account_name":   bankAccountName,
+			"bank_name":           bankName,
+			"updated_at":          util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	)
+}
+
+func (r *userRepository) DepositBalance(ctx context.Context, id int64, amount float64) (*model.User, error) {
+	if amount <= 0 {
+		return nil, fmt.Errorf("deposit amount must be positive")
+	}
+
+	stmt := stmtBuilder.Update(r.tableName()).Set("balance", squirrel.Expr("balance + ?", amount)).SetMap(map[string]interface{}{
+		"updated_at": util.CurrentDateTime(),
+	}).Where(squirrel.Eq{"id": id})
+
+	if _, err := exec(r.db, ctx, stmt); err != nil {
+		return nil, err
+	}
+
+	return r.GetById(ctx, id)
+}
+
+func (r *userRepository) WithdrawBalance(ctx context.Context, id int64, amount float64) (*model.User, error) {
+	if amount <= 0 {
+		return nil, fmt.Errorf("withdraw amount must be positive")
+	}
+
+	stmt := stmtBuilder.Update(r.tableName()).Set("balance", squirrel.Expr("balance - ?", amount)).SetMap(map[string]interface{}{
+		"updated_at": util.CurrentDateTime(),
+	}).Where(squirrel.And{
+		squirrel.Eq{"id": id},
+		squirrel.Expr("balance >= ?", amount),
+	})
+
+	result := dbtx(r.db, ctx)
+	query, args, err := stmt.ToSql()
+	if err != nil {
+		return nil, translateSqlError(err)
+	}
+
+	res, err := result.ExecContext(ctx, query, args...)
+	if err != nil {
+		return nil, translateSqlError(err)
+	}
+	if rows, _ := res.RowsAffected(); rows == 0 {
+		return nil, fmt.Errorf("insufficient balance")
+	}
+
+	return r.GetById(ctx, id)
 }

@@ -11,8 +11,8 @@ import (
 var ErrInvalidToken = errors.New("invalid token")
 
 type customClaims struct {
-	Id    string   `json:"id"`
-	Phone string   `json:"phone"`
+	Id    int64    `json:"id"`
+	Email string   `json:"email"`
 	Roles []string `json:"roles"`
 	jwtLib.RegisteredClaims
 }
@@ -50,7 +50,7 @@ func (j *jwt) parseToken(finalizedToken string) (string, error) {
 func (j *jwt) Generate(payload Payload) (*Token, error) {
 	claims := &customClaims{
 		Id:    payload.Id,
-		Phone: payload.Phone,
+		Email: payload.Email,
 		Roles: payload.Roles,
 		RegisteredClaims: jwtLib.RegisteredClaims{
 			ExpiresAt: &jwtLib.NumericDate{Time: payload.ExpiredAt.Time()},
@@ -89,7 +89,7 @@ func (j *jwt) Parse(finalizedToken string) (*Payload, error) {
 
 	payload := Payload{
 		Id:        claims.Id,
-		Phone:     claims.Phone,
+		Email:     claims.Email,
 		Roles:     claims.Roles,
 		CreatedAt: data_type.NewDateTime(claims.IssuedAt.Time),
 		ExpiredAt: data_type.NewDateTime(claims.ExpiresAt.Time),

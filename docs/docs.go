@@ -16,6 +16,59 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/auctions/dashboard-report": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Auction"
+                ],
+                "summary": "Get daily auction revenue and count report for admin dashboard",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date filter (YYYY-MM-DD)",
+                        "name": "start_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date filter (YYYY-MM-DD)",
+                        "name": "end_date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto_response.DashboardDailyReport"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/admin/auth/login": {
             "post": {
                 "consumes": [
@@ -56,6 +109,152 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/payment-methods": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Payment Methods"
+                ],
+                "summary": "Admin — Create a new payment method",
+                "parameters": [
+                    {
+                        "description": "Payment Method Data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto_request.PaymentMethodCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/payment-methods/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Payment Methods"
+                ],
+                "summary": "Admin — Get list of payment methods",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto_request.PaymentMethodFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/payment-methods/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Payment Methods"
+                ],
+                "summary": "Admin — Get detail of a payment method by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Payment Method ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Response"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Payment Methods"
+                ],
+                "summary": "Admin — Update partial data / toggle status of a payment method",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Payment Method ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Partial Update Data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto_request.PaymentMethodUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Response"
                         }
                     }
                 }
@@ -186,6 +385,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/role-requests/list/{role}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Role Requests"
+                ],
+                "summary": "Admin — Get list of role requests by role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role (BIDDER/SELLER)",
+                        "name": "role",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto_request.RoleRequestFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Response"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/users": {
             "post": {
                 "security": [
@@ -219,6 +463,71 @@ const docTemplate = `{
                         "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/admins/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Users"
+                ],
+                "summary": "Get paginated list of admin users only",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AdminUserFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/UserResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -377,6 +686,1354 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/users/{userId}/products/{productId}/approve": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Products"
+                ],
+                "summary": "Admin — Approve/Verify a product",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Product ID",
+                        "name": "productId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ProductResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/{userId}/products/{productId}/reject": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Products"
+                ],
+                "summary": "Admin — Reject a product with feedback message",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Product ID",
+                        "name": "productId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Rejection details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto_request.AdminProductRejectRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/ProductResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/{userId}/role-requests": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Role Requests"
+                ],
+                "summary": "Admin — Get role request history of a user",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/{userId}/role-requests/{requestId}/approve": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Role Requests"
+                ],
+                "summary": "Admin — Approve a role request",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Request ID",
+                        "name": "requestId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/{userId}/role-requests/{requestId}/reject": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Role Requests"
+                ],
+                "summary": "Admin — Reject a role request",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Request ID",
+                        "name": "requestId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Reject Reason",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto_request.RoleRequestRejectRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/{userId}/withdrawal-requests/{withdrawalRequestId}/complete": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Withdrawal Requests"
+                ],
+                "summary": "Admin — Complete withdrawal request",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Withdrawal Request ID",
+                        "name": "withdrawalRequestId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/withdrawal-requests/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Withdrawal Requests"
+                ],
+                "summary": "Admin — Get withdrawal requests by status",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto_request.WithdrawalRequestFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/filter": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "List auctions (paginated, public)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuctionFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/AuctionResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/on-going/filter": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "List ongoing auctions (paginated, public)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuctionFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/AuctionResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/{auctionId}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "Get a single auction by ID (public)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "auction": {
+                                                            "$ref": "#/definitions/AuctionResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/{auctionId}/bids": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "Place a bid on an active auction (BIDDER only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuctionBidCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "bid": {
+                                                            "$ref": "#/definitions/AuctionBidResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/{auctionId}/bids/no-locking": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "Place a bid on an active auction (BIDDER only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuctionBidCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "bid": {
+                                                            "$ref": "#/definitions/AuctionBidResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/{auctionId}/payments/{paymentId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "Get a single payment record (authenticated)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Payment ID",
+                        "name": "paymentId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "payment": {
+                                                            "$ref": "#/definitions/PaymentResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/{auctionId}/shipments/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "List shipments for an auction (authenticated)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuctionShipmentFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "shipments": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/ShipmentResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/{auctionId}/shipments/{shipmentId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "Get a single shipment record (authenticated)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Shipment ID",
+                        "name": "shipmentId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "shipment": {
+                                                            "$ref": "#/definitions/ShipmentResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/{auctionId}/shipments/{shipmentId}/buyer-address": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "Update buyer shipping address (BIDDER only, before shipped)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Shipment ID",
+                        "name": "shipmentId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuctionShipmentUpdateAddressRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "shipment": {
+                                                            "$ref": "#/definitions/ShipmentResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/{auctionId}/shipments/{shipmentId}/receive": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "Mark a shipment as received with delivery proof (BIDDER only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Shipment ID",
+                        "name": "shipmentId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuctionShipmentReceiveRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "shipment": {
+                                                            "$ref": "#/definitions/ShipmentResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/{auctionId}/shipments/{shipmentId}/seller-address": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "Update seller sender address (SELLER only, before shipped)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Shipment ID",
+                        "name": "shipmentId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuctionShipmentUpdateAddressRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "shipment": {
+                                                            "$ref": "#/definitions/ShipmentResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/{auctionId}/shipments/{shipmentId}/ship": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "Mark a shipment as shipped with a tracking number (SELLER only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Shipment ID",
+                        "name": "shipmentId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuctionShipmentShipRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "shipment": {
+                                                            "$ref": "#/definitions/ShipmentResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/{auctionId}/shipments/{shipmentId}/tracking": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "Get live tracking info via Komship (BUYER/SELLER only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Shipment ID",
+                        "name": "shipmentId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/{auctionId}/winners/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "List winners for an auction (authenticated)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuctionWinnerFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/AuctionWinnerResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/{auctionId}/winners/{winnerId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "Get a single winner record (authenticated)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Winner ID",
+                        "name": "winnerId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "winner": {
+                                                            "$ref": "#/definitions/AuctionWinnerResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/forgot-password": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Request password reset OTP by email",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuthForgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "consumes": [
@@ -466,7 +2123,7 @@ const docTemplate = `{
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Request OTP for phone verification",
+                "summary": "Request OTP for email verification",
                 "parameters": [
                     {
                         "description": "Body Request",
@@ -483,6 +2140,1019 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/reset-password": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Reset password using email OTP",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuthResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/save-fcm-token": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Save FCM token for a user",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuthFcmTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/biteship/areas/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Biteship"
+                ],
+                "summary": "Search Biteship area IDs by keyword (city/district/postal code)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/BiteshipSearchAreasRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "areas": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/BiteshipAreaResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/biteship/webhooks": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Biteship"
+                ],
+                "summary": "Receive Biteship order/tracking webhook",
+                "parameters": [
+                    {
+                        "description": "Raw Biteship webhook payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/SuccessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/own/auctions": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Schedule a new auction for a verified product",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OwnAuctionCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "auction": {
+                                                            "$ref": "#/definitions/AuctionResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/auctions/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get the authenticated seller's own auctions (paginated)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OwnAuctionFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/AuctionResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/auctions/{auctionId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get the authenticated seller's own auction by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "auction": {
+                                                            "$ref": "#/definitions/AuctionResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Update a scheduled auction (only allowed when SCHEDULED)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OwnAuctionUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "auction": {
+                                                            "$ref": "#/definitions/AuctionResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/auctions/{auctionId}/relist": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Cancel the auction and relist the product after winner did not pay",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "auction": {
+                                                            "$ref": "#/definitions/AuctionResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/auctions/{auctionId}/second-chance": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Offer the auction to the next-highest bidder after winner did not pay",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "auction": {
+                                                            "$ref": "#/definitions/AuctionResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/bids/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get the authenticated user's own bids (paginated)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OwnBidFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/AuctionBidResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/bids/{bidId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get the authenticated user's own bid by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Bid ID",
+                        "name": "bidId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "bid": {
+                                                            "$ref": "#/definitions/AuctionBidResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/files/upload": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Upload a file to temporary storage and return its temporary path",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "File to upload",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "path": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/notifications/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get authenticated user's notifications (paginated)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OwnNotificationFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/NotificationResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/notifications/{notificationId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get authenticated user's notification by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Notification ID",
+                        "name": "notificationId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "notification": {
+                                                            "$ref": "#/definitions/NotificationResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/notifications/{notificationId}/read": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Mark authenticated user's notification as read",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Notification ID",
+                        "name": "notificationId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "notification": {
+                                                            "$ref": "#/definitions/NotificationResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/payments/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get the authenticated user's own payments (paginated)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OwnPaymentFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/PaymentResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/payments/{paymentId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get the authenticated user's own payment by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Payment ID",
+                        "name": "paymentId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "payment": {
+                                                            "$ref": "#/definitions/PaymentResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -512,7 +3182,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/ProductCreateRequest"
+                            "$ref": "#/definitions/OwnProductCreateRequest"
                         }
                     }
                 ],
@@ -615,6 +3285,130 @@ const docTemplate = `{
                 }
             }
         },
+        "/own/products/{productId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get the authenticated user's own product by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product ID",
+                        "name": "productId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "product": {
+                                                            "$ref": "#/definitions/ProductResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Update the authenticated user's own product (only allowed when DRAFT)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product ID",
+                        "name": "productId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OwnProductUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "product": {
+                                                            "$ref": "#/definitions/ProductResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/own/products/{productId}/histories": {
             "post": {
                 "security": [
@@ -675,6 +3469,633 @@ const docTemplate = `{
                 }
             }
         },
+        "/own/products/{productId}/request": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Request the authenticated user's own product for review (DRAFT → REQUEST)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product ID",
+                        "name": "productId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "product": {
+                                                            "$ref": "#/definitions/ProductResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/profiles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get the authenticated user's own profile",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "user": {
+                                                            "$ref": "#/definitions/UserResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Update the authenticated user's own profile",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OwnProfileUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "user": {
+                                                            "$ref": "#/definitions/UserResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/role-requests": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Submit a new role request (BIDDER or SELLER)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OwnRoleRequestCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "role_request": {
+                                                            "$ref": "#/definitions/RoleRequestResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/user-addresses": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Create a new user address for the authenticated user",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/UserAddressCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "user_address": {
+                                                            "$ref": "#/definitions/UserAddressResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/user-addresses/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "List authenticated user's addresses (paginated)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/UserAddressFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/UserAddressResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/user-addresses/{userAddressId}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Update authenticated user's address",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User Address ID",
+                        "name": "userAddressId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/UserAddressUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "user_address": {
+                                                            "$ref": "#/definitions/UserAddressResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Delete authenticated user's address",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User Address ID",
+                        "name": "userAddressId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/SuccessResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/withdrawal-requests": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Submit a new withdrawal request",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OwnWithdrawalRequestCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "withdrawal_request": {
+                                                            "$ref": "#/definitions/WithdrawalRequestResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/own/withdrawal-requests/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Own"
+                ],
+                "summary": "Get authenticated user's withdrawal request history (paginated)",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto_request.WithdrawalRequestFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/WithdrawalRequestResponse"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/payment-notifications": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "Webhook endpoint for Midtrans payment notifications",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/SuccessResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/products/{productId}": {
             "get": {
                 "produces": [
@@ -726,6 +4147,260 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/storage/public/{filePath}": {
+            "get": {
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Serve a presigned local file",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "File path",
+                        "name": "filePath",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/user-addresses": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "UserAddress"
+                ],
+                "summary": "Create a new user address",
+                "parameters": [
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/UserAddressCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "user_address": {
+                                                            "$ref": "#/definitions/UserAddressResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/user-addresses/{userAddressId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "UserAddress"
+                ],
+                "summary": "Get a specific user address",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User Address ID",
+                        "name": "userAddressId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "user_address": {
+                                                            "$ref": "#/definitions/UserAddressResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "UserAddress"
+                ],
+                "summary": "Update a user address",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User Address ID",
+                        "name": "userAddressId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/UserAddressUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/DataResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "user_address": {
+                                                            "$ref": "#/definitions/UserAddressResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "UserAddress"
+                ],
+                "summary": "Delete a user address",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User Address ID",
+                        "name": "userAddressId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/SuccessResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -733,14 +4408,19 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "birth",
+                "email",
                 "fullname",
-                "password",
-                "phone"
+                "password"
             ],
             "properties": {
                 "birth": {
                     "type": "string",
                     "example": "1990-01-15"
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "admin@example.com"
                 },
                 "fullname": {
                     "type": "string",
@@ -760,11 +4440,6 @@ const docTemplate = `{
                     "maxLength": 255,
                     "minLength": 8,
                     "example": "password123"
-                },
-                "phone": {
-                    "type": "string",
-                    "maxLength": 20,
-                    "example": "+6281234567891"
                 }
             }
         },
@@ -883,7 +4558,7 @@ const docTemplate = `{
                                 "enum": [
                                     "id",
                                     "fullname",
-                                    "phone",
+                                    "email",
                                     "birth",
                                     "gender",
                                     "created_at",
@@ -896,36 +4571,352 @@ const docTemplate = `{
                 }
             }
         },
+        "AuctionBidCreateRequest": {
+            "type": "object",
+            "required": [
+                "amount"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number",
+                    "example": 150000
+                }
+            }
+        },
+        "AuctionBidResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number",
+                    "example": 150000
+                },
+                "auction": {
+                    "$ref": "#/definitions/AuctionResponse"
+                },
+                "auction_id": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "is_winner": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "payment": {
+                    "$ref": "#/definitions/PaymentResponse"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/UserResponse"
+                },
+                "user_id": {
+                    "type": "integer",
+                    "example": 2
+                }
+            }
+        },
+        "AuctionFetchRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "sorts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "direction",
+                            "field"
+                        ],
+                        "properties": {
+                            "direction": {
+                                "type": "string",
+                                "enum": [
+                                    "asc",
+                                    "desc"
+                                ],
+                                "example": "desc"
+                            },
+                            "field": {
+                                "type": "string",
+                                "enum": [
+                                    "id",
+                                    "starting_price",
+                                    "start_time",
+                                    "end_time",
+                                    "status",
+                                    "fee",
+                                    "created_at",
+                                    "updated_at"
+                                ],
+                                "example": "created_at"
+                            }
+                        }
+                    }
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "SCHEDULED",
+                        "ON_GOING",
+                        "WAITING_FOR_PAYMENT",
+                        "WAITING_FOR_SELLER_DECISION",
+                        "WAITING_FOR_SHIPMENT",
+                        "SHIPPED",
+                        "DELIVERED",
+                        "CANCELLED",
+                        "COMPLETED"
+                    ],
+                    "example": "ON_GOING"
+                }
+            }
+        },
+        "AuctionResponse": {
+            "type": "object",
+            "properties": {
+                "bids": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/AuctionBidResponse"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "fee": {
+                    "type": "number",
+                    "example": 5000
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "payment": {
+                    "$ref": "#/definitions/PaymentResponse"
+                },
+                "product": {
+                    "$ref": "#/definitions/ProductResponse"
+                },
+                "product_id": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "starting_price": {
+                    "type": "number",
+                    "example": 100000
+                },
+                "status": {
+                    "type": "string",
+                    "example": "SCHEDULED"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "winner": {
+                    "$ref": "#/definitions/AuctionWinnerResponse"
+                }
+            }
+        },
+        "AuctionShipmentFetchRequest": {
+            "type": "object"
+        },
+        "AuctionShipmentReceiveRequest": {
+            "type": "object",
+            "required": [
+                "delivery_proof_image_path"
+            ],
+            "properties": {
+                "delivery_proof_image_path": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "/uploads/proof.jpg"
+                }
+            }
+        },
+        "AuctionShipmentShipRequest": {
+            "type": "object",
+            "required": [
+                "courier_code",
+                "service_code"
+            ],
+            "properties": {
+                "courier_code": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "jne"
+                },
+                "service_code": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "example": "reg"
+                }
+            }
+        },
+        "AuctionShipmentUpdateAddressRequest": {
+            "type": "object",
+            "required": [
+                "address_id"
+            ],
+            "properties": {
+                "address_id": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "AuctionWinnerFetchRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "sorts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "direction",
+                            "field"
+                        ],
+                        "properties": {
+                            "direction": {
+                                "type": "string",
+                                "enum": [
+                                    "asc",
+                                    "desc"
+                                ],
+                                "example": "desc"
+                            },
+                            "field": {
+                                "type": "string",
+                                "enum": [
+                                    "id",
+                                    "status",
+                                    "created_at",
+                                    "updated_at"
+                                ],
+                                "example": "created_at"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "AuctionWinnerResponse": {
+            "type": "object",
+            "properties": {
+                "auction": {
+                    "$ref": "#/definitions/AuctionResponse"
+                },
+                "auction_bid": {
+                    "$ref": "#/definitions/AuctionBidResponse"
+                },
+                "auction_bid_id": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "auction_id": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "status": {
+                    "type": "string",
+                    "example": "WAITING_FOR_PAYMENT"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "AuthFcmTokenRequest": {
+            "type": "object",
+            "required": [
+                "fcm_token"
+            ],
+            "properties": {
+                "fcm_token": {
+                    "type": "string",
+                    "example": "fcm_token_123"
+                }
+            }
+        },
+        "AuthForgotPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "user@example.com"
+                }
+            }
+        },
         "AuthLoginRequest": {
             "type": "object",
             "required": [
-                "password",
-                "phone"
+                "email",
+                "password"
             ],
             "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "user@example.com"
+                },
                 "password": {
                     "type": "string",
                     "maxLength": 255,
                     "minLength": 8,
                     "example": "password123"
-                },
-                "phone": {
-                    "type": "string",
-                    "maxLength": 20,
-                    "example": "+6281234567890"
                 }
             }
         },
         "AuthOtpRequest": {
             "type": "object",
             "required": [
-                "phone"
+                "email"
             ],
             "properties": {
-                "phone": {
+                "email": {
                     "type": "string",
-                    "maxLength": 20,
-                    "example": "+6281234567890"
+                    "maxLength": 255,
+                    "example": "user@example.com"
                 }
             }
         },
@@ -933,15 +4924,20 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "birth",
+                "email",
                 "fullname",
                 "otp",
-                "password",
-                "phone"
+                "password"
             ],
             "properties": {
                 "birth": {
                     "type": "string",
                     "example": "1990-01-15"
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "user@example.com"
                 },
                 "fullname": {
                     "type": "string",
@@ -965,11 +4961,31 @@ const docTemplate = `{
                     "maxLength": 255,
                     "minLength": 8,
                     "example": "password123"
-                },
-                "phone": {
+                }
+            }
+        },
+        "AuthResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "otp",
+                "password"
+            ],
+            "properties": {
+                "email": {
                     "type": "string",
-                    "maxLength": 20,
-                    "example": "+6281234567890"
+                    "maxLength": 255,
+                    "example": "user@example.com"
+                },
+                "otp": {
+                    "type": "string",
+                    "example": "123456"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 8,
+                    "example": "newPassword123"
                 }
             }
         },
@@ -982,9 +4998,399 @@ const docTemplate = `{
                 }
             }
         },
+        "BiteshipAreaResponse": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string",
+                    "example": "Jakarta Selatan"
+                },
+                "district": {
+                    "type": "string",
+                    "example": "Pesanggrahan"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "IDNP6IDNC148IDND843IDZ12250"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Pesanggrahan, Jakarta Selatan, DKI Jakarta. 12250"
+                },
+                "postal_code": {
+                    "type": "integer"
+                },
+                "province": {
+                    "type": "string",
+                    "example": "DKI Jakarta"
+                }
+            }
+        },
+        "BiteshipSearchAreasRequest": {
+            "type": "object",
+            "required": [
+                "keyword"
+            ],
+            "properties": {
+                "keyword": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                }
+            }
+        },
         "DataResponse": {
             "type": "object",
             "additionalProperties": true
+        },
+        "NotificationResponse": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string",
+                    "example": "Your bid has been outbid."
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "is_read": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "reference_id": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Outbid!"
+                },
+                "type": {
+                    "type": "string",
+                    "example": "OUTBID"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer",
+                    "example": 2
+                }
+            }
+        },
+        "OwnAuctionCreateRequest": {
+            "type": "object",
+            "required": [
+                "end_time",
+                "product_id",
+                "start_time",
+                "starting_price"
+            ],
+            "properties": {
+                "end_time": {
+                    "type": "string",
+                    "example": "2026-06-01T12:00:00Z"
+                },
+                "product_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "start_time": {
+                    "type": "string",
+                    "example": "2026-06-01T10:00:00Z"
+                },
+                "starting_price": {
+                    "type": "number",
+                    "example": 100000
+                }
+            }
+        },
+        "OwnAuctionFetchRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "sorts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "direction",
+                            "field"
+                        ],
+                        "properties": {
+                            "direction": {
+                                "type": "string",
+                                "enum": [
+                                    "asc",
+                                    "desc"
+                                ],
+                                "example": "desc"
+                            },
+                            "field": {
+                                "type": "string",
+                                "enum": [
+                                    "id",
+                                    "starting_price",
+                                    "start_time",
+                                    "end_time",
+                                    "status",
+                                    "fee",
+                                    "created_at",
+                                    "updated_at"
+                                ],
+                                "example": "created_at"
+                            }
+                        }
+                    }
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "SCHEDULED",
+                        "ON_GOING",
+                        "WAITING_FOR_PAYMENT",
+                        "WAITING_FOR_SELLER_DECISION",
+                        "WAITING_FOR_SHIPMENT",
+                        "SHIPPED",
+                        "DELIVERED",
+                        "CANCELLED",
+                        "COMPLETED"
+                    ],
+                    "example": "SCHEDULED"
+                }
+            }
+        },
+        "OwnAuctionUpdateRequest": {
+            "type": "object",
+            "required": [
+                "end_time",
+                "start_time",
+                "starting_price"
+            ],
+            "properties": {
+                "end_time": {
+                    "type": "string",
+                    "example": "2026-06-01T12:00:00Z"
+                },
+                "start_time": {
+                    "type": "string",
+                    "example": "2026-06-01T10:00:00Z"
+                },
+                "starting_price": {
+                    "type": "number",
+                    "example": 150000
+                }
+            }
+        },
+        "OwnBidFetchRequest": {
+            "type": "object",
+            "properties": {
+                "auction_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "sorts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "direction",
+                            "field"
+                        ],
+                        "properties": {
+                            "direction": {
+                                "type": "string",
+                                "enum": [
+                                    "asc",
+                                    "desc"
+                                ],
+                                "example": "desc"
+                            },
+                            "field": {
+                                "type": "string",
+                                "enum": [
+                                    "id",
+                                    "amount",
+                                    "created_at",
+                                    "updated_at"
+                                ],
+                                "example": "created_at"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "OwnNotificationFetchRequest": {
+            "type": "object",
+            "properties": {
+                "is_read": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "sorts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "direction",
+                            "field"
+                        ],
+                        "properties": {
+                            "direction": {
+                                "type": "string",
+                                "enum": [
+                                    "asc",
+                                    "desc"
+                                ],
+                                "example": "desc"
+                            },
+                            "field": {
+                                "type": "string",
+                                "enum": [
+                                    "id",
+                                    "title",
+                                    "type",
+                                    "is_read",
+                                    "created_at",
+                                    "updated_at"
+                                ],
+                                "example": "created_at"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "OwnPaymentFetchRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "sorts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "direction",
+                            "field"
+                        ],
+                        "properties": {
+                            "direction": {
+                                "type": "string",
+                                "enum": [
+                                    "asc",
+                                    "desc"
+                                ],
+                                "example": "desc"
+                            },
+                            "field": {
+                                "type": "string",
+                                "enum": [
+                                    "id",
+                                    "amount",
+                                    "status",
+                                    "created_at",
+                                    "updated_at"
+                                ],
+                                "example": "created_at"
+                            }
+                        }
+                    }
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "WAITING_FOR_PAYMENT",
+                        "PAID",
+                        "FAILED",
+                        "EXPIRED",
+                        "CANCELLED"
+                    ],
+                    "example": "WAITING_FOR_PAYMENT"
+                }
+            }
+        },
+        "OwnProductCreateRequest": {
+            "type": "object",
+            "required": [
+                "condition",
+                "image_paths",
+                "name",
+                "weight_gram"
+            ],
+            "properties": {
+                "condition": {
+                    "type": "string",
+                    "enum": [
+                        "NEW",
+                        "PRELOVED"
+                    ],
+                    "example": "NEW"
+                },
+                "cover_image_path": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "upload/abc123.jpg"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "example": "A beautiful vintage camera"
+                },
+                "image_paths": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "Vintage Camera"
+                },
+                "weight_gram": {
+                    "type": "integer",
+                    "example": 1000
+                }
+            }
         },
         "OwnProductFetchRequest": {
             "type": "object",
@@ -1057,6 +5463,134 @@ const docTemplate = `{
                 }
             }
         },
+        "OwnProductUpdateRequest": {
+            "type": "object",
+            "required": [
+                "condition",
+                "image_paths",
+                "name",
+                "weight_gram"
+            ],
+            "properties": {
+                "condition": {
+                    "type": "string",
+                    "enum": [
+                        "NEW",
+                        "PRELOVED"
+                    ],
+                    "example": "NEW"
+                },
+                "cover_image_path": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "upload/abc123.jpg"
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "example": "A beautiful vintage camera"
+                },
+                "image_paths": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "Vintage Camera"
+                },
+                "weight_gram": {
+                    "type": "integer",
+                    "example": 1000
+                }
+            }
+        },
+        "OwnProfileUpdateRequest": {
+            "type": "object",
+            "required": [
+                "birth",
+                "fullname"
+            ],
+            "properties": {
+                "birth": {
+                    "type": "string",
+                    "example": "1990-01-15"
+                },
+                "fullname": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "John Doe"
+                },
+                "gender": {
+                    "type": "string",
+                    "enum": [
+                        "MALE",
+                        "FEMALE"
+                    ],
+                    "example": "MALE"
+                }
+            }
+        },
+        "OwnRoleRequestCreateRequest": {
+            "type": "object",
+            "required": [
+                "role"
+            ],
+            "properties": {
+                "bank_account_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "John Doe"
+                },
+                "bank_account_number": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "1234567890"
+                },
+                "bank_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "Bank ABC"
+                },
+                "identity_image_path": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "/uploads/identity.jpg"
+                },
+                "nik": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "3201010101010001"
+                },
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "BIDDER",
+                        "SELLER"
+                    ],
+                    "example": "BIDDER"
+                },
+                "selfie_identity_image_path": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "/uploads/selfie.jpg"
+                }
+            }
+        },
+        "OwnWithdrawalRequestCreateRequest": {
+            "type": "object",
+            "required": [
+                "amount"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number",
+                    "example": 500000
+                }
+            }
+        },
         "PaginationResponse": {
             "type": "object",
             "properties": {
@@ -1075,36 +5609,49 @@ const docTemplate = `{
                 }
             }
         },
-        "ProductCreateRequest": {
+        "PaymentResponse": {
             "type": "object",
-            "required": [
-                "condition",
-                "name"
-            ],
             "properties": {
-                "condition": {
-                    "type": "string",
-                    "enum": [
-                        "NEW",
-                        "PRELOVED"
-                    ],
-                    "example": "NEW"
+                "amount": {
+                    "type": "number",
+                    "example": 155000
                 },
-                "description": {
-                    "type": "string",
-                    "maxLength": 2000,
-                    "example": "A beautiful vintage camera"
+                "auction": {
+                    "$ref": "#/definitions/AuctionResponse"
                 },
-                "image_count": {
+                "auction_id": {
                     "type": "integer",
-                    "maximum": 10,
-                    "minimum": 0,
-                    "example": 3
+                    "example": 2
                 },
-                "name": {
+                "created_at": {
+                    "type": "string"
+                },
+                "expired_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "payment_method_id": {
+                    "type": "integer"
+                },
+                "snap_token": {
+                    "type": "string"
+                },
+                "snap_url": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string",
-                    "maxLength": 255,
-                    "example": "Vintage Camera"
+                    "example": "WAITING_FOR_PAYMENT"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer",
+                    "example": 3
                 }
             }
         },
@@ -1115,7 +5662,7 @@ const docTemplate = `{
                     "type": "string",
                     "example": "NEW"
                 },
-                "cover_image_url": {
+                "cover_image_link": {
                     "type": "string"
                 },
                 "created_at": {
@@ -1126,10 +5673,10 @@ const docTemplate = `{
                     "example": "A beautiful vintage camera"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
                 },
-                "image_urls": {
+                "image_links": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -1156,8 +5703,12 @@ const docTemplate = `{
                     "$ref": "#/definitions/UserResponse"
                 },
                 "user_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                    "type": "integer",
+                    "example": 2
+                },
+                "weight_gram": {
+                    "type": "integer",
+                    "example": 500
                 }
             }
         },
@@ -1168,16 +5719,16 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
                 },
                 "message": {
                     "type": "string",
                     "example": "Looks good!"
                 },
                 "product_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                    "type": "integer",
+                    "example": 2
                 },
                 "status": {
                     "type": "string",
@@ -1194,6 +5745,126 @@ const docTemplate = `{
                 "data": {}
             }
         },
+        "RoleRequestResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Please review my request"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "BIDDER"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "REQUESTED"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer",
+                    "example": 2
+                }
+            }
+        },
+        "ShipmentResponse": {
+            "type": "object",
+            "properties": {
+                "auction_bid": {
+                    "$ref": "#/definitions/AuctionBidResponse"
+                },
+                "auction_bid_id": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "auto_received_at": {
+                    "type": "string"
+                },
+                "biteship_order_id": {
+                    "type": "string"
+                },
+                "buyer_address_deadline_at": {
+                    "type": "string"
+                },
+                "buyer_address_failed_at": {
+                    "type": "string"
+                },
+                "buyer_address_id": {
+                    "type": "integer"
+                },
+                "buyer_address_snapshot": {
+                    "$ref": "#/definitions/model.ShipmentAddressSnapshot"
+                },
+                "courier_code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "delivered_at": {
+                    "type": "string"
+                },
+                "delivery_proof_image_path": {
+                    "type": "string"
+                },
+                "estimated_costs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ShipmentCostEstimate"
+                    }
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "receive_deadline_at": {
+                    "type": "string"
+                },
+                "received_at": {
+                    "type": "string"
+                },
+                "seller_address_id": {
+                    "type": "integer"
+                },
+                "seller_address_snapshot": {
+                    "$ref": "#/definitions/model.ShipmentAddressSnapshot"
+                },
+                "seller_failed_at": {
+                    "type": "string"
+                },
+                "service_code": {
+                    "type": "string"
+                },
+                "ship_deadline_at": {
+                    "type": "string"
+                },
+                "shipped_at": {
+                    "type": "string"
+                },
+                "shipping_cost": {
+                    "type": "number"
+                },
+                "tracking_number": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer",
+                    "example": 3
+                }
+            }
+        },
         "SuccessResponse": {
             "type": "object",
             "properties": {
@@ -1203,9 +5874,272 @@ const docTemplate = `{
                 }
             }
         },
+        "UserAddressCreateRequest": {
+            "type": "object",
+            "required": [
+                "address",
+                "biteship_area_id",
+                "city_name",
+                "label",
+                "phone",
+                "postal_code",
+                "province_name",
+                "recipient_name"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "Jl. Sudirman No. 1"
+                },
+                "biteship_area_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "example": "IDNP6IDNC148IDND843IDZ12250"
+                },
+                "city_id": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "151"
+                },
+                "city_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "Bandung"
+                },
+                "is_default": {
+                    "type": "boolean"
+                },
+                "label": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "Rumah"
+                },
+                "latitude": {
+                    "type": "number",
+                    "maximum": 90,
+                    "minimum": -90,
+                    "example": -6.2
+                },
+                "longitude": {
+                    "type": "number",
+                    "maximum": 180,
+                    "minimum": -180,
+                    "example": 106.8166667
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "example": "08123456789"
+                },
+                "postal_code": {
+                    "type": "string",
+                    "maxLength": 10,
+                    "example": "40111"
+                },
+                "province_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "Jawa Barat"
+                },
+                "recipient_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "John Doe"
+                }
+            }
+        },
+        "UserAddressFetchRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "sorts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "direction",
+                            "field"
+                        ],
+                        "properties": {
+                            "direction": {
+                                "type": "string",
+                                "enum": [
+                                    "asc",
+                                    "desc"
+                                ],
+                                "example": "desc"
+                            },
+                            "field": {
+                                "type": "string",
+                                "enum": [
+                                    "label",
+                                    "created_at",
+                                    "updated_at"
+                                ],
+                                "example": "created_at"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "UserAddressResponse": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "example": "Jl. Sudirman No. 1"
+                },
+                "biteship_area_id": {
+                    "type": "string",
+                    "example": "IDNP6IDNC148IDND843IDZ12250"
+                },
+                "city_id": {
+                    "type": "string",
+                    "example": "151"
+                },
+                "city_name": {
+                    "type": "string",
+                    "example": "Bandung"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "is_default": {
+                    "type": "boolean"
+                },
+                "label": {
+                    "type": "string",
+                    "example": "Rumah"
+                },
+                "latitude": {
+                    "type": "number",
+                    "example": -6.2
+                },
+                "longitude": {
+                    "type": "number",
+                    "example": 106.8166667
+                },
+                "phone": {
+                    "type": "string",
+                    "example": "08123456789"
+                },
+                "postal_code": {
+                    "type": "string",
+                    "example": "40111"
+                },
+                "province_name": {
+                    "type": "string",
+                    "example": "Jawa Barat"
+                },
+                "recipient_name": {
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer",
+                    "example": 2
+                }
+            }
+        },
+        "UserAddressUpdateRequest": {
+            "type": "object",
+            "required": [
+                "address",
+                "biteship_area_id",
+                "city_name",
+                "label",
+                "phone",
+                "postal_code",
+                "province_name",
+                "recipient_name"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "example": "Jl. Sudirman No. 1"
+                },
+                "biteship_area_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "example": "IDNP6IDNC148IDND843IDZ12250"
+                },
+                "city_id": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "151"
+                },
+                "city_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "Bandung"
+                },
+                "is_default": {
+                    "type": "boolean"
+                },
+                "label": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "Rumah"
+                },
+                "latitude": {
+                    "type": "number",
+                    "maximum": 90,
+                    "minimum": -90,
+                    "example": -6.2
+                },
+                "longitude": {
+                    "type": "number",
+                    "maximum": 180,
+                    "minimum": -180,
+                    "example": 106.8166667
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "example": "08123456789"
+                },
+                "postal_code": {
+                    "type": "string",
+                    "maxLength": 10,
+                    "example": "40111"
+                },
+                "province_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "Jawa Barat"
+                },
+                "recipient_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "John Doe"
+                }
+            }
+        },
         "UserResponse": {
             "type": "object",
             "properties": {
+                "balance": {
+                    "type": "number",
+                    "example": 100000
+                },
                 "bank_account_number": {
                     "type": "string"
                 },
@@ -1216,6 +6150,10 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                },
                 "fullname": {
                     "type": "string",
                     "example": "John Doe"
@@ -1225,8 +6163,11 @@ const docTemplate = `{
                     "example": "MALE"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
+                },
+                "identity_image_link": {
+                    "type": "string"
                 },
                 "is_deleted": {
                     "type": "boolean",
@@ -1239,15 +6180,14 @@ const docTemplate = `{
                 "nik": {
                     "type": "string"
                 },
-                "phone": {
-                    "type": "string",
-                    "example": "+6281234567890"
-                },
                 "roles": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/UserRoleResponse"
                     }
+                },
+                "selfie_identity_image_link": {
+                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
@@ -1261,8 +6201,8 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "type": "integer",
+                    "example": 1
                 },
                 "role": {
                     "type": "string",
@@ -1272,8 +6212,273 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_id": {
+                    "type": "integer",
+                    "example": 2
+                }
+            }
+        },
+        "WithdrawalRequestResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number",
+                    "example": 500000
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "status": {
                     "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                    "example": "REQUESTED"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "validator_user_id": {
+                    "type": "integer",
+                    "example": 3
+                }
+            }
+        },
+        "dto_request.AdminProductRejectRequest": {
+            "type": "object",
+            "required": [
+                "message"
+            ],
+            "properties": {
+                "message": {
+                    "description": "Mandatory rejection reason",
+                    "type": "string"
+                },
+                "productId": {
+                    "type": "integer"
+                },
+                "userId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto_request.PaymentMethodCreateRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "bca_va"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "BCA Virtual Account"
+                },
+                "type": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "BANK_TRANSFER"
+                }
+            }
+        },
+        "dto_request.PaymentMethodFetchRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "type": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            }
+        },
+        "dto_request.PaymentMethodUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "bca_va_new"
+                },
+                "is_active": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "BCA Virtual Account Baru"
+                },
+                "type": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "example": "BANK_TRANSFER"
+                }
+            }
+        },
+        "dto_request.RoleRequestFetchRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "BIDDER",
+                        "SELLER"
+                    ]
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "REQUESTED",
+                        "APPROVED",
+                        "REJECTED"
+                    ]
+                }
+            }
+        },
+        "dto_request.RoleRequestRejectRequest": {
+            "type": "object",
+            "required": [
+                "message"
+            ],
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "Dokumen pendukung kurang jelas atau blur"
+                }
+            }
+        },
+        "dto_request.WithdrawalRequestFetchRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "REQUESTED",
+                        "COMPLETED"
+                    ]
+                }
+            }
+        },
+        "dto_response.DashboardDailyReport": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "total_auctions": {
+                    "type": "integer"
+                },
+                "total_revenue": {
+                    "type": "number"
+                }
+            }
+        },
+        "model.ShipmentAddressSnapshot": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "biteship_area_id": {
+                    "type": "string"
+                },
+                "city_id": {
+                    "type": "string"
+                },
+                "city_name": {
+                    "type": "string"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "postal_code": {
+                    "type": "string"
+                },
+                "province_name": {
+                    "type": "string"
+                },
+                "recipient_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ShipmentCostEstimate": {
+            "type": "object",
+            "properties": {
+                "courier_code": {
+                    "type": "string"
+                },
+                "courier_name": {
+                    "type": "string"
+                },
+                "courier_service_code": {
+                    "type": "string"
+                },
+                "courier_service_name": {
+                    "type": "string"
+                },
+                "duration": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "integer"
+                },
+                "shipping_fee": {
+                    "type": "integer"
                 }
             }
         }

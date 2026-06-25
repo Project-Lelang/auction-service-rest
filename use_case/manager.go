@@ -5,13 +5,35 @@ type UseCaseManager interface {
 	UserUseCase() UserUseCase
 	UserRoleUseCase() UserRoleUseCase
 	ProductUseCase() ProductUseCase
+	RoleRequestUseCase() RoleRequestUseCase
+	WithdrawalRequestUseCase() WithdrawalRequestUseCase
+	AuctionUseCase() AuctionUseCase
+	BidUseCase() BidUseCase
+	PaymentMethodUseCase() PaymentMethodUseCase
+	WinnerUseCase() WinnerUseCase
+	PaymentUseCase() PaymentUseCase
+	ShipmentUseCase() ShipmentUseCase
+	UserAddressUseCase() UserAddressUseCase
+	BiteshipUseCase() BiteshipUseCase
+	NotificationUseCase() NotificationUseCase
 }
 
 type useCaseManager struct {
-	authUseCase     AuthUseCase
-	userUseCase     UserUseCase
-	userRoleUseCase UserRoleUseCase
-	productUseCase  ProductUseCase
+	authUseCase              AuthUseCase
+	userUseCase              UserUseCase
+	userRoleUseCase          UserRoleUseCase
+	productUseCase           ProductUseCase
+	roleRequestUseCase       RoleRequestUseCase
+	withdrawalRequestUseCase WithdrawalRequestUseCase
+	auctionUseCase           AuctionUseCase
+	bidUseCase               BidUseCase
+	paymentMethodUseCase     PaymentMethodUseCase
+	winnerUseCase            WinnerUseCase
+	paymentUseCase           PaymentUseCase
+	shipmentUseCase          ShipmentUseCase
+	userAddressUseCase       UserAddressUseCase
+	biteshipUseCase          BiteshipUseCase
+	notificationUseCase      NotificationUseCase
 }
 
 func NewUseCaseManager(
@@ -19,12 +41,34 @@ func NewUseCaseManager(
 	userUseCase UserUseCase,
 	userRoleUseCase UserRoleUseCase,
 	productUseCase ProductUseCase,
+	roleRequestUseCase RoleRequestUseCase,
+	withdrawalRequestUseCase WithdrawalRequestUseCase,
+	auctionUseCase AuctionUseCase,
+	bidUseCase BidUseCase,
+	paymentMethodUseCase PaymentMethodUseCase,
+	winnerUseCase WinnerUseCase,
+	paymentUseCase PaymentUseCase,
+	shipmentUseCase ShipmentUseCase,
+	userAddressUseCase UserAddressUseCase,
+	biteshipUseCase BiteshipUseCase,
+	notificationUseCase NotificationUseCase,
 ) UseCaseManager {
 	return &useCaseManager{
-		authUseCase:     authUseCase,
-		userUseCase:     userUseCase,
-		userRoleUseCase: userRoleUseCase,
-		productUseCase:  productUseCase,
+		authUseCase:              authUseCase,
+		userUseCase:              userUseCase,
+		userRoleUseCase:          userRoleUseCase,
+		productUseCase:           productUseCase,
+		roleRequestUseCase:       roleRequestUseCase,
+		withdrawalRequestUseCase: withdrawalRequestUseCase,
+		auctionUseCase:           auctionUseCase,
+		bidUseCase:               bidUseCase,
+		paymentMethodUseCase:     paymentMethodUseCase,
+		winnerUseCase:            winnerUseCase,
+		paymentUseCase:           paymentUseCase,
+		shipmentUseCase:          shipmentUseCase,
+		userAddressUseCase:       userAddressUseCase,
+		biteshipUseCase:          biteshipUseCase,
+		notificationUseCase:      notificationUseCase,
 	}
 }
 
@@ -42,4 +86,48 @@ func (u *useCaseManager) UserRoleUseCase() UserRoleUseCase {
 
 func (u *useCaseManager) ProductUseCase() ProductUseCase {
 	return u.productUseCase
+}
+
+func (u *useCaseManager) RoleRequestUseCase() RoleRequestUseCase {
+	return u.roleRequestUseCase
+}
+
+func (u *useCaseManager) WithdrawalRequestUseCase() WithdrawalRequestUseCase {
+	return u.withdrawalRequestUseCase
+}
+
+func (u *useCaseManager) AuctionUseCase() AuctionUseCase {
+	return u.auctionUseCase
+}
+
+func (u *useCaseManager) BidUseCase() BidUseCase {
+	return u.bidUseCase
+}
+
+func (u *useCaseManager) PaymentMethodUseCase() PaymentMethodUseCase {
+	return u.paymentMethodUseCase
+}
+
+func (u *useCaseManager) WinnerUseCase() WinnerUseCase {
+	return u.winnerUseCase
+}
+
+func (u *useCaseManager) PaymentUseCase() PaymentUseCase {
+	return u.paymentUseCase
+}
+
+func (u *useCaseManager) ShipmentUseCase() ShipmentUseCase {
+	return u.shipmentUseCase
+}
+
+func (u *useCaseManager) UserAddressUseCase() UserAddressUseCase {
+	return u.userAddressUseCase
+}
+
+func (u *useCaseManager) BiteshipUseCase() BiteshipUseCase {
+	return u.biteshipUseCase
+}
+
+func (u *useCaseManager) NotificationUseCase() NotificationUseCase {
+	return u.notificationUseCase
 }

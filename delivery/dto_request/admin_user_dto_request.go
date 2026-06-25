@@ -4,7 +4,7 @@ package dto_request
 // The anonymous-struct layout must stay identical to model.Sorts for direct
 // type-conversion: model.Sorts(request.Sorts).
 type AdminUserFetchSorts []struct {
-	Field     string `json:"field"     validate:"required,oneof=id fullname phone birth gender created_at updated_at" example:"created_at"`
+	Field     string `json:"field"     validate:"required,oneof=id fullname email birth gender created_at updated_at" example:"created_at"`
 	Direction string `json:"direction" validate:"required,oneof=asc desc"                                      example:"desc"`
 } // @name AdminUserFetchSorts
 
@@ -16,7 +16,7 @@ type AdminUserFetchRequest struct {
 
 type AdminUserRegisterRequest struct {
 	Fullname string  `json:"fullname" validate:"required,max=255" example:"John Doe"`
-	Phone    string  `json:"phone" validate:"required,max=20" example:"+6281234567890"`
+	Email    string  `json:"email" validate:"required,email,max=255" example:"user@example.com"`
 	Birth    string  `json:"birth" validate:"required" example:"1990-01-15"`
 	Gender   *string `json:"gender" validate:"omitempty,oneof=MALE FEMALE" example:"MALE"`
 	Password string  `json:"password" validate:"required,min=8,max=255" example:"password123"`
@@ -25,7 +25,7 @@ type AdminUserRegisterRequest struct {
 
 type AdminUserCreateRequest struct {
 	Fullname string  `json:"fullname" validate:"required,max=255" example:"Admin User"`
-	Phone    string  `json:"phone" validate:"required,max=20" example:"+6281234567891"`
+	Email    string  `json:"email" validate:"required,email,max=255" example:"admin@example.com"`
 	Birth    string  `json:"birth" validate:"required" example:"1990-01-15"`
 	Gender   *string `json:"gender" validate:"omitempty,oneof=MALE FEMALE" example:"MALE"`
 	Password string  `json:"password" validate:"required,min=8,max=255" example:"password123"`
@@ -34,5 +34,18 @@ type AdminUserCreateRequest struct {
 type AdminUserRoleCreateRequest struct {
 	Role string `json:"role" validate:"required,oneof=SUPERADMIN ADMIN BIDDER SELLER" example:"ADMIN"`
 
-	UserId string `json:"-" swaggerignore:"true"`
+	UserId int64 `json:"-" swaggerignore:"true"`
 } // @name AdminUserRoleRequest
+
+type AdminUserGetRequest struct {
+	UserId int64 `json:"-" swaggerignore:"true"`
+} // @name AdminUserGetRequest
+
+type AdminUserDeleteRequest struct {
+	UserId int64 `json:"-" swaggerignore:"true"`
+} // @name AdminUserDeleteRequest
+
+type AdminUserRoleDeleteRequest struct {
+	UserId int64  `json:"-" swaggerignore:"true"`
+	Role   string `json:"-" swaggerignore:"true"`
+} // @name AdminUserRoleDeleteRequest

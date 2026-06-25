@@ -5,38 +5,52 @@ import "auction-service/data_type"
 const UserTableName = "users"
 
 type User struct {
-	Id                string             `db:"id"`
-	Fullname          string             `db:"fullname"`
-	Phone             string             `db:"phone"`
-	Nik               *string            `db:"nik"`
-	Birth             data_type.DateTime `db:"birth"`
-	Gender            *string            `db:"gender"`
-	BankAccountNumber *string            `db:"bank_account_number"`
-	IsVerified        bool               `db:"is_verified"`
-	IsDeleted         bool               `db:"is_deleted"`
-	Password          string             `db:"password"`
+	Id                      int64              `db:"id"`
+	Fullname                string             `db:"fullname"`
+	Email                   string             `db:"email"`
+	Nik                     *string            `db:"nik"`
+	Birth                   data_type.DateTime `db:"birth"`
+	Gender                  *string            `db:"gender"`
+	BankName                *string            `db:"bank_name"`         // TAMBAHKAN INI
+	BankAccountName         *string            `db:"bank_account_name"` // TAMBAHKAN INI
+	BankAccountNumber       *string            `db:"bank_account_number"`
+	IdentityImagePath       *string            `db:"identity_image_path"`
+	SelfieIdentityImagePath *string            `db:"selfie_identity_image_path"`
+	Balance                 float64            `db:"balance"`
+	IsVerified              bool               `db:"is_verified"`
+	IsDeleted               bool               `db:"is_deleted"`
+	Password                string             `db:"password"`
 	Timestamp
 
 	// relations
 	Roles []UserRole `db:"-"`
+
+	// computed
+	IdentityImageLink       *string `db:"-"`
+	SelfieIdentityImageLink *string `db:"-"`
 }
 
 func (u *User) TableName() string { return UserTableName }
 
 func (u *User) ToMap() map[string]interface{} {
 	return map[string]interface{}{
-		"id":                  u.Id,
-		"fullname":            u.Fullname,
-		"phone":               u.Phone,
-		"nik":                 u.Nik,
-		"birth":               u.Birth,
-		"gender":              u.Gender,
-		"bank_account_number": u.BankAccountNumber,
-		"is_verified":         u.IsVerified,
-		"is_deleted":          u.IsDeleted,
-		"password":            u.Password,
-		"created_at":          u.CreatedAt,
-		"updated_at":          u.UpdatedAt,
+		"id":                         u.Id,
+		"fullname":                   u.Fullname,
+		"email":                      u.Email,
+		"nik":                        u.Nik,
+		"birth":                      u.Birth,
+		"gender":                     u.Gender,
+		"bank_name":                  u.BankName,        // TAMBAHKAN INI
+		"bank_account_name":          u.BankAccountName, // TAMBAHKAN INI
+		"bank_account_number":        u.BankAccountNumber,
+		"identity_image_path":        u.IdentityImagePath,
+		"selfie_identity_image_path": u.SelfieIdentityImagePath,
+		"balance":                    u.Balance,
+		"is_verified":                u.IsVerified,
+		"is_deleted":                 u.IsDeleted,
+		"password":                   u.Password,
+		"created_at":                 u.CreatedAt,
+		"updated_at":                 u.UpdatedAt,
 	}
 }
 

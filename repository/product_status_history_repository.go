@@ -16,8 +16,8 @@ type ProductStatusHistoryRepository interface {
 	Insert(ctx context.Context, h *model.ProductStatusHistory) error
 
 	// read
-	FetchByProductId(ctx context.Context, productId string) ([]model.ProductStatusHistory, error)
-	FetchByProductIds(ctx context.Context, productIds []string) ([]model.ProductStatusHistory, error)
+	FetchByProductId(ctx context.Context, productId int64) ([]model.ProductStatusHistory, error)
+	FetchByProductIds(ctx context.Context, productIds []int64) ([]model.ProductStatusHistory, error)
 }
 
 type productStatusHistoryRepository struct {
@@ -49,7 +49,7 @@ func (r *productStatusHistoryRepository) Insert(ctx context.Context, h *model.Pr
 
 // ------------------------------------------------------------------ read
 
-func (r *productStatusHistoryRepository) FetchByProductId(ctx context.Context, productId string) ([]model.ProductStatusHistory, error) {
+func (r *productStatusHistoryRepository) FetchByProductId(ctx context.Context, productId int64) ([]model.ProductStatusHistory, error) {
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("product_id"): productId}).
@@ -62,7 +62,7 @@ func (r *productStatusHistoryRepository) FetchByProductId(ctx context.Context, p
 	return histories, nil
 }
 
-func (r *productStatusHistoryRepository) FetchByProductIds(ctx context.Context, productIds []string) ([]model.ProductStatusHistory, error) {
+func (r *productStatusHistoryRepository) FetchByProductIds(ctx context.Context, productIds []int64) ([]model.ProductStatusHistory, error) {
 	if len(productIds) == 0 {
 		return []model.ProductStatusHistory{}, nil
 	}

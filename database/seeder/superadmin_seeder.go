@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"strings"
 	"time"
 
 	"auction-service/constant"
@@ -24,7 +25,9 @@ func SeedSuperAdmin(db infrastructure.DBTX) error {
 	userRepo := repository.NewUserRepository(db)
 	userRoleRepo := repository.NewUserRoleRepository(db)
 
-	_, err := userRepo.GetByPhone(ctx, config.Phone)
+	email := strings.ToLower(strings.TrimSpace(config.Email))
+
+	_, err := userRepo.GetByEmail(ctx, email)
 	if err != nil && !errors.Is(err, constant.ErrNoData) {
 		return err
 	}
@@ -40,9 +43,8 @@ func SeedSuperAdmin(db infrastructure.DBTX) error {
 
 	birth := data_type.NewDateTime(time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC))
 	user := &model.User{
-		Id:         util.NewUuid(),
 		Fullname:   "Super Admin",
-		Phone:      config.Phone,
+		Email:      email,
 		Birth:      birth,
 		IsVerified: true,
 		IsDeleted:  false,
@@ -54,13 +56,12 @@ func SeedSuperAdmin(db infrastructure.DBTX) error {
 	}
 
 	if err := userRoleRepo.Insert(ctx, &model.UserRole{
-		Id:     util.NewUuid(),
 		UserId: user.Id,
 		Role:   constant.RoleSuperAdmin,
 	}); err != nil {
 		return err
 	}
 
-	log.Printf("Superadmin seeded successfully: phone=%s", config.Phone)
+	log.Printf("Superadmin seeded successfully: email=%s", email)
 	return nil
 }

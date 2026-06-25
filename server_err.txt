@@ -1,0 +1,7 @@
+asynq: pid=17064 2026/06/01 14:47:55.329573 INFO: Starting processing
+2026/06/01 21:47:55 [auction worker] processed 0 scheduled auction(s) on startup (0 started directly)
+2026/06/01 21:47:55 [auction worker] processed 0 on-going auction(s) on startup
+2026/06/01 21:47:55 [auction worker] queued payment init recovery for 1 waiting-for-payment auction(s)
+2026/06/01 21:47:55 server starting on port 8080
+2026/06/01 21:47:55 http listen error: listen tcp :8080: bind: Only one usage of each socket address (protocol/network address/port) is normally permitted.
+exit status 1

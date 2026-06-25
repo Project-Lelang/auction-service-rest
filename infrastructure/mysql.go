@@ -11,7 +11,7 @@ import (
 )
 
 func NewMysqlDB(cfg global.MysqlConfig) *sqlx.DB {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=UTC&charset=utf8mb4",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=UTC&time_zone=UTC&charset=utf8mb4",
 		cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.Database)
 
 	db, err := sqlx.Open("mysql", dsn)

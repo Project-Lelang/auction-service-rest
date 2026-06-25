@@ -1,5 +1,5 @@
 # auth
-AUTH.INVALID_CREDENTIALS: "Nomor telepon atau password salah"
+AUTH.INVALID_CREDENTIALS: "Email atau password salah"
 AUTH.WRONG_PASSWORD: "Password salah"
 AUTH.ACCOUNT_NOT_REGISTERED: "Akun tidak terdaftar"
 AUTH.TOKEN_EXPIRED: "Token telah kedaluwarsa"
@@ -8,7 +8,8 @@ AUTH.REFRESH_TOKEN_EXPIRED: "Refresh token telah kedaluwarsa"
 AUTH.REFRESH_TOKEN_INVALID: "Refresh token tidak valid"
 AUTH.LOGGED_OUT: "Berhasil keluar"
 AUTH.OTP_INVALID: "OTP tidak valid atau telah kedaluwarsa"
-AUTH.PHONE_ALREADY_REGISTERED: "Nomor telepon sudah terdaftar"
+AUTH.RESET_PASSWORD_OTP_INVALID: "Kode reset password tidak valid atau telah kedaluwarsa"
+AUTH.EMAIL_ALREADY_REGISTERED: "Email sudah terdaftar"
 
 # user
 USER.NOT_FOUND: "Pengguna tidak ditemukan"

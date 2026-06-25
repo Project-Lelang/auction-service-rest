@@ -1,0 +1,168 @@
+package repository
+
+import (
+	"auction-service/infrastructure"
+	"auction-service/model"
+	"auction-service/util"
+	"context"
+	"fmt"
+
+	"github.com/Masterminds/squirrel"
+)
+
+type PaymentMethodRepository interface {
+	Insert(ctx context.Context, pm *model.PaymentMethod) error
+	GetById(ctx context.Context, id int64) (*model.PaymentMethod, error)
+	Fetch(ctx context.Context, options ...model.PaymentMethodQueryOption) ([]model.PaymentMethod, error)
+	Update(ctx context.Context, pm *model.PaymentMethod) (*model.PaymentMethod, error)
+	Count(ctx context.Context, options ...model.PaymentMethodQueryOption) (int64, error)
+	GetByCode(ctx context.Context, code string) (*model.PaymentMethod, error)
+}
+
+type paymentMethodRepository struct {
+	db infrastructure.DBTX
+}
+
+func NewPaymentMethodRepository(db infrastructure.DBTX) PaymentMethodRepository {
+	return &paymentMethodRepository{db: db}
+}
+
+func (r *paymentMethodRepository) tableName() string { return model.PaymentMethodTableName }
+func (r *paymentMethodRepository) alias() string     { return "pm" }
+func (r *paymentMethodRepository) fromTable() string {
+	return fmt.Sprintf("%s %s", r.tableName(), r.alias())
+}
+func (r *paymentMethodRepository) f(col string) string {
+	return fmt.Sprintf("%s.%s", r.alias(), col)
+}
+
+func (r *paymentMethodRepository) buildBaseStmt(option model.PaymentMethodQueryOption) squirrel.SelectBuilder {
+	stmt := stmtBuilder.Select().From(r.fromTable())
+
+	if option.IsActive != nil {
+		stmt = stmt.Where(squirrel.Eq{r.f("is_active"): *option.IsActive})
+	}
+	if option.Type != nil {
+		stmt = stmt.Where(squirrel.Eq{r.f("type"): *option.Type})
+	}
+
+	return stmt
+}
+
+func (r *paymentMethodRepository) getInternal(ctx context.Context, stmt squirrel.SelectBuilder) (*model.PaymentMethod, error) {
+	pm := model.PaymentMethod{}
+	if err := get(r.db, ctx, &pm, stmt); err != nil {
+		return nil, err
+	}
+	return &pm, nil
+}
+
+func (r *paymentMethodRepository) fetchInternal(ctx context.Context, stmt squirrel.SelectBuilder) ([]model.PaymentMethod, error) {
+	methods := []model.PaymentMethod{}
+	if err := fetch(r.db, ctx, &methods, stmt); err != nil {
+		return nil, err
+	}
+	return methods, nil
+}
+
+func (r *paymentMethodRepository) Insert(ctx context.Context, pm *model.PaymentMethod) error {
+	return defaultInsert(r.db, ctx, pm)
+}
+
+func (r *paymentMethodRepository) GetById(ctx context.Context, id int64) (*model.PaymentMethod, error) {
+	stmt := stmtBuilder.Select("*").From(r.tableName()).Where(squirrel.Eq{"id": id}).Limit(1)
+	res := model.PaymentMethod{}
+	if err := get(r.db, ctx, &res, stmt); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (r *paymentMethodRepository) Count(ctx context.Context, options ...model.PaymentMethodQueryOption) (int64, error) {
+	option := model.PaymentMethodQueryOption{}
+	if len(options) > 0 {
+		option = options[0]
+	}
+
+	// Menggunakan SELECT COUNT(*) dari tabel payment method
+	stmt := stmtBuilder.
+		Select("COUNT(*)").
+		From(r.tableName())
+
+	// Filter harus disamakan dengan fungsi Fetch agar totalnya akurat
+	if option.Name != nil {
+		stmt = stmt.Where(squirrel.Like{"name": "%" + *option.Name + "%"})
+	}
+	if option.Code != nil {
+		stmt = stmt.Where(squirrel.Eq{"code": *option.Code})
+	}
+	if option.Type != nil {
+		stmt = stmt.Where(squirrel.Eq{"type": *option.Type})
+	}
+	if option.IsActive != nil {
+		stmt = stmt.Where(squirrel.Eq{"is_active": *option.IsActive})
+	}
+
+	var total int64
+	if err := get(r.db, ctx, &total, stmt); err != nil {
+		return 0, err
+	}
+
+	return total, nil
+}
+
+func (r *paymentMethodRepository) Fetch(ctx context.Context, options ...model.PaymentMethodQueryOption) ([]model.PaymentMethod, error) {
+	option := model.PaymentMethodQueryOption{}
+	if len(options) > 0 {
+		option = options[0]
+	}
+
+	stmt := stmtBuilder.Select("*").From(r.tableName())
+
+	if option.Name != nil {
+		stmt = stmt.Where(squirrel.Like{"name": "%" + *option.Name + "%"})
+	}
+	if option.Code != nil {
+		stmt = stmt.Where(squirrel.Eq{"code": *option.Code})
+	}
+	if option.Type != nil {
+		stmt = stmt.Where(squirrel.Eq{
+			"type": *option.Type,
+		})
+	}
+	if option.IsActive != nil {
+		stmt = stmt.Where(squirrel.Eq{"is_active": *option.IsActive})
+	}
+
+	stmt = model.Prepare(stmt, &option)
+
+	res := []model.PaymentMethod{}
+	err := fetch(r.db, ctx, &res, stmt)
+	return res, err
+}
+
+func (r *paymentMethodRepository) Update(ctx context.Context, pm *model.PaymentMethod) (*model.PaymentMethod, error) {
+	if err := update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"name":       pm.Name,
+			"code":       pm.Code,
+			"type":       pm.Type,
+			"is_active":  pm.IsActive,
+			"updated_at": util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": pm.Id},
+	); err != nil {
+		return nil, err
+	}
+	return r.GetById(ctx, pm.Id)
+}
+
+// ------------------------------------------------------------------ extra reads
+
+func (r *paymentMethodRepository) GetByCode(ctx context.Context, code string) (*model.PaymentMethod, error) {
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("code"): code}).
+		Limit(1)
+	return r.getInternal(ctx, stmt)
+}

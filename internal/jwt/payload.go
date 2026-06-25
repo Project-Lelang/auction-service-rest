@@ -3,8 +3,8 @@ package jwt
 import "auction-service/data_type"
 
 type Payload struct {
-	Id        string
-	Phone     string
+	Id        int64
+	Email     string
 	Roles     []string
 	CreatedAt data_type.DateTime
 	ExpiredAt data_type.DateTime

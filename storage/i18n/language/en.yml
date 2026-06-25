@@ -1,5 +1,5 @@
 # auth
-AUTH.INVALID_CREDENTIALS: "Invalid phone or password"
+AUTH.INVALID_CREDENTIALS: "Invalid email or password"
 AUTH.WRONG_PASSWORD: "Wrong password"
 AUTH.ACCOUNT_NOT_REGISTERED: "Account is not registered"
 AUTH.TOKEN_EXPIRED: "Token has expired"
@@ -8,7 +8,8 @@ AUTH.REFRESH_TOKEN_EXPIRED: "Refresh token has expired"
 AUTH.REFRESH_TOKEN_INVALID: "Invalid refresh token"
 AUTH.LOGGED_OUT: "Logged out successfully"
 AUTH.OTP_INVALID: "OTP is invalid or has expired"
-AUTH.PHONE_ALREADY_REGISTERED: "Phone number is already registered"
+AUTH.RESET_PASSWORD_OTP_INVALID: "Password reset code is invalid or has expired"
+AUTH.EMAIL_ALREADY_REGISTERED: "Email is already registered"
 
 # user
 USER.NOT_FOUND: "User not found"

@@ -20,5 +20,46 @@ jwt:
   access_token_expiry_hours: 24
   refresh_token_expiry_hours: 168
 super_admin:
-  phone: "+628100000000"
+  email: superadmin@example.com
   password: SuperAdmin@123
+filesystem:
+  type: local  # local | supabase
+  base_uri: http://localhost:8080/storage/public
+  presigned_url_secret_key: change-me-in-production
+# supabase:  # uncomment when type is supabase
+#   url: https://<project-ref>.supabase.co
+#   service_key: <your-service-role-key>
+#   bucket_name: <your-bucket-name>
+# midtrans:  # uncomment to enable Midtrans payment gateway
+#   server_key: SB-Mid-server-xxxxxxxxxxxxxxxxxxxxxxxx
+#   is_sandbox: true
+# biteship:  # uncomment to enable Biteship for shipping orders + tracking
+#   api_key: biteship_test.your-api-key
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+notification:
+  enabled: true
+  queue_name: notif_queue:auction_events
+  dlq_name: notif_queue:auction_events:dlq
+  worker_count: 5
+  max_retries: 3
+  retry_base_ms: 500
+shipment_deadline:
+  buyer_address_hours: 24
+  seller_ship_hours: 72
+  buyer_receive_hours: 168
+  tracking_check_interval_minutes: 60
+  deadline_grace_minutes: 5
+# firebase:  # uncomment to enable real FCM delivery; otherwise notifications use a no-op sender
+#   service_account_path: ./storage/firebase-service-account.json
+email:
+  enabled: false
+  host: smtp.example.com
+  port: 587
+  username: smtp-user
+  password: smtp-password
+  from_address: no-reply@example.com
+  from_name: Auction Service

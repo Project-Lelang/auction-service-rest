@@ -2,6 +2,7 @@ package use_case
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"auction-service/constant"
@@ -23,9 +24,12 @@ type AuthUseCase interface {
 	Login(ctx context.Context, request dto_request.AuthLoginRequest) string
 	AdminLogin(ctx context.Context, request dto_request.AdminAuthLoginRequest) string
 	Register(ctx context.Context, request dto_request.AuthRegisterRequest)
-	CreateOtp(ctx context.Context, phone string)
+	SaveFcmToken(ctx context.Context, request dto_request.AuthFcmTokenRequest)
+	CreateOtp(ctx context.Context, email string)
+	RequestForgotPassword(ctx context.Context, request dto_request.AuthForgotPasswordRequest)
+	ResetPassword(ctx context.Context, request dto_request.AuthResetPasswordRequest)
 	// Middleware helper
-	Parse(token string) (*model.UserClaims, error)
+	Parse(ctx context.Context, token string) (*model.UserClaims, error)
 }
 
 type authUseCase struct {
@@ -54,7 +58,7 @@ func (u *authUseCase) generateToken(user *model.User) string {
 
 	token, err := u.jwt.Generate(internalJwt.Payload{
 		Id:        user.Id,
-		Phone:     user.Phone,
+		Email:     user.Email,
 		Roles:     roleStrings,
 		CreatedAt: now,
 		ExpiredAt: now.Add(expiry),
@@ -64,7 +68,8 @@ func (u *authUseCase) generateToken(user *model.User) string {
 }
 
 func (u *authUseCase) Login(ctx context.Context, request dto_request.AuthLoginRequest) string {
-	user, err := u.repositoryManager.UserRepository().GetByPhone(ctx, request.Phone)
+	email := normalizeEmail(request.Email)
+	user, err := u.repositoryManager.UserRepository().GetByEmail(ctx, email)
 	if err != nil {
 		if err == constant.ErrNoData {
 			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthInvalidCredentials))
@@ -84,7 +89,8 @@ func (u *authUseCase) Login(ctx context.Context, request dto_request.AuthLoginRe
 }
 
 func (u *authUseCase) AdminLogin(ctx context.Context, request dto_request.AdminAuthLoginRequest) string {
-	user, err := u.repositoryManager.UserRepository().FindAdminByPhone(ctx, request.Phone)
+	email := normalizeEmail(request.Email)
+	user, err := u.repositoryManager.UserRepository().FindAdminByEmail(ctx, email)
 	if err != nil {
 		if err == constant.ErrNoData {
 			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthInvalidCredentials))
@@ -104,7 +110,8 @@ func (u *authUseCase) AdminLogin(ctx context.Context, request dto_request.AdminA
 }
 
 func (u *authUseCase) Register(ctx context.Context, request dto_request.AuthRegisterRequest) {
-	otp, err := u.repositoryManager.OtpRepository().GetByPhone(ctx, request.Phone)
+	email := normalizeEmail(request.Email)
+	otp, err := u.repositoryManager.OtpRepository().GetByEmail(ctx, email)
 	if err != nil {
 		if err == constant.ErrNoData {
 			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthOtpInvalid))
@@ -125,30 +132,32 @@ func (u *authUseCase) Register(ctx context.Context, request dto_request.AuthRegi
 	}
 
 	user := &model.User{
-		Id:       util.NewUuid(),
 		Fullname: request.Fullname,
-		Phone:    request.Phone,
+		Email:    email,
 		Birth:    data_type.NewDateTime(birth),
 		Gender:   request.Gender,
 		Password: hashedPassword,
 	}
 
-	insertErr := u.repositoryManager.UserRepository().Insert(ctx, user)
-	if insertErr != nil {
-		if insertErr == constant.ErrDuplicateData {
-			panic(dto_response.NewConflictErrorResponse(constant.LanguageAuthPhoneAlreadyRegistered))
+	if err := u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+		if err := u.repositoryManager.UserRepository().Insert(ctx, user); err != nil {
+			return err
 		}
-		panic(insertErr)
+		return u.repositoryManager.OtpRepository().MarkVerified(ctx, email)
+	}); err != nil {
+		if err == constant.ErrDuplicateData {
+			panic(dto_response.NewConflictErrorResponse(constant.LanguageUserEmailAlreadyExist))
+		}
+		panic(err)
 	}
-
-	panicIfErr(u.repositoryManager.OtpRepository().MarkVerified(ctx, request.Phone))
 }
 
-func (u *authUseCase) CreateOtp(ctx context.Context, phone string) {
-	_, err := u.repositoryManager.UserRepository().GetByPhone(ctx, phone)
+func (u *authUseCase) CreateOtp(ctx context.Context, email string) {
+	email = normalizeEmail(email)
+	_, err := u.repositoryManager.UserRepository().GetByEmail(ctx, email)
 	if err == nil {
-		// Phone already registered — silently succeed (don't reveal existence)
-		return
+		// return error if user already exists
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthEmailAlreadyRegistered))
 	}
 	if err != constant.ErrNoData {
 		panic(err)
@@ -157,15 +166,68 @@ func (u *authUseCase) CreateOtp(ctx context.Context, phone string) {
 	otpValue, genErr := util.GenerateOTP(6)
 	panicIfErr(genErr)
 
-	expiresAt := util.CurrentDateTime().Add(time.Minute)
-	upsertErr := u.repositoryManager.OtpRepository().Upsert(ctx, phone, otpValue, expiresAt)
+	const otpExpiry = 5 * time.Minute
+	expiresAt := util.CurrentDateTime().Add(otpExpiry)
+	upsertErr := u.repositoryManager.OtpRepository().Upsert(ctx, email, otpValue, expiresAt)
 	panicIfErr(upsertErr)
 
-	// TODO: send OTP via SMS/WhatsApp
-	// For development, the OTP is accessible via GET /v1/auth/debug-otp (not exposed in production)
+	panicIfErr(util.SendOtpEmail(email, otpValue, otpExpiry))
 }
 
-func (u *authUseCase) Parse(token string) (*model.UserClaims, error) {
+func (u *authUseCase) RequestForgotPassword(ctx context.Context, request dto_request.AuthForgotPasswordRequest) {
+	email := normalizeEmail(request.Email)
+	_, err := u.repositoryManager.UserRepository().GetByEmail(ctx, email)
+	if err != nil {
+		if err == constant.ErrNoData {
+			// Silently succeed to avoid account enumeration.
+			return
+		}
+		panic(err)
+	}
+
+	otpValue, genErr := util.GenerateOTP(6)
+	panicIfErr(genErr)
+
+	const otpExpiry = 5 * time.Minute
+	expiresAt := util.CurrentDateTime().Add(otpExpiry)
+	panicIfErr(u.repositoryManager.OtpRepository().Upsert(ctx, email, otpValue, expiresAt))
+	panicIfErr(util.SendForgotPasswordEmail(email, otpValue, otpExpiry))
+}
+
+func (u *authUseCase) ResetPassword(ctx context.Context, request dto_request.AuthResetPasswordRequest) {
+	email := normalizeEmail(request.Email)
+	user, err := u.repositoryManager.UserRepository().GetByEmail(ctx, email)
+	if err != nil {
+		if err == constant.ErrNoData {
+			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthResetPasswordOtpInvalid))
+		}
+		panic(err)
+	}
+
+	otp, err := u.repositoryManager.OtpRepository().GetByEmail(ctx, email)
+	if err != nil {
+		if err == constant.ErrNoData {
+			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthResetPasswordOtpInvalid))
+		}
+		panic(err)
+	}
+
+	if otp.Verified || otp.ExpiresAt.IsLessThan(util.CurrentDateTime()) || otp.Otp != request.Otp {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuthResetPasswordOtpInvalid))
+	}
+
+	hashedPassword, hashErr := util.HashPassword(request.Password)
+	panicIfErr(hashErr)
+
+	panicIfErr(u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+		if err := u.repositoryManager.UserRepository().UpdatePassword(ctx, user.Id, hashedPassword); err != nil {
+			return err
+		}
+		return u.repositoryManager.OtpRepository().MarkVerified(ctx, email)
+	}))
+}
+
+func (u *authUseCase) Parse(ctx context.Context, token string) (*model.UserClaims, error) {
 	payload, err := u.jwt.Parse(token)
 	if err != nil {
 		return nil, constant.ErrNotAuthenticated
@@ -175,9 +237,44 @@ func (u *authUseCase) Parse(token string) (*model.UserClaims, error) {
 		return nil, constant.ErrNotAuthenticated
 	}
 
+	user, err := u.repositoryManager.UserRepository().GetById(ctx, payload.Id)
+	if err != nil {
+		if err == constant.ErrNoData {
+			return nil, constant.ErrNotAuthenticated
+		}
+		return nil, err
+	}
+
+	userRoles, err := u.repositoryManager.UserRoleRepository().FetchByUserIds(ctx, []int64{payload.Id})
+	if err != nil {
+		return nil, err
+	}
+
+	roles := make([]string, 0, len(userRoles))
+	for _, userRole := range userRoles {
+		roles = append(roles, userRole.Role)
+	}
+
 	return &model.UserClaims{
-		UserId: payload.Id,
-		Phone:  payload.Phone,
-		Roles:  payload.Roles,
+		UserId: user.Id,
+		Email:  user.Email,
+		Roles:  roles,
 	}, nil
+}
+
+func (u *authUseCase) SaveFcmToken(ctx context.Context, request dto_request.AuthFcmTokenRequest) {
+	userClaims := model.MustGetUserCtx(ctx)
+	// insert fcm token, take device info too
+	userFcmToken := &model.UserFcmToken{
+		UserId:   userClaims.UserId,
+		FcmToken: request.FcmToken,
+	}
+
+	if err := u.repositoryManager.UserFcmTokenRepository().Upsert(ctx, userFcmToken); err != nil {
+		panic(err)
+	}
+}
+
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
 }

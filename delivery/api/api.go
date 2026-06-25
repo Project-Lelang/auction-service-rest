@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	_ "auction-service/docs"
@@ -13,6 +14,7 @@ import (
 	"auction-service/constant"
 	"auction-service/delivery/dto_response"
 	"auction-service/delivery/middleware"
+	"auction-service/delivery/ws"
 	"auction-service/global"
 	internalValidator "auction-service/internal/validator"
 	"auction-service/manager"
@@ -20,6 +22,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -39,6 +42,14 @@ func (a *apiContext) context() context.Context {
 
 func (a *apiContext) getParam(key string) string {
 	return a.ginCtx.Param(key)
+}
+
+func (a *apiContext) mustGetParamInt64(key string) int64 {
+	id, err := strconv.ParseInt(a.getParam(key), 10, 64)
+	if err != nil || id <= 0 {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageSystemInvalidRequestPayload))
+	}
+	return id
 }
 
 func (a *apiContext) getQuery(key string) string {
@@ -112,6 +123,12 @@ func (a *apiContext) translateBindErr(err error) dto_response.ErrorResponse {
 	}
 }
 
+func (a *apiContext) mustBindForm(obj interface{}) {
+	if err := a.ginCtx.ShouldBindWith(obj, binding.FormMultipart); err != nil {
+		panic(a.translateBindErr(err))
+	}
+}
+
 func (a *apiContext) json(code int, obj interface{}) {
 	a.ginCtx.JSON(code, obj)
 }
@@ -155,31 +172,52 @@ func (a *api) Guest(fn func(ctx apiContext)) gin.HandlerFunc {
 		fn(newApiContext(ctx))
 	}
 }
-
 func registerMiddlewares(router gin.IRouter, container *manager.Container) {
 	middleware.RequestIdHandler(router)
 	middleware.TranslatorHandler(router)
 	middleware.PanicHandler(router, container.InfrastructureManager().GetLoggerStack())
-	middleware.JWTHandler(router, container.UseCaseManager().AuthUseCase())
 }
 
-func registerRoutes(router gin.IRouter, container *manager.Container) {
+func registerRoutes(router *gin.Engine, container *manager.Container, hub *ws.Hub) {
 	// init validator only once (triggers binding.Validator assignment)
 	_ = internalValidator.Translators
-
 	baseApi := newApi()
+
+	wsHandler := ws.NewWsHandler(hub)
+	router.GET("/ws/auctions/:auction_id", wsHandler.ServeWs)
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	publicApiGroup := router.Group("/")
+	RegisterBiteshipWebhookApi(publicApiGroup, &baseApi, container.UseCaseManager())
+
+	apiGroup := router.Group("/")
+	middleware.JWTHandler(apiGroup, container.UseCaseManager().AuthUseCase())
+
 	// admin
-	RegisterAdminAuthApi(router, &baseApi, container.UseCaseManager())
-	RegisterAdminUserApi(router, &baseApi, container.UseCaseManager())
-	RegisterAdminProductApi(router, &baseApi, container.UseCaseManager())
+	RegisterAdminAuthApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterAdminUserApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterAdminProductApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterAdminRoleRequestApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterAdminWithdrawalRequestApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterAdminPaymentMethodApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterAdminAuctionApi(apiGroup, &baseApi, container.UseCaseManager())
 
 	// user
-	RegisterAuthApi(router, &baseApi, container.UseCaseManager())
-	RegisterProductApi(router, &baseApi, container.UseCaseManager())
-	RegisterOwnApi(router, &baseApi, container.UseCaseManager())
+
+	RegisterAuthApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterProductApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterOwnApi(apiGroup, &baseApi, container.UseCaseManager())
+	// RegisterUserRoleRequestApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterAuctionApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterUserAddressApi(apiGroup, &baseApi, container.UseCaseManager())
+	RegisterBiteshipApi(apiGroup, &baseApi, container.UseCaseManager())
+
+	// file
+	RegisterFileApi(apiGroup, &baseApi, container.FilesystemManager(), container.BaseFileUseCase())
 }
 
-func NewRouter(container *manager.Container) *gin.Engine {
+func NewRouter(container *manager.Container, hub *ws.Hub) *gin.Engine {
 	if global.IsProduction() {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -188,23 +226,9 @@ func NewRouter(container *manager.Container) *gin.Engine {
 
 	router.Use(
 		cors.New(cors.Config{
-			AllowOrigins: global.GetConfig().CorsAllowedOrigins,
-			AllowMethods: []string{
-				http.MethodGet,
-				http.MethodPost,
-				http.MethodPut,
-				http.MethodDelete,
-				http.MethodPatch,
-				http.MethodHead,
-			},
-			AllowHeaders: []string{
-				"Accept",
-				"Authorization",
-				"Content-Type",
-				"Content-Length",
-				"Origin",
-				"Accept-Language",
-			},
+			AllowOrigins:     global.GetConfig().CorsAllowedOrigins,
+			AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodPatch, http.MethodHead},
+			AllowHeaders:     []string{"Accept", "Authorization", "Content-Type", "Content-Length", "Origin", "Accept-Language"},
 			ExposeHeaders:    []string{"Content-Type", "Content-Length", "X-Request-Id"},
 			AllowCredentials: true,
 			MaxAge:           2 * time.Hour,
@@ -212,9 +236,8 @@ func NewRouter(container *manager.Container) *gin.Engine {
 	)
 
 	registerMiddlewares(router, container)
-	registerRoutes(router, container)
 
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	registerRoutes(router, container, hub)
 
 	return router
 }

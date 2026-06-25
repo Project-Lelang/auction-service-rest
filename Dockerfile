@@ -7,11 +7,13 @@ COPY go.sum .
 
 RUN go mod download
 
-COPY dev.env . 
+COPY . .
 
-COPY . . 
+# Patch conf.yml: replace localhost with Docker service names
+RUN sed -i '/^mysql:/,/^[a-z]/ s/host: localhost/host: mysql/' conf.yml && \
+    sed -i '/^redis:/,/^[a-z]/ s/host: localhost/host: redis/' conf.yml
 
-RUN CGO_ENABLED=0 go build -o /rest_api ./cmd/rest_api
+RUN CGO_ENABLED=0 go build -o /rest_api .
 
 FROM alpine:3.18
 RUN apk --no-cache add ca-certificates tzdata
@@ -20,8 +22,8 @@ USER nonroot
 
 WORKDIR /home/nonroot/
 
-COPY --from=builder /app/dev.env . 
-
+COPY --from=builder /app/conf.yml .
+COPY --from=builder /app/storage ./storage
 COPY --from=builder /rest_api .
 
 EXPOSE 8080
