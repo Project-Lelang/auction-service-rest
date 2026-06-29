@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS otps (
     id          BIGINT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    phone       VARCHAR(20)     NOT NULL UNIQUE,
+    email       VARCHAR(255)    NOT NULL UNIQUE,
     otp         VARCHAR(10)     NOT NULL,
     expires_at  DATETIME        NOT NULL,
     verified    TINYINT(1)      NOT NULL DEFAULT 0,

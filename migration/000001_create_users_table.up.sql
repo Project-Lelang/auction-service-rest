@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS users (
     id                          BIGINT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
     fullname                    VARCHAR(255)    NOT NULL,
-    phone                       VARCHAR(20)     NOT NULL UNIQUE,
+    email                       VARCHAR(255)    NOT NULL UNIQUE,
     nik                         VARCHAR(50)     DEFAULT NULL,
     birth                       DATE            NOT NULL,
     gender                      VARCHAR(10)     DEFAULT NULL,

@@ -23,6 +23,11 @@ migration:
 migrate:
 	go run cmd/migrate/main.go
 
+# Drops all migrated tables and runs every migration again. Development only.
+.PHONY: migrate-fresh
+migrate-fresh:
+	go run cmd/migrate/main.go -fresh
+
 # make migrate-rollback steps=1
 .PHONY: migrate-rollback
 migrate-rollback:

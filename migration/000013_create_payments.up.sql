@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS payments (
     id                BIGINT                                                               NOT NULL AUTO_INCREMENT,
+    code              VARCHAR(50)                                                          NOT NULL,
     auction_id        BIGINT                                                               NOT NULL,
     user_id           BIGINT                                                               NOT NULL,
     payment_method_id BIGINT                                                               NULL,
@@ -11,6 +12,7 @@ CREATE TABLE IF NOT EXISTS payments (
     created_at        DATETIME                                                             NOT NULL,
     updated_at        DATETIME                                                             NOT NULL,
     PRIMARY KEY (id),
+    UNIQUE KEY uq_payments_code (code),
     CONSTRAINT fk_payments_auction        FOREIGN KEY (auction_id)        REFERENCES auctions(id),
     CONSTRAINT fk_payments_user           FOREIGN KEY (user_id)           REFERENCES users(id),
     CONSTRAINT fk_payments_method         FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id)

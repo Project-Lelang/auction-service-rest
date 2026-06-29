@@ -70,6 +70,7 @@ Swagger UI is available at `http://localhost:8080/swagger/index.html`.
 | `make run.dev` | Start with hot reload using `air` |
 | `make build` | Build binary to `bin/auction-service` |
 | `make migrate` | Run all pending migrations |
+| `make migrate-fresh` | Drop all migrated tables and rerun every migration (destructive; development only) |
 | `make migrate-rollback steps=1` | Roll back migrations |
 | `make seed` | Seed the super admin account |
 | `make migration name=create_table_name` | Create a new migration pair |
