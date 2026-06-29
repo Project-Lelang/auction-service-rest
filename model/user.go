@@ -23,7 +23,8 @@ type User struct {
 	Timestamp
 
 	// relations
-	Roles []UserRole `db:"-"`
+	Roles        []UserRole    `db:"-"`
+	RoleRequests []RoleRequest `db:"-"`
 
 	// computed
 	IdentityImageLink       *string `db:"-"`

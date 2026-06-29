@@ -119,7 +119,7 @@ func NewConflictErrorResponse(message string, contents ...string) ErrorResponse 
 func NewInternalServerErrorResponse() ErrorResponse {
 	return ErrorResponse{
 		Code:    http.StatusInternalServerError,
-		Message: "Internal server error",
+		Message: constant.LanguageSystemInternalServerError,
 		Errors:  []Error{},
 	}
 }

@@ -5,6 +5,7 @@ const (
 	ProductStatusDraft                    = "DRAFT"
 	ProductStatusRequest                  = "REQUEST"
 	ProductStatusVerified                 = "VERIFIED"
+	ProductStatusScheduled                = "SCHEDULED"
 	ProductStatusRejected                 = "REJECTED"
 	ProductStatusOnBids                   = "ON_BIDS"
 	ProductStatusWaitingForPayment        = "WAITING_FOR_PAYMENT"
@@ -27,7 +28,8 @@ const (
 var ValidProductStatusTransitions = map[string][]string{
 	ProductStatusDraft:                    {ProductStatusRequest},
 	ProductStatusRequest:                  {ProductStatusVerified, ProductStatusRejected},
-	ProductStatusVerified:                 {ProductStatusOnBids},
+	ProductStatusVerified:                 {ProductStatusScheduled},
+	ProductStatusScheduled:                {ProductStatusOnBids, ProductStatusVerified},
 	ProductStatusOnBids:                   {ProductStatusWaitingForPayment, ProductStatusVerified},
 	ProductStatusWaitingForPayment:        {ProductStatusWaitingForBuyerAddress, ProductStatusWaitingForSellerDecision, ProductStatusCompleted, ProductStatusVerified},
 	ProductStatusWaitingForSellerDecision: {ProductStatusVerified, ProductStatusWaitingForPayment},

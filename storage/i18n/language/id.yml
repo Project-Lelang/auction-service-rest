@@ -22,11 +22,78 @@ USER.ROLE_ALREADY_EXIST: "Role pengguna sudah ada"
 # product
 PRODUCT.NOT_FOUND: "Produk tidak ditemukan"
 PRODUCT.INVALID_STATUS_TRANSITION: "Transisi status produk tidak valid"
+PRODUCT.NOT_OWNED: "Produk bukan milik pengguna yang ditentukan"
+
+# role request
+ROLE_REQUEST.ALREADY_HAVE_ROLE: "Anda sudah memiliki role ini"
+ROLE_REQUEST.PENDING_EXISTS: "Pengajuan untuk role ini masih menunggu persetujuan"
+ROLE_REQUEST.PREREQUISITE_NOT_MET: "Role prasyarat harus disetujui terlebih dahulu"
+ROLE_REQUEST.MISSING_BIDDER_INFO: "Informasi identitas bidder belum lengkap"
+ROLE_REQUEST.MISSING_SELLER_INFO: "Informasi rekening bank seller belum lengkap"
+ROLE_REQUEST.NOT_FOUND: "Pengajuan role tidak ditemukan"
+
+# withdrawal request
+WITHDRAWAL_REQUEST.INSUFFICIENT_BALANCE: "Saldo tidak mencukupi untuk penarikan ini"
+WITHDRAWAL_REQUEST.NO_BANK_ACCOUNT: "Tambahkan rekening bank sebelum mengajukan penarikan"
+WITHDRAWAL_REQUEST.NOT_FOUND: "Pengajuan penarikan tidak ditemukan"
+WITHDRAWAL_REQUEST.NOT_OWNED: "Pengajuan penarikan bukan milik pengguna ini"
+WITHDRAWAL_REQUEST.ALREADY_COMPLETED: "Pengajuan penarikan sudah diselesaikan"
+
+# auction
+AUCTION.NOT_FOUND: "Lelang tidak ditemukan"
+AUCTION.PRODUCT_NOT_VERIFIED: "Hanya produk terverifikasi yang dapat dilelang"
+AUCTION.PRODUCT_ALREADY_SCHEDULED: "Produk ini sudah memiliki lelang terjadwal"
+AUCTION.NOT_SCHEDULED: "Hanya lelang terjadwal yang dapat diperbarui"
+AUCTION.INVALID_TIME_RANGE: "Waktu selesai lelang harus setelah waktu mulai"
+AUCTION.START_TIME_TOO_SOON: "Waktu mulai lelang terlalu dekat"
+AUCTION.NOT_WAITING_FOR_SELLER_DECISION: "Lelang ini tidak sedang menunggu keputusan seller"
+AUCTION.NO_NEXT_BIDDER: "Bidder berikutnya yang memenuhi syarat tidak ditemukan"
+AUCTION.NOT_WAITING_FOR_BUYER_ADDRESS: "Lelang ini tidak sedang menunggu alamat buyer"
+AUCTION.ADDRESS_NOT_CONFIRMED: "Alamat pengiriman belum dikonfirmasi"
+
+# bid
+BID.NOT_FOUND: "Bid tidak ditemukan"
+BID.AUCTION_NOT_ON_GOING: "Bid hanya dapat dilakukan saat lelang sedang berlangsung"
+BID.AMOUNT_TOO_LOW: "Nominal bid harus lebih tinggi dari bid tertinggi saat ini"
+BID.CANNOT_BID_OWN_AUCTION: "Anda tidak dapat melakukan bid pada lelang sendiri"
+
+# winner
+WINNER.NOT_FOUND: "Pemenang lelang tidak ditemukan"
+
+# payment
+PAYMENT.NOT_FOUND: "Pembayaran tidak ditemukan"
+
+# payment method
+PAYMENT_METHOD.NOT_FOUND: "Metode pembayaran tidak ditemukan"
+PAYMENT_METHOD.CODE_ALREADY_USED: "Kode metode pembayaran sudah digunakan"
+
+# notification
+NOTIFICATION.NOT_FOUND: "Notifikasi tidak ditemukan"
+
+# shipment
+SHIPMENT.NOT_FOUND: "Pengiriman tidak ditemukan"
+SHIPMENT.ALREADY_SHIPPED: "Pesanan sudah dikirim"
+SHIPMENT.NOT_SHIPPED_YET: "Pesanan belum dikirim"
+SHIPMENT.ALREADY_RECEIVED: "Pesanan sudah diterima"
+SHIPMENT.NO_TRACKING_NUMBER: "Nomor resi untuk pengiriman ini belum tersedia"
+SHIPMENT.ADDRESS_LOCKED_AFTER_SHIP: "Alamat pengiriman tidak dapat diubah setelah barang dikirim"
+
+# user address
+USER_ADDRESS.NOT_FOUND: "Alamat tidak ditemukan"
+USER_ADDRESS.NOT_OWNED: "Anda tidak memiliki akses ke alamat ini"
+USER_ADDRESS.IS_DEFAULT: "Alamat utama tidak dapat dihapus. Jadikan alamat lain sebagai alamat utama terlebih dahulu"
 
 # system
-SYSTEM.UNAUTHORIZED: "Tidak terautentikasi"
-SYSTEM.FORBIDDEN: "Akses ditolak"
+SYSTEM.UNAUTHORIZED: "Anda harus masuk untuk mengakses data ini"
+SYSTEM.FORBIDDEN: "Anda tidak memiliki izin untuk mengakses data ini"
 SYSTEM.INVALID_REQUEST_PAYLOAD: "Data permintaan tidak valid"
 SYSTEM.INTERNAL_SERVER_ERROR: "Terjadi kesalahan pada server"
 SYSTEM.NOT_FOUND: "Data tidak ditemukan"
 SYSTEM.MUST_BE_A_VALID_UUID: "%s harus berupa UUID yang valid"
+
+# file
+FILE.EXTENSION_IS_NOT_SUPPORTED: "Jenis file ini tidak didukung"
+FILE.SIZE_IS_0B: "File kosong"
+FILE.FILE_NOT_EXIST: "File tidak ditemukan"
+FILE.SOME_FILE_NOT_EXIST: "Satu atau beberapa file tidak ditemukan"
+FILE.MAXIMUM_FILE_SIZE_IS_X_MB: "Ukuran file maksimum adalah %s MB"

@@ -25,6 +25,7 @@ const (
 	// product
 	LanguageProductNotFound                = "PRODUCT.NOT_FOUND"
 	LanguageProductInvalidStatusTransition = "PRODUCT.INVALID_STATUS_TRANSITION"
+	LanguageProductNotOwned                = "PRODUCT.NOT_OWNED"
 
 	// role request
 	LanguageRoleRequestAlreadyHaveRole    = "ROLE_REQUEST.ALREADY_HAVE_ROLE"
@@ -38,10 +39,13 @@ const (
 	LanguageWithdrawalRequestInsufficientBalance = "WITHDRAWAL_REQUEST.INSUFFICIENT_BALANCE"
 	LanguageWithdrawalRequestNoBankAccount       = "WITHDRAWAL_REQUEST.NO_BANK_ACCOUNT"
 	LanguageWithdrawalRequestNotFound            = "WITHDRAWAL_REQUEST.NOT_FOUND"
+	LanguageWithdrawalRequestNotOwned            = "WITHDRAWAL_REQUEST.NOT_OWNED"
+	LanguageWithdrawalRequestAlreadyCompleted    = "WITHDRAWAL_REQUEST.ALREADY_COMPLETED"
 
 	// auction
 	LanguageAuctionNotFound                    = "AUCTION.NOT_FOUND"
 	LanguageAuctionProductNotVerified          = "AUCTION.PRODUCT_NOT_VERIFIED"
+	LanguageAuctionProductAlreadyScheduled     = "AUCTION.PRODUCT_ALREADY_SCHEDULED"
 	LanguageAuctionNotScheduled                = "AUCTION.NOT_SCHEDULED"
 	LanguageAuctionInvalidTimeRange            = "AUCTION.INVALID_TIME_RANGE"
 	LanguageAuctionStartTimeTooSoon            = "AUCTION.START_TIME_TOO_SOON"
@@ -61,6 +65,13 @@ const (
 
 	// payment
 	LanguagePaymentNotFound = "PAYMENT.NOT_FOUND"
+
+	// payment method
+	LanguagePaymentMethodNotFound        = "PAYMENT_METHOD.NOT_FOUND"
+	LanguagePaymentMethodCodeAlreadyUsed = "PAYMENT_METHOD.CODE_ALREADY_USED"
+
+	// notification
+	LanguageNotificationNotFound = "NOTIFICATION.NOT_FOUND"
 
 	// shipment
 	LanguageShipmentNotFound         = "SHIPMENT.NOT_FOUND"

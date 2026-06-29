@@ -48,7 +48,7 @@ func (a *AdminUserApi) Create() gin.HandlerFunc {
 //	@Accept		json
 //	@Param		body	body	dto_request.AdminUserFetchRequest	true	"Body Request"
 //	@Produce	json
-//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.UserResponse}}
+//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.AdminUserResponse}}
 func (a *AdminUserApi) FetchAdmin() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
 		var request dto_request.AdminUserFetchRequest
@@ -64,7 +64,7 @@ func (a *AdminUserApi) FetchAdmin() gin.HandlerFunc {
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.NewPaginationResponse(
-				util.ConvertArray(ctx.context(), users, dto_response.NewUserResponse),
+				util.ConvertArray(ctx.context(), users, dto_response.NewAdminUserResponse),
 				int(total),
 				request.Page,
 				request.Limit,
@@ -82,7 +82,7 @@ func (a *AdminUserApi) FetchAdmin() gin.HandlerFunc {
 //	@Accept		json
 //	@Param		body	body	dto_request.AdminUserFetchRequest	true	"Body Request"
 //	@Produce	json
-//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.UserResponse}}
+//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.AdminUserResponse}}
 func (a *AdminUserApi) Fetch() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
 		var request dto_request.AdminUserFetchRequest
@@ -92,7 +92,7 @@ func (a *AdminUserApi) Fetch() gin.HandlerFunc {
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.NewPaginationResponse(
-				util.ConvertArray(ctx.context(), users, dto_response.NewUserResponse),
+				util.ConvertArray(ctx.context(), users, dto_response.NewAdminUserResponse),
 				int(total),
 				request.Page,
 				request.Limit,
@@ -109,7 +109,7 @@ func (a *AdminUserApi) Fetch() gin.HandlerFunc {
 //	@Security	BearerAuth
 //	@Param		userId	path	int	true	"User ID"
 //	@Produce	json
-//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{user=dto_response.UserResponse}}
+//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{user=dto_response.AdminUserResponse}}
 func (a *AdminUserApi) Get() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
 		var request dto_request.AdminUserGetRequest
@@ -119,7 +119,7 @@ func (a *AdminUserApi) Get() gin.HandlerFunc {
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
-				"user": dto_response.NewUserResponse(ctx.context(), user),
+				"user": dto_response.NewAdminUserResponse(ctx.context(), user),
 			},
 		})
 	})

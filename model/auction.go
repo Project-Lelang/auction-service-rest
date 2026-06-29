@@ -40,8 +40,9 @@ func (a *Auction) ToMap() map[string]interface{} {
 type AuctionQueryOption struct {
 	QueryOption
 
-	UserId *int64
-	Status *string
+	UserId   *int64
+	Status   *string
+	Statuses []string
 }
 
 var _ PrepareOption = &AuctionQueryOption{}

@@ -175,9 +175,12 @@ func (u *withdrawalRequestUseCase) AdminFetchByUserId(
 ) ([]model.WithdrawalRequest, int64) {
 
 	user, err := u.repositoryManager.UserRepository().GetById(ctx, userId)
+	if err == constant.ErrNoData {
+		panic(dto_response.NewNotFoundErrorResponse(constant.LanguageUserNotFound))
+	}
 	panicIfErr(err)
 	if user == nil {
-		panic(dto_response.NewNotFoundErrorResponse("user not found"))
+		panic(dto_response.NewNotFoundErrorResponse(constant.LanguageUserNotFound))
 	}
 
 	option := model.WithdrawalRequestQueryOption{
@@ -209,26 +212,32 @@ func (u *withdrawalRequestUseCase) Complete(
 
 	panicIfErr(u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
 		user, err := u.repositoryManager.UserRepository().GetById(ctx, userId)
+		if err == constant.ErrNoData {
+			panic(dto_response.NewNotFoundErrorResponse(constant.LanguageUserNotFound))
+		}
 		if err != nil {
 			return err
 		}
 		if user == nil {
-			panic(dto_response.NewNotFoundErrorResponse("user not found"))
+			panic(dto_response.NewNotFoundErrorResponse(constant.LanguageUserNotFound))
 		}
 
 		wr, err := u.repositoryManager.WithdrawalRequestRepository().GetById(ctx, withdrawalRequestId)
+		if err == constant.ErrNoData {
+			panic(dto_response.NewNotFoundErrorResponse(constant.LanguageWithdrawalRequestNotFound))
+		}
 		if err != nil {
 			return err
 		}
 		if wr == nil {
-			panic(dto_response.NewNotFoundErrorResponse("withdrawal request not found"))
+			panic(dto_response.NewNotFoundErrorResponse(constant.LanguageWithdrawalRequestNotFound))
 		}
 
 		if wr.UserId != userId {
-			panic(dto_response.NewBadRequestErrorResponse("withdrawal request does not belong to user"))
+			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageWithdrawalRequestNotOwned))
 		}
 		if wr.Status == model.WithdrawalRequestStatusCompleted {
-			panic(dto_response.NewBadRequestErrorResponse("withdrawal request already completed"))
+			panic(dto_response.NewBadRequestErrorResponse(constant.LanguageWithdrawalRequestAlreadyCompleted))
 		}
 
 		if user.Balance < wr.Amount {

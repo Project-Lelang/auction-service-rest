@@ -199,7 +199,7 @@ func (u *productUseCase) AdminApprove(ctx context.Context, request dto_request.A
 
 	// Validate ownership alignment
 	if product.UserId != request.UserId {
-		panic(dto_response.NewBadRequestErrorResponse("Product does not belong to specified user"))
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageProductNotOwned))
 	}
 	// Verify it can transition from REQUEST to VERIFIED status
 	if product.Status != constant.ProductStatusRequest {
@@ -229,7 +229,7 @@ func (u *productUseCase) AdminReject(ctx context.Context, request dto_request.Ad
 	product := mustGetProduct(ctx, u.repositoryManager, request.ProductId)
 
 	if product.UserId != request.UserId {
-		panic(dto_response.NewBadRequestErrorResponse("Product does not belong to specified user"))
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageProductNotOwned))
 	}
 	if product.Status != constant.ProductStatusRequest {
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageProductInvalidStatusTransition))

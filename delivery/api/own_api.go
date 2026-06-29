@@ -186,14 +186,14 @@ func (a *OwnApi) Request() gin.HandlerFunc {
 //	@tags		Own
 //	@Security	BearerAuth
 //	@Produce	json
-//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{user=dto_response.UserResponse}}
+//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{user=dto_response.OwnProfileResponse}}
 func (a *OwnApi) GetProfile() gin.HandlerFunc {
 	return a.Authorize(func(ctx apiContext) {
 		user := a.userUseCase.OwnGet(ctx.context())
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
-				"user": dto_response.NewUserResponse(ctx.context(), user),
+				"user": dto_response.NewOwnProfileResponse(ctx.context(), user),
 			},
 		})
 	})
@@ -208,7 +208,7 @@ func (a *OwnApi) GetProfile() gin.HandlerFunc {
 //	@Accept		json
 //	@Param		body	body	dto_request.OwnProfileUpdateRequest	true	"Body Request"
 //	@Produce	json
-//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{user=dto_response.UserResponse}}
+//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{user=dto_response.OwnProfileResponse}}
 func (a *OwnApi) UpdateProfile() gin.HandlerFunc {
 	return a.Authorize(func(ctx apiContext) {
 		var request dto_request.OwnProfileUpdateRequest
@@ -218,7 +218,7 @@ func (a *OwnApi) UpdateProfile() gin.HandlerFunc {
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
-				"user": dto_response.NewUserResponse(ctx.context(), user),
+				"user": dto_response.NewOwnProfileResponse(ctx.context(), user),
 			},
 		})
 	})
@@ -467,6 +467,7 @@ func (a *OwnApi) GetAuction() gin.HandlerFunc {
 //	@Param		body	body	dto_request.OwnAuctionCreateRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	201	{object}	dto_response.Response{data=dto_response.DataResponse{auction=dto_response.AuctionResponse}}
+//	@Failure	409	{object}	dto_response.ErrorResponse	"Product already has a scheduled auction"
 func (a *OwnApi) CreateAuction() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleSeller}, func(ctx apiContext) {
 		var request dto_request.OwnAuctionCreateRequest
@@ -520,7 +521,7 @@ func (a *OwnApi) UpdateAuction() gin.HandlerFunc {
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.AuctionBidResponse}}
 func (a *OwnApi) FetchBids() gin.HandlerFunc {
-	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+	return a.Authorize(func(ctx apiContext) {
 		var request dto_request.OwnBidFetchRequest
 		ctx.mustBind(&request)
 

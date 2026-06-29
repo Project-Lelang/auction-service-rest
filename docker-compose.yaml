@@ -48,6 +48,31 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+  migrate:
+    build: .
+    image: devonloen/bidify_service_app:production
+    networks:
+      - app_network
+    volumes:
+      - ./conf.yml:/home/nonroot/conf.yml:ro   # ← pakai conf khusus docker
+    depends_on:
+      mysql:
+        condition: service_healthy
+    entrypoint: ["./migrate"]
+    profiles: ["tools"]
+
+  seed:
+    build: .
+    image: devonloen/bidify_service_app:production
+    networks:
+      - app_network
+    volumes:
+      - ./conf.yml:/home/nonroot/conf.yml:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    entrypoint: ["./seed"]
+    profiles: ["tools"]
 
 volumes:
   mysql_data:

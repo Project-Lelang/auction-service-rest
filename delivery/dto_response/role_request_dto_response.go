@@ -8,7 +8,7 @@ type RoleRequestResponse struct {
 	UserId  int64   `json:"user_id"         example:"2"`
 	Status  string  `json:"status"          example:"REQUESTED"`
 	Role    string  `json:"role"            example:"BIDDER"`
-	Message *string `json:"message,omitempty" example:"Please review my request"`
+	Message *string `json:"message"           example:"Please review my request"`
 	Timestamp
 } // @name RoleRequestResponse
 

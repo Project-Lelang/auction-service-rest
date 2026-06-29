@@ -6,6 +6,7 @@ const PaymentTableName = "payments"
 
 type Payment struct {
 	Id              int64                  `db:"id"`
+	Code            string                 `db:"code"`
 	AuctionId       int64                  `db:"auction_id"`
 	UserId          int64                  `db:"user_id"`
 	PaymentMethodId *int64                 `db:"payment_method_id"`
@@ -27,6 +28,7 @@ func (p *Payment) TableName() string { return PaymentTableName }
 func (p *Payment) ToMap() map[string]interface{} {
 	return map[string]interface{}{
 		"id":                p.Id,
+		"code":              p.Code,
 		"auction_id":        p.AuctionId,
 		"user_id":           p.UserId,
 		"payment_method_id": p.PaymentMethodId,

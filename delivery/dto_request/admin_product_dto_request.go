@@ -11,7 +11,7 @@ type AdminProductFetchSorts []struct {
 type AdminProductFetchRequest struct {
 	PaginationRequest
 	Sorts     AdminProductFetchSorts `json:"sorts"     validate:"dive"`
-	Status    *string                `json:"status"    validate:"omitempty,oneof=DRAFT REQUEST VERIFIED REJECTED ON_BIDS COMPLETED" example:"VERIFIED"`
+	Status    *string                `json:"status"    validate:"omitempty,oneof=DRAFT REQUEST VERIFIED SCHEDULED REJECTED ON_BIDS COMPLETED" example:"VERIFIED"`
 	Condition *string                `json:"condition" validate:"omitempty,oneof=NEW PRELOVED" example:"NEW"`
 	Search    *string                `json:"search"    validate:"omitempty,max=255"                                            example:"laptop"`
 } // @name AdminProductFetchRequest

@@ -10,6 +10,7 @@ import (
 // PaymentResponse represents a single payment in API responses.
 type PaymentResponse struct {
 	Id              int64                  `json:"id"               example:"1"`
+	Code            string                 `json:"code"             example:"PAY-550e8400-e29b-41d4-a716-446655440000"`
 	AuctionId       int64                  `json:"auction_id"       example:"2"`
 	UserId          int64                  `json:"user_id"          example:"3"`
 	PaymentMethodId *int64                 `json:"payment_method_id,omitempty"`
@@ -25,6 +26,7 @@ type PaymentResponse struct {
 func NewPaymentResponse(ctx context.Context, p model.Payment) PaymentResponse {
 	r := PaymentResponse{
 		Id:              p.Id,
+		Code:            p.Code,
 		AuctionId:       p.AuctionId,
 		UserId:          p.UserId,
 		PaymentMethodId: p.PaymentMethodId,

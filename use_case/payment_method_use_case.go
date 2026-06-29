@@ -1,7 +1,9 @@
 package use_case
 
 import (
+	"auction-service/constant"
 	"auction-service/delivery/dto_request"
+	"auction-service/delivery/dto_response"
 	"auction-service/model"
 	"auction-service/repository"
 	"context"
@@ -28,7 +30,7 @@ func (u *paymentMethodUseCase) Create(ctx context.Context, req dto_request.Payme
 		Code: &req.Code,
 	})
 	if len(existing) > 0 {
-		panic("bad request: payment method code already exists")
+		panic(dto_response.NewConflictErrorResponse(constant.LanguagePaymentMethodCodeAlreadyUsed))
 	}
 
 	pm := model.PaymentMethod{
@@ -63,10 +65,13 @@ func (u *paymentMethodUseCase) Fetch(ctx context.Context, req dto_request.Paymen
 
 func (u *paymentMethodUseCase) GetById(ctx context.Context, id int64) model.PaymentMethod {
 	pm, err := u.repoManager.PaymentMethodRepository().GetById(ctx, id)
+	if err == constant.ErrNoData {
+		panic(dto_response.NewNotFoundErrorResponse(constant.LanguagePaymentMethodNotFound))
+	}
 	panicIfErr(err)
 
 	if pm == nil {
-		panic("not found: payment method not found")
+		panic(dto_response.NewNotFoundErrorResponse(constant.LanguagePaymentMethodNotFound))
 	}
 
 	return *pm
@@ -78,10 +83,13 @@ func (u *paymentMethodUseCase) AdminFetch(ctx context.Context, req dto_request.P
 
 func (u *paymentMethodUseCase) Update(ctx context.Context, id int64, req dto_request.PaymentMethodUpdateRequest) model.PaymentMethod {
 	pm, err := u.repoManager.PaymentMethodRepository().GetById(ctx, id)
+	if err == constant.ErrNoData {
+		panic(dto_response.NewNotFoundErrorResponse(constant.LanguagePaymentMethodNotFound))
+	}
 	panicIfErr(err)
 
 	if pm == nil {
-		panic("not found: payment method not found")
+		panic(dto_response.NewNotFoundErrorResponse(constant.LanguagePaymentMethodNotFound))
 	}
 
 	if req.Name != nil {

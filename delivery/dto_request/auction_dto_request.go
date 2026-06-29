@@ -32,6 +32,17 @@ type AuctionBidCreateRequest struct {
 	AuctionId int64   `json:"-"           swaggerignore:"true"`
 } // @name AuctionBidCreateRequest
 
+type AuctionBidFetchSorts []struct {
+	Field     string `json:"field"     validate:"required,oneof=id amount created_at updated_at" example:"amount"`
+	Direction string `json:"direction" validate:"required,oneof=asc desc"                       example:"desc"`
+} // @name AuctionBidFetchSorts
+
+type AuctionBidFetchRequest struct {
+	PaginationRequest
+	Sorts     AuctionBidFetchSorts `json:"sorts" validate:"dive"`
+	AuctionId int64                `json:"-"     swaggerignore:"true"`
+} // @name AuctionBidFetchRequest
+
 // --------------------------------------------------------------------- winner
 
 type AuctionWinnerFetchSorts []struct {

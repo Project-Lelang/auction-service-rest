@@ -19,6 +19,7 @@ type PaymentRepository interface {
 
 	// read
 	GetById(ctx context.Context, id int64) (*model.Payment, error)
+	GetByCode(ctx context.Context, code string) (*model.Payment, error)
 	GetActiveByAuctionId(ctx context.Context, auctionId int64) (*model.Payment, error)
 	GetCompletedByAuctionId(ctx context.Context, auctionId int64) (*model.Payment, error)
 	Fetch(ctx context.Context, options ...model.PaymentQueryOption) ([]model.Payment, error)
@@ -90,6 +91,14 @@ func (r *paymentRepository) GetById(ctx context.Context, id int64) (*model.Payme
 	stmt := stmtBuilder.Select(r.f("*")).
 		From(r.fromTable()).
 		Where(squirrel.Eq{r.f("id"): id}).
+		Limit(1)
+	return r.getInternal(ctx, stmt)
+}
+
+func (r *paymentRepository) GetByCode(ctx context.Context, code string) (*model.Payment, error) {
+	stmt := stmtBuilder.Select(r.f("*")).
+		From(r.fromTable()).
+		Where(squirrel.Eq{r.f("code"): code}).
 		Limit(1)
 	return r.getInternal(ctx, stmt)
 }
