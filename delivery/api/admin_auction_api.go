@@ -7,6 +7,7 @@ import (
 	"auction-service/delivery/dto_request"
 	"auction-service/delivery/dto_response"
 	"auction-service/use_case"
+	"auction-service/util"
 
 	"github.com/gin-gonic/gin"
 )
@@ -41,6 +42,34 @@ func (a *AdminAuctionApi) GetAdminDashboardReport() gin.HandlerFunc {
 	})
 }
 
+// FetchAuctions godoc
+//
+//	@Router		/admin/auctions/filter [post]
+//	@Summary	Get auctions (paginated)
+//	@tags		Admin Auction
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		body	body	dto_request.AuctionFetchRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.AuctionResponse}}
+func (a *AdminAuctionApi) FetchAuctions() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
+		var request dto_request.AuctionFetchRequest
+		ctx.mustBind(&request)
+
+		auctions, total := a.auctionUseCase.AdminFetch(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.NewPaginationResponse(
+				util.ConvertArray(ctx.context(), auctions, dto_response.NewAuctionResponse),
+				int(total),
+				request.Page,
+				request.Limit,
+			),
+		})
+	})
+}
+
 func RegisterAdminAuctionApi(router gin.IRouter, baseApi *api, useCaseManager use_case.UseCaseManager) {
 	a := &AdminAuctionApi{
 		api:            baseApi,
@@ -51,5 +80,6 @@ func RegisterAdminAuctionApi(router gin.IRouter, baseApi *api, useCaseManager us
 	adminGroup := router.Group("/admin/auctions")
 	{
 		adminGroup.GET("/dashboard-report", a.GetAdminDashboardReport())
+		adminGroup.POST("/filter", a.FetchAuctions())
 	}
 }

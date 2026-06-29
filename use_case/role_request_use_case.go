@@ -23,6 +23,7 @@ type RoleRequestUseCase interface {
 	OwnCreate(ctx context.Context, request dto_request.OwnRoleRequestCreateRequest) model.RoleRequest
 	AdminFetch(ctx context.Context, req dto_request.RoleRequestFetchRequest) ([]model.RoleRequest, int64)
 	AdminFetchByUserId(ctx context.Context, userId int64) []model.RoleRequest
+	AdminFetchLogsByUserId(ctx context.Context, userId int64) []model.RoleRequest
 	Approve(ctx context.Context, id int64)
 	Reject(ctx context.Context, id int64, req dto_request.RoleRequestRejectRequest)
 }
@@ -192,6 +193,22 @@ func (u *roleRequestUseCase) AdminFetchByUserId(ctx context.Context, userId int6
 	panicIfErr(err)
 	u.populateUserImageLinks(util.SliceValueToSlicePointer(res)...)
 	return res
+}
+
+func (u *roleRequestUseCase) AdminFetchLogsByUserId(ctx context.Context, userId int64) []model.RoleRequest {
+	// Check if user exists
+	user, err := u.repositoryManager.UserRepository().GetById(ctx, userId)
+	panicIfErr(err)
+	if user == nil {
+		panic(dto_response.NewNotFoundErrorResponse("user not found"))
+	}
+
+	// Fetch all role requests for this user
+	requests, err := u.repositoryManager.RoleRequestRepository().Fetch(ctx, model.RoleRequestQueryOption{
+		UserId: &userId,
+	})
+
+	return requests
 }
 
 // Approve digunakan oleh Admin untuk menerima permintaan role dan meng-inject role baru ke user terkait
