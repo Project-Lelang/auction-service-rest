@@ -35,6 +35,9 @@ type TaskQueue interface {
 // AuctionUseCase covers all auction operations for the own (seller) scope
 // and public viewing endpoints.
 type AuctionUseCase interface {
+	// admin
+	AdminFetch(ctx context.Context, request dto_request.AuctionFetchRequest) ([]model.Auction, int64)
+
 	// public
 	Fetch(ctx context.Context, request dto_request.AuctionFetchRequest) ([]model.Auction, int64)
 	Get(ctx context.Context, request dto_request.AuctionGetRequest) model.Auction
@@ -151,6 +154,31 @@ func (u *auctionUseCase) mustGetOwnAuction(ctx context.Context, auctionId int64,
 }
 
 func (u *auctionUseCase) Fetch(ctx context.Context, request dto_request.AuctionFetchRequest) ([]model.Auction, int64) {
+	option := model.AuctionQueryOption{
+		QueryOption: model.NewQueryOptionWithPagination(
+			request.Page,
+			request.Limit,
+			model.Sorts(request.Sorts),
+		),
+		Status: request.Status,
+	}
+
+	total, err := u.repositoryManager.AuctionRepository().Count(ctx, option)
+	panicIfErr(err)
+
+	auctions, err := u.repositoryManager.AuctionRepository().Fetch(ctx, option)
+	panicIfErr(err)
+
+	u.mustLoadAuctionData(ctx, util.SliceValueToSlicePointer(auctions))
+
+	return auctions, total
+}
+
+func (u *auctionUseCase) AdminFetch(
+	ctx context.Context,
+	request dto_request.AuctionFetchRequest,
+) ([]model.Auction, int64) {
+
 	option := model.AuctionQueryOption{
 		QueryOption: model.NewQueryOptionWithPagination(
 			request.Page,

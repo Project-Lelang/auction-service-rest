@@ -22,6 +22,7 @@ type WithdrawalRequestUseCase interface {
 	// ADMIN
 	AdminFetch(ctx context.Context, req dto_request.WithdrawalRequestFetchRequest) ([]model.WithdrawalRequest, int64)
 	AdminFetchByUserId(ctx context.Context, userId int64, req dto_request.WithdrawalRequestFetchRequest) ([]model.WithdrawalRequest, int64)
+	AdminFetchAllByUserId(ctx context.Context, userId int64) ([]model.WithdrawalRequest, error)
 	Complete(ctx context.Context, adminId int64, userId int64, withdrawalRequestId int64) model.WithdrawalRequest
 }
 
@@ -165,6 +166,40 @@ func (u *withdrawalRequestUseCase) AdminFetch(ctx context.Context, req dto_reque
 	u.mustLoadUsers(ctx, requests)
 
 	return requests, total
+}
+
+// AdminFetchAllByUserId - Get all withdrawal history by user ID (no pagination)
+// package use_case/withdrawal_request_use_case.go
+
+// AdminFetchAllByUserId - Get all withdrawal history by user ID (no pagination)
+func (u *withdrawalRequestUseCase) AdminFetchAllByUserId(
+	ctx context.Context,
+	userId int64,
+) ([]model.WithdrawalRequest, error) {
+
+	// Check if user exists
+	user, err := u.repositoryManager.UserRepository().GetById(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, constant.ErrNoData
+	}
+
+	// Fetch all without pagination - langsung panggil repository dengan option tanpa limit
+	option := model.WithdrawalRequestQueryOption{
+		UserId: &userId,
+	}
+
+	requests, err := u.repositoryManager.WithdrawalRequestRepository().Fetch(ctx, option)
+	if err != nil {
+		return nil, err
+	}
+
+	// Load user data
+	u.mustLoadUsers(ctx, requests)
+
+	return requests, nil
 }
 
 // AdminFetchByUserId digunakan Admin jika ingin memfilter history pengajuan berdasarkan 1 user spesifik
