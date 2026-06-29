@@ -59,14 +59,12 @@ func (a *FileApi) ServeLocal() gin.HandlerFunc {
 
 		rawUrl := ctx.ginCtx.Request.URL.String()
 		if _, err := a.filesystemManager.Main().VerifyPresignedUrl(rawUrl); err != nil {
-			ctx.json(http.StatusForbidden, dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
-			return
+			panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
 		}
 
 		stream, err := a.filesystemManager.Main().Stream(ctx.context(), rawPath)
 		if err != nil {
-			ctx.json(http.StatusNotFound, dto_response.NewNotFoundErrorResponse(constant.LanguageSystemNotFound))
-			return
+			panic(dto_response.NewNotFoundErrorResponse(constant.LanguageSystemNotFound))
 		}
 		defer stream.Close()
 

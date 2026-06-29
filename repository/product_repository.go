@@ -19,6 +19,7 @@ type ProductRepository interface {
 
 	// read
 	GetById(ctx context.Context, id int64) (*model.Product, error)
+	GetByIdForUpdate(ctx context.Context, id int64) (*model.Product, error)
 	FetchByIds(ctx context.Context, ids []int64) ([]model.Product, error)
 	Fetch(ctx context.Context, options ...model.ProductQueryOption) ([]model.Product, error)
 	Count(ctx context.Context, options ...model.ProductQueryOption) (int64, error)
@@ -102,6 +103,21 @@ func (r *productRepository) GetById(ctx context.Context, id int64) (*model.Produ
 		Where(squirrel.Eq{fmt.Sprintf("%s.id", r.alias()): id}).
 		Limit(1)
 	return r.getInternal(ctx, stmt)
+}
+
+// GetByIdForUpdate locks the product row for the duration of the current
+// transaction. Auction creation uses this to serialize scheduling requests for
+// the same product.
+func (r *productRepository) GetByIdForUpdate(ctx context.Context, id int64) (*model.Product, error) {
+	query := fmt.Sprintf(
+		"SELECT %s.* FROM %s WHERE %s.id = ? LIMIT 1 FOR UPDATE",
+		r.alias(), r.fromTable(), r.alias(),
+	)
+	p := model.Product{}
+	if err := dbtx(r.db, ctx).GetContext(ctx, &p, query, id); err != nil {
+		return nil, translateSqlError(err)
+	}
+	return &p, nil
 }
 
 func (r *productRepository) FetchByIds(ctx context.Context, ids []int64) ([]model.Product, error) {

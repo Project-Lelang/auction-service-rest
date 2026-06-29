@@ -43,16 +43,33 @@ func NewUserUseCase(repositoryManager repository.RepositoryManager, filesystemMa
 }
 
 type userLoaderParams struct {
-	roles bool
+	roles        bool
+	roleRequests bool
 }
 
-func (u *userUseCase) mustLoadUserData(_ context.Context, users []*model.User, option userLoaderParams) {
+func (u *userUseCase) mustLoadUserData(ctx context.Context, users []*model.User, option userLoaderParams) {
 	userRolesLoader := loader.NewUserRolesLoader(u.repositoryManager.UserRoleRepository())
 
 	panicIfErr(util.Await(func(group *errgroup.Group) {
 		for _, user := range users {
 			if option.roles {
 				group.Go(userRolesLoader.UserFn(user))
+			}
+			if option.roleRequests {
+				user := user
+				group.Go(func() error {
+					roleRequests, err := u.repositoryManager.RoleRequestRepository().Fetch(ctx, model.RoleRequestQueryOption{
+						QueryOption: model.QueryOption{
+							Sorts: model.Sorts{{Field: "rr.created_at", Direction: "desc"}},
+						},
+						UserId: &user.Id,
+					})
+					if err != nil {
+						return err
+					}
+					user.RoleRequests = roleRequests
+					return nil
+				})
 			}
 		}
 	}))
@@ -125,7 +142,7 @@ func (u *userUseCase) AdminFetch(ctx context.Context, request dto_request.AdminU
 
 func (u *userUseCase) AdminGet(ctx context.Context, request dto_request.AdminUserGetRequest) model.User {
 	user := mustGetUser(ctx, u.repositoryManager, request.UserId)
-	u.mustLoadUserData(ctx, []*model.User{&user}, userLoaderParams{roles: true})
+	u.mustLoadUserData(ctx, []*model.User{&user}, userLoaderParams{roles: true, roleRequests: true})
 	u.populateImageLinks(&user)
 	return user
 }
@@ -133,7 +150,7 @@ func (u *userUseCase) AdminGet(ctx context.Context, request dto_request.AdminUse
 func (u *userUseCase) OwnGet(ctx context.Context) model.User {
 	userClaims := model.MustGetUserCtx(ctx)
 	user := mustGetUser(ctx, u.repositoryManager, userClaims.UserId)
-	u.mustLoadUserData(ctx, []*model.User{&user}, userLoaderParams{roles: true})
+	u.mustLoadUserData(ctx, []*model.User{&user}, userLoaderParams{roles: true, roleRequests: true})
 	u.populateImageLinks(&user)
 	return user
 }
@@ -154,6 +171,8 @@ func (u *userUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnProf
 		request.Gender,
 	)
 	panicIfErr(err)
+	u.mustLoadUserData(ctx, []*model.User{updated}, userLoaderParams{roles: true, roleRequests: true})
+	u.populateImageLinks(updated)
 
 	return *updated
 }

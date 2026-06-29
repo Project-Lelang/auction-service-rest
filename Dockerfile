@@ -9,11 +9,9 @@ RUN go mod download
 
 COPY . .
 
-# Patch conf.yml: replace localhost with Docker service names
-RUN sed -i '/^mysql:/,/^[a-z]/ s/host: localhost/host: mysql/' conf.yml && \
-    sed -i '/^redis:/,/^[a-z]/ s/host: localhost/host: redis/' conf.yml
-
 RUN CGO_ENABLED=0 go build -o /rest_api .
+RUN CGO_ENABLED=0 go build -o /migrate ./cmd/migrate
+RUN CGO_ENABLED=0 go build -o /seed ./cmd/seed
 
 FROM alpine:3.18
 RUN apk --no-cache add ca-certificates tzdata
@@ -22,9 +20,10 @@ USER nonroot
 
 WORKDIR /home/nonroot/
 
-COPY --from=builder /app/conf.yml .
-COPY --from=builder /app/storage ./storage
 COPY --from=builder /rest_api .
+COPY --from=builder /migrate .
+COPY --from=builder /seed .
+COPY --from=builder /app/migration ./migration
 
 EXPOSE 8080
 

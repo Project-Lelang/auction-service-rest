@@ -60,6 +60,10 @@ func calculateAuctionFee(amount float64) float64 {
 	return roundMoney(amount * constant.AuctionFeePercent / 100)
 }
 
+func newPaymentCode() string {
+	return "PAY-" + util.NewUuid()
+}
+
 func (u *paymentUseCase) GetByAuction(ctx context.Context, request dto_request.AuctionPaymentGetRequest) model.Payment {
 	userClaims := model.MustGetUserCtx(ctx)
 
@@ -154,6 +158,7 @@ func (u *paymentUseCase) createPaymentForWinner(
 	}
 
 	payment := model.Payment{
+		Code:            newPaymentCode(),
 		AuctionId:       auction.Id,
 		UserId:          buyer.Id,
 		PaymentMethodId: methodId,
@@ -170,7 +175,7 @@ func (u *paymentUseCase) createPaymentForWinner(
 		paymentId := strconv.FormatInt(payment.Id, 10)
 		snapReq := infrastructure.MidtransSnapRequest{
 			TransactionDetails: infrastructure.MidtransTransactionDetails{
-				OrderId:     paymentId,
+				OrderId:     payment.Code,
 				GrossAmount: amount,
 			},
 			ItemDetails: []infrastructure.MidtransItemDetail{
@@ -212,11 +217,7 @@ func (u *paymentUseCase) createPaymentForWinner(
 
 // HandleMidtransNotification processes an incoming Midtrans webhook notification.
 func (u *paymentUseCase) HandleMidtransNotification(ctx context.Context, notification infrastructure.MidtransNotification) {
-	paymentId, parseErr := strconv.ParseInt(notification.OrderId, 10, 64)
-	if parseErr != nil {
-		return
-	}
-	payment, err := u.repositoryManager.PaymentRepository().GetById(ctx, paymentId)
+	payment, err := u.repositoryManager.PaymentRepository().GetByCode(ctx, notification.OrderId)
 	if err != nil {
 		// Unknown order – ignore
 		return

@@ -66,6 +66,12 @@ func (u *winnerUseCase) FetchByAuction(ctx context.Context, request dto_request.
 	winners, err := u.repositoryManager.AuctionWinnerRepository().Fetch(ctx, option)
 	panicIfErr(err)
 
+	winnerPointers := make([]*model.AuctionWinner, len(winners))
+	for i := range winners {
+		winnerPointers[i] = &winners[i]
+	}
+	mustLoadAuctionWinnerData(ctx, u.repositoryManager, winnerPointers)
+
 	return winners, total
 }
 

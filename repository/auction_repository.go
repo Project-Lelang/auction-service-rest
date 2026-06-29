@@ -62,6 +62,8 @@ func (r *auctionRepository) buildBaseStmt(option model.AuctionQueryOption) squir
 
 	if option.Status != nil {
 		stmt = stmt.Where(squirrel.Eq{r.f("status"): *option.Status})
+	} else if len(option.Statuses) > 0 {
+		stmt = stmt.Where(squirrel.Eq{r.f("status"): option.Statuses})
 	}
 
 	return stmt

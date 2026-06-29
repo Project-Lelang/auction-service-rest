@@ -583,7 +583,7 @@ const docTemplate = `{
                                                         "nodes": {
                                                             "type": "array",
                                                             "items": {
-                                                                "$ref": "#/definitions/UserResponse"
+                                                                "$ref": "#/definitions/AdminUserResponse"
                                                             }
                                                         }
                                                     }
@@ -648,7 +648,7 @@ const docTemplate = `{
                                                         "nodes": {
                                                             "type": "array",
                                                             "items": {
-                                                                "$ref": "#/definitions/UserResponse"
+                                                                "$ref": "#/definitions/AdminUserResponse"
                                                             }
                                                         }
                                                     }
@@ -706,7 +706,7 @@ const docTemplate = `{
                                                     "type": "object",
                                                     "properties": {
                                                         "user": {
-                                                            "$ref": "#/definitions/UserResponse"
+                                                            "$ref": "#/definitions/AdminUserResponse"
                                                         }
                                                     }
                                                 }
@@ -1135,7 +1135,7 @@ const docTemplate = `{
                 "tags": [
                     "Auction"
                 ],
-                "summary": "List ongoing auctions (paginated, public)",
+                "summary": "List ongoing and scheduled auctions (paginated, public)",
                 "parameters": [
                     {
                         "description": "Body Request",
@@ -1255,13 +1255,6 @@ const docTemplate = `{
                 "summary": "Place a bid on an active auction (BIDDER only)",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Auction ID",
-                        "name": "auctionId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
                         "description": "Body Request",
                         "name": "body",
                         "in": "body",
@@ -1292,6 +1285,78 @@ const docTemplate = `{
                                                     "properties": {
                                                         "bid": {
                                                             "$ref": "#/definitions/AuctionBidResponse"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/auctions/{auctionId}/bids/filter": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auction"
+                ],
+                "summary": "List bids for an auction (authenticated users)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Auction ID",
+                        "name": "auctionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/AuctionBidFetchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/PaginationResponse"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nodes": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/AuctionBidResponse"
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -2432,6 +2497,12 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "409": {
+                        "description": "Product already has a scheduled auction",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     }
                 }
@@ -3625,7 +3696,7 @@ const docTemplate = `{
                                                     "type": "object",
                                                     "properties": {
                                                         "user": {
-                                                            "$ref": "#/definitions/UserResponse"
+                                                            "$ref": "#/definitions/OwnProfileResponse"
                                                         }
                                                     }
                                                 }
@@ -3685,7 +3756,7 @@ const docTemplate = `{
                                                     "type": "object",
                                                     "properties": {
                                                         "user": {
-                                                            "$ref": "#/definitions/UserResponse"
+                                                            "$ref": "#/definitions/OwnProfileResponse"
                                                         }
                                                     }
                                                 }
@@ -4571,6 +4642,7 @@ const docTemplate = `{
                         "DRAFT",
                         "REQUEST",
                         "VERIFIED",
+                        "SCHEDULED",
                         "REJECTED",
                         "ON_BIDS",
                         "COMPLETED"
@@ -4636,6 +4708,83 @@ const docTemplate = `{
                 }
             }
         },
+        "AdminUserResponse": {
+            "type": "object",
+            "properties": {
+                "balance": {
+                    "type": "number",
+                    "example": 100000
+                },
+                "bank_account_name": {
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "bank_account_number": {
+                    "type": "string",
+                    "example": "1234567890"
+                },
+                "bank_name": {
+                    "type": "string",
+                    "example": "Bank ABC"
+                },
+                "birth": {
+                    "type": "string",
+                    "example": "1990-01-15T00:00:00Z"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                },
+                "fullname": {
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "gender": {
+                    "type": "string",
+                    "example": "MALE"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "identity_image_link": {
+                    "type": "string"
+                },
+                "is_deleted": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "is_verified": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "nik": {
+                    "type": "string",
+                    "example": "3201010101010001"
+                },
+                "role_requests": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/RoleRequestResponse"
+                    }
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/UserRoleResponse"
+                    }
+                },
+                "selfie_identity_image_link": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "AuctionBidCreateRequest": {
             "type": "object",
             "required": [
@@ -4645,6 +4794,50 @@ const docTemplate = `{
                 "amount": {
                     "type": "number",
                     "example": 150000
+                }
+            }
+        },
+        "AuctionBidFetchRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "page": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "sorts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "direction",
+                            "field"
+                        ],
+                        "properties": {
+                            "direction": {
+                                "type": "string",
+                                "enum": [
+                                    "asc",
+                                    "desc"
+                                ],
+                                "example": "desc"
+                            },
+                            "field": {
+                                "type": "string",
+                                "enum": [
+                                    "id",
+                                    "amount",
+                                    "created_at",
+                                    "updated_at"
+                                ],
+                                "example": "amount"
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -5108,6 +5301,34 @@ const docTemplate = `{
             "type": "object",
             "additionalProperties": true
         },
+        "Error": {
+            "type": "object",
+            "properties": {
+                "domain": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Error"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "NotificationResponse": {
             "type": "object",
             "properties": {
@@ -5520,6 +5741,7 @@ const docTemplate = `{
                         "DRAFT",
                         "REQUEST",
                         "VERIFIED",
+                        "SCHEDULED",
                         "REJECTED",
                         "ON_BIDS",
                         "COMPLETED"
@@ -5569,6 +5791,83 @@ const docTemplate = `{
                 "weight_gram": {
                     "type": "integer",
                     "example": 1000
+                }
+            }
+        },
+        "OwnProfileResponse": {
+            "type": "object",
+            "properties": {
+                "balance": {
+                    "type": "number",
+                    "example": 100000
+                },
+                "bank_account_name": {
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "bank_account_number": {
+                    "type": "string",
+                    "example": "1234567890"
+                },
+                "bank_name": {
+                    "type": "string",
+                    "example": "Bank ABC"
+                },
+                "birth": {
+                    "type": "string",
+                    "example": "1990-01-15T00:00:00Z"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                },
+                "fullname": {
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "gender": {
+                    "type": "string",
+                    "example": "MALE"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "identity_image_link": {
+                    "type": "string"
+                },
+                "is_deleted": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "is_verified": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "nik": {
+                    "type": "string",
+                    "example": "3201010101010001"
+                },
+                "role_requests": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/RoleRequestResponse"
+                    }
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/UserRoleResponse"
+                    }
+                },
+                "selfie_identity_image_link": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },
@@ -5687,6 +5986,10 @@ const docTemplate = `{
                 "auction_id": {
                     "type": "integer",
                     "example": 2
+                },
+                "code": {
+                    "type": "string",
+                    "example": "PAY-550e8400-e29b-41d4-a716-446655440000"
                 },
                 "created_at": {
                     "type": "string"
@@ -6201,61 +6504,23 @@ const docTemplate = `{
         "UserResponse": {
             "type": "object",
             "properties": {
-                "balance": {
-                    "type": "number",
-                    "example": 100000
-                },
-                "bank_account_number": {
-                    "type": "string"
-                },
-                "birth": {
-                    "type": "string",
-                    "example": "1990-01-15T00:00:00Z"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string",
-                    "example": "user@example.com"
-                },
                 "fullname": {
                     "type": "string",
                     "example": "John Doe"
-                },
-                "gender": {
-                    "type": "string",
-                    "example": "MALE"
                 },
                 "id": {
                     "type": "integer",
                     "example": 1
                 },
-                "identity_image_link": {
-                    "type": "string"
-                },
-                "is_deleted": {
-                    "type": "boolean",
-                    "example": false
-                },
                 "is_verified": {
                     "type": "boolean",
                     "example": false
-                },
-                "nik": {
-                    "type": "string"
                 },
                 "roles": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/UserRoleResponse"
                     }
-                },
-                "selfie_identity_image_link": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
                 }
             }
         },

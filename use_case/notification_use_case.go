@@ -64,7 +64,7 @@ func (u *notificationUseCase) mustGetOwned(ctx context.Context, notificationId i
 
 	notification, err := u.repositoryManager.NotifcationRepository().GetById(ctx, notificationId)
 	if err == constant.ErrNoData {
-		panic(dto_response.NewBadRequestErrorResponse("Notification not found"))
+		panic(dto_response.NewNotFoundErrorResponse(constant.LanguageNotificationNotFound))
 	}
 	panicIfErr(err)
 

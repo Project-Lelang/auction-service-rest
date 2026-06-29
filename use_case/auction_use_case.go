@@ -40,6 +40,7 @@ type AuctionUseCase interface {
 
 	// public
 	Fetch(ctx context.Context, request dto_request.AuctionFetchRequest) ([]model.Auction, int64)
+	FetchOnGoingAndScheduled(ctx context.Context, request dto_request.AuctionFetchRequest) ([]model.Auction, int64)
 	Get(ctx context.Context, request dto_request.AuctionGetRequest) model.Auction
 	GetAdminDashboardReport(ctx context.Context, request dto_request.AdminDashboardReportRequest) []dto_response.DashboardDailyReport
 
@@ -174,6 +175,30 @@ func (u *auctionUseCase) Fetch(ctx context.Context, request dto_request.AuctionF
 	return auctions, total
 }
 
+func (u *auctionUseCase) FetchOnGoingAndScheduled(ctx context.Context, request dto_request.AuctionFetchRequest) ([]model.Auction, int64) {
+	option := model.AuctionQueryOption{
+		QueryOption: model.NewQueryOptionWithPagination(
+			request.Page,
+			request.Limit,
+			model.Sorts(request.Sorts),
+		),
+		Statuses: []string{
+			constant.AuctionStatusOnGoing,
+			constant.AuctionStatusScheduled,
+		},
+	}
+
+	total, err := u.repositoryManager.AuctionRepository().Count(ctx, option)
+	panicIfErr(err)
+
+	auctions, err := u.repositoryManager.AuctionRepository().Fetch(ctx, option)
+	panicIfErr(err)
+
+	u.mustLoadAuctionData(ctx, util.SliceValueToSlicePointer(auctions))
+
+	return auctions, total
+}
+  
 func (u *auctionUseCase) AdminFetch(
 	ctx context.Context,
 	request dto_request.AuctionFetchRequest,
@@ -287,15 +312,6 @@ func (u *auctionUseCase) OwnCreate(ctx context.Context, request dto_request.OwnA
 	// 	panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionStartTimeTooSoon))
 	// }
 
-	// load product and verify ownership + status
-	product := mustGetProduct(ctx, u.repositoryManager, productId)
-	if product.UserId != userClaims.UserId {
-		panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
-	}
-	if product.Status != constant.ProductStatusVerified {
-		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionProductNotVerified))
-	}
-
 	auction := model.Auction{
 		ProductId:     productId,
 		StartingPrice: request.StartingPrice,
@@ -304,10 +320,48 @@ func (u *auctionUseCase) OwnCreate(ctx context.Context, request dto_request.OwnA
 		Status:        constant.AuctionStatusScheduled,
 		Fee:           0,
 	}
+	product := model.Product{}
 
 	err := u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
-		err := u.repositoryManager.AuctionRepository().Insert(ctx, &auction)
+		// Serialize scheduling for the same product. Without this lock, two
+		// concurrent requests could both observe VERIFIED and create auctions.
+		lockedProduct, err := u.repositoryManager.ProductRepository().GetByIdForUpdate(ctx, productId)
 		if err != nil {
+			if err == constant.ErrNoData {
+				return dto_response.NewBadRequestErrorResponse(constant.LanguageProductNotFound)
+			}
+			return err
+		}
+		if lockedProduct.UserId != userClaims.UserId {
+			return dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden)
+		}
+		if lockedProduct.Status == constant.ProductStatusScheduled {
+			return dto_response.NewConflictErrorResponse(constant.LanguageAuctionProductAlreadyScheduled)
+		}
+		if lockedProduct.Status != constant.ProductStatusVerified {
+			return dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionProductNotVerified)
+		}
+
+		err = u.repositoryManager.AuctionRepository().Insert(ctx, &auction)
+		if err != nil {
+			// The database unique constraint is the final defence if another
+			// write path bypasses the product-row lock.
+			if err == constant.ErrDuplicateData {
+				return dto_response.NewConflictErrorResponse(constant.LanguageAuctionProductAlreadyScheduled)
+			}
+			return err
+		}
+
+		updatedProduct, err := u.repositoryManager.ProductRepository().UpdateStatus(ctx, productId, constant.ProductStatusScheduled)
+		if err != nil {
+			return err
+		}
+		product = *updatedProduct
+
+		if err = u.repositoryManager.ProductStatusHistoryRepository().Insert(ctx, &model.ProductStatusHistory{
+			ProductId: productId,
+			Status:    constant.ProductStatusScheduled,
+		}); err != nil {
 			return err
 		}
 
@@ -378,7 +432,8 @@ func (u *auctionUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnA
 }
 
 // HandleStartAuction is called by the asynq worker when an auction's start_time is reached.
-// It transitions the auction SCHEDULED → ON_GOING and the product → ON_BIDS,
+// It transitions the auction SCHEDULED → ON_GOING and the product
+// SCHEDULED → ON_BIDS,
 // then enqueues the close task.
 func (u *auctionUseCase) HandleStartAuction(ctx context.Context, auctionId int64) error {
 	auction, err := u.repositoryManager.AuctionRepository().GetById(ctx, auctionId)

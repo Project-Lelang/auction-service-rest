@@ -52,7 +52,7 @@ func (a *AuctionApi) FetchAuctions() gin.HandlerFunc {
 // FetchOnGoingAuctions godoc
 //
 //	@Router		/auctions/on-going/filter [post]
-//	@Summary	List ongoing auctions (paginated, public)
+//	@Summary	List ongoing and scheduled auctions (paginated, public)
 //	@tags		Auction
 //	@Accept		json
 //	@Param		body	body	dto_request.AuctionFetchRequest	true	"Body Request"
@@ -63,10 +63,7 @@ func (a *AuctionApi) FetchOnGoingAuctions() gin.HandlerFunc {
 		var request dto_request.AuctionFetchRequest
 		ctx.mustBind(&request)
 
-		status := constant.AuctionStatusOnGoing
-		request.Status = &status
-
-		auctions, total := a.auctionUseCase.Fetch(ctx.context(), request)
+		auctions, total := a.auctionUseCase.FetchOnGoingAndScheduled(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.NewPaginationResponse(
@@ -109,8 +106,7 @@ func (a *AuctionApi) GetAuction() gin.HandlerFunc {
 //	@tags		Auction
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		auctionId	path	int									true	"Auction ID"
-//	@Param		body		body	dto_request.AuctionBidCreateRequest	true	"Body Request"
+//	@Param		body	body	dto_request.AuctionBidCreateRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	201	{object}	dto_response.Response{data=dto_response.DataResponse{bid=dto_response.AuctionBidResponse}}
 func (a *AuctionApi) PlaceBid() gin.HandlerFunc {
@@ -125,6 +121,36 @@ func (a *AuctionApi) PlaceBid() gin.HandlerFunc {
 			Data: dto_response.DataResponse{
 				"bid": dto_response.NewAuctionBidResponse(ctx.context(), bid),
 			},
+		})
+	})
+}
+
+// FetchBids godoc
+//
+//	@Router		/auctions/{auctionId}/bids/filter [post]
+//	@Summary	List bids for an auction (authenticated users)
+//	@tags		Auction
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		auctionId	path	int									true	"Auction ID"
+//	@Param		body		body	dto_request.AuctionBidFetchRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.AuctionBidResponse}}
+func (a *AuctionApi) FetchBids() gin.HandlerFunc {
+	return a.Authorize(func(ctx apiContext) {
+		var request dto_request.AuctionBidFetchRequest
+		ctx.mustBind(&request)
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
+
+		bids, total := a.bidUseCase.FetchAuctionBids(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.NewPaginationResponse(
+				util.ConvertArray(ctx.context(), bids, dto_response.NewAuctionBidResponse),
+				int(total),
+				request.Page,
+				request.Limit,
+			),
 		})
 	})
 }
@@ -467,6 +493,7 @@ func RegisterAuctionApi(router gin.IRouter, baseApi *api, useCaseManager use_cas
 	auctionsGroup.POST("/filter", a.FetchAuctions())
 	auctionsGroup.POST("/on-going/filter", a.FetchOnGoingAuctions())
 	auctionsGroup.GET("/:auctionId", a.GetAuction())
+	auctionsGroup.POST("/:auctionId/bids/filter", a.FetchBids())
 	auctionsGroup.POST("/:auctionId/bids", a.PlaceBid())
 	auctionsGroup.POST("/:auctionId/bids/no-locking", a.PlaceBidNoLocking())
 	auctionsGroup.POST("/:auctionId/winners/filter", a.FetchWinners())
