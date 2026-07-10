@@ -51,6 +51,9 @@ type TaskQueueClient interface {
 	// auction then re-enqueues it at the new time. Used when OwnUpdate changes
 	// the start/end times of a SCHEDULED auction.
 	ReplaceAuctionStart(AuctionId int64, processAt time.Time) error
+	// Reset removes every task in the application queue. It is intended only
+	// for a fresh database migration, where every queued database ID is stale.
+	Reset() error
 	Close() error
 }
 
@@ -133,6 +136,14 @@ func (c *asynqTaskQueueClient) ReplaceAuctionStart(auctionId int64, processAt ti
 	_ = c.inspector.DeleteTask(taskQueueName, taskID)
 	payload, _ := json.Marshal(AuctionTaskPayload{AuctionId: auctionId})
 	return c.enqueue(TypeAuctionStart, taskID, payload, processAt)
+}
+
+func (c *asynqTaskQueueClient) Reset() error {
+	err := c.inspector.DeleteQueue(taskQueueName, true)
+	if errors.Is(err, asynq.ErrQueueNotFound) {
+		return nil
+	}
+	return err
 }
 
 func (c *asynqTaskQueueClient) Close() error {

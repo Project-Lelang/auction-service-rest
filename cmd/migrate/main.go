@@ -17,7 +17,7 @@ func main() {
 	flag.Parse()
 
 	infraManager := infrastructure.NewInfrastructureManager(global.GetConfig())
-	defer infraManager.CloseDB()
+	defer infraManager.Close()
 
 	if *fresh {
 		if *rollback || *steps != 0 || *force >= 0 {
@@ -26,7 +26,7 @@ func main() {
 		if err := infraManager.RefreshDB(); err != nil {
 			log.Fatalf("fresh migration failed: %v", err)
 		}
-		fmt.Println("fresh migration completed successfully")
+		fmt.Println("fresh migration and Redis queue reset completed successfully")
 		return
 	}
 

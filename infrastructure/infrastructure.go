@@ -142,7 +142,21 @@ func (i *infrastructureManager) RefreshDB() error {
 		return databaseErr
 	}
 
-	return i.MigrateDB(false, 0, nil)
+	if err := i.MigrateDB(false, 0, nil); err != nil {
+		return err
+	}
+
+	// A fresh database reuses numeric IDs from the beginning. Every existing
+	// Redis task and notification may therefore point at an unrelated new row,
+	// and fixed Asynq task IDs would conflict with newly scheduled work.
+	if err := i.taskQueueClient.Reset(); err != nil {
+		return fmt.Errorf("reset task queue after fresh migration: %w", err)
+	}
+	if err := i.notificationQueue.Reset(context.Background()); err != nil {
+		return fmt.Errorf("reset notification queue after fresh migration: %w", err)
+	}
+
+	return nil
 }
 
 func (i *infrastructureManager) CloseDB() error {
