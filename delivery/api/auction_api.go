@@ -346,10 +346,10 @@ func (a *AuctionApi) Ship() gin.HandlerFunc {
 	})
 }
 
-// UpdateBuyerAddress godoc
+// UpdateBidderAddress godoc
 //
-//	@Router		/auctions/{auctionId}/shipments/{shipmentId}/buyer-address [patch]
-//	@Summary	Update buyer shipping address (BIDDER only, before shipped)
+//	@Router		/auctions/{auctionId}/shipments/{shipmentId}/bidder-address [patch]
+//	@Summary	Update bidder shipping address (BIDDER only, before shipped)
 //	@tags		Auction
 //	@Security	BearerAuth
 //	@Accept		json
@@ -358,14 +358,14 @@ func (a *AuctionApi) Ship() gin.HandlerFunc {
 //	@Param		body		body	dto_request.AuctionShipmentUpdateAddressRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{shipment=dto_response.ShipmentResponse}}
-func (a *AuctionApi) UpdateBuyerAddress() gin.HandlerFunc {
+func (a *AuctionApi) UpdateBidderAddress() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
 		var request dto_request.AuctionShipmentUpdateAddressRequest
 		ctx.mustBind(&request)
 		request.AuctionId = ctx.mustGetParamInt64("auctionId")
 		request.ShipmentId = ctx.mustGetParamInt64("shipmentId")
 
-		shipment := a.shipmentUseCase.UpdateBuyerAddress(ctx.context(), request)
+		shipment := a.shipmentUseCase.UpdateBidderAddress(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
@@ -407,7 +407,7 @@ func (a *AuctionApi) UpdateSellerAddress() gin.HandlerFunc {
 // GetTracking godoc
 //
 //	@Router		/auctions/{auctionId}/shipments/{shipmentId}/tracking [get]
-//	@Summary	Get live tracking info via Komship (BUYER/SELLER only)
+//	@Summary	Get live tracking info via Komship (BIDDER/SELLER only)
 //	@tags		Auction
 //	@Security	BearerAuth
 //	@Param		auctionId	path	int	true	"Auction ID"
@@ -464,6 +464,7 @@ func (a *AuctionApi) Receive() gin.HandlerFunc {
 //	@Summary	Webhook endpoint for Midtrans payment notifications
 //	@tags		Auction
 //	@Accept		json
+//	@Param		body	body	infrastructure.MidtransNotification	true	"Midtrans notification payload"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.SuccessResponse}
 func (a *AuctionApi) HandlePaymentNotification() gin.HandlerFunc {
@@ -503,7 +504,7 @@ func RegisterAuctionApi(router gin.IRouter, baseApi *api, useCaseManager use_cas
 	auctionsGroup.GET("/:auctionId/shipments/:shipmentId", a.GetShipment())
 	auctionsGroup.POST("/:auctionId/shipments/:shipmentId/ship", a.Ship())
 	auctionsGroup.POST("/:auctionId/shipments/:shipmentId/receive", a.Receive())
-	auctionsGroup.PATCH("/:auctionId/shipments/:shipmentId/buyer-address", a.UpdateBuyerAddress())
+	auctionsGroup.PATCH("/:auctionId/shipments/:shipmentId/bidder-address", a.UpdateBidderAddress())
 	auctionsGroup.PATCH("/:auctionId/shipments/:shipmentId/seller-address", a.UpdateSellerAddress())
 	auctionsGroup.GET("/:auctionId/shipments/:shipmentId/tracking", a.GetTracking())
 

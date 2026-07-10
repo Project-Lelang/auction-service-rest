@@ -6,6 +6,7 @@ const AuctionTableName = "auctions"
 
 type Auction struct {
 	Id            int64              `db:"id"`
+	Code          string             `db:"code"`
 	ProductId     int64              `db:"product_id"`
 	StartingPrice float64            `db:"starting_price"`
 	StartTime     data_type.DateTime `db:"start_time"`
@@ -26,6 +27,7 @@ func (a *Auction) TableName() string { return AuctionTableName }
 func (a *Auction) ToMap() map[string]interface{} {
 	return map[string]interface{}{
 		"id":             a.Id,
+		"code":           a.Code,
 		"product_id":     a.ProductId,
 		"starting_price": a.StartingPrice,
 		"start_time":     a.StartTime,

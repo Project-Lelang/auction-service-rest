@@ -290,7 +290,7 @@ func (u *bidUseCase) PlaceBid(ctx context.Context, request dto_request.AuctionBi
 	if outbidUserId != 0 {
 		publishAuctionNotification(ctx, u.notificationQueue, notification.Payload{
 			UserId:    outbidUserId,
-			Role:      notification.RoleBuyer,
+			Role:      notification.RoleBidder,
 			EventType: notification.EventOutbid,
 			AuctionId: auction.Id,
 			Title:     "Outbid!",
@@ -372,7 +372,7 @@ func (u *bidUseCase) PlaceBidNoLocking(ctx context.Context, request dto_request.
 	if outbidUserId != 0 {
 		publishAuctionNotification(ctx, u.notificationQueue, notification.Payload{
 			UserId:    outbidUserId,
-			Role:      notification.RoleBuyer,
+			Role:      notification.RoleBidder,
 			EventType: notification.EventOutbid,
 			AuctionId: auction.Id,
 			Title:     "Outbid!",

@@ -9,7 +9,7 @@ const (
 	AuctionStatusOnGoing                  = "ON_GOING"
 	AuctionStatusWaitingForPayment        = "WAITING_FOR_PAYMENT"
 	AuctionStatusWaitingForSellerDecision = "WAITING_FOR_SELLER_DECISION"
-	AuctionStatusWaitingForBuyerAddress   = "WAITING_FOR_BUYER_ADDRESS"
+	AuctionStatusWaitingForBidderAddress  = "WAITING_FOR_BIDDER_ADDRESS"
 	AuctionStatusWaitingForShipment       = "WAITING_FOR_SHIPMENT"
 	AuctionStatusShipped                  = "SHIPPED"
 	AuctionStatusDelivered                = "DELIVERED"

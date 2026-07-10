@@ -2,6 +2,7 @@ package use_case
 
 import (
 	"context"
+	"strings"
 
 	"auction-service/constant"
 	"auction-service/delivery/dto_request"
@@ -27,6 +28,21 @@ func NewUserAddressUseCase(repositoryManager repository.RepositoryManager) UserA
 	return &userAddressUseCase{repositoryManager: repositoryManager}
 }
 
+func validateIndonesiaAddress(areaId string, latitude, longitude *float64) {
+	if !strings.HasPrefix(strings.ToUpper(strings.TrimSpace(areaId)), "IDN") {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageUserAddressIndonesia))
+	}
+	if latitude == nil || longitude == nil {
+		return
+	}
+
+	// Approximate Indonesia bounding box: western/eastern longitudes and
+	// southern/northern latitudes across the archipelago.
+	if *latitude < -11.0 || *latitude > 6.5 || *longitude < 95.0 || *longitude > 141.5 {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageUserAddressIndonesia))
+	}
+}
+
 func (u *userAddressUseCase) mustGetOwned(ctx context.Context, id int64) model.UserAddress {
 	userClaims := model.MustGetUserCtx(ctx)
 	address, err := u.repositoryManager.UserAddressRepository().GetById(ctx, id)
@@ -39,6 +55,7 @@ func (u *userAddressUseCase) mustGetOwned(ctx context.Context, id int64) model.U
 
 func (u *userAddressUseCase) OwnCreate(ctx context.Context, request dto_request.UserAddressCreateRequest) model.UserAddress {
 	userClaims := model.MustGetUserCtx(ctx)
+	validateIndonesiaAddress(request.BiteshipAreaId, request.Latitude, request.Longitude)
 
 	var err error
 	if request.IsDefault {
@@ -94,6 +111,7 @@ func (u *userAddressUseCase) Get(ctx context.Context, request dto_request.UserAd
 func (u *userAddressUseCase) OwnUpdate(ctx context.Context, request dto_request.UserAddressUpdateRequest) model.UserAddress {
 	address := u.mustGetOwned(ctx, request.UserAddressId)
 	userClaims := model.MustGetUserCtx(ctx)
+	validateIndonesiaAddress(request.BiteshipAreaId, request.Latitude, request.Longitude)
 
 	if request.IsDefault && !address.IsDefault {
 		panicIfErr(u.repositoryManager.UserAddressRepository().UnsetDefaultByUserId(ctx, userClaims.UserId))

@@ -48,7 +48,7 @@ AUCTION.INVALID_TIME_RANGE: "The auction end time must be later than its start t
 AUCTION.START_TIME_TOO_SOON: "The auction start time is too soon"
 AUCTION.NOT_WAITING_FOR_SELLER_DECISION: "This auction is not waiting for a seller decision"
 AUCTION.NO_NEXT_BIDDER: "No eligible next bidder was found"
-AUCTION.NOT_WAITING_FOR_BUYER_ADDRESS: "This auction is not waiting for the buyer's address"
+AUCTION.NOT_WAITING_FOR_BIDDER_ADDRESS: "This auction is not waiting for the bidder's address"
 AUCTION.ADDRESS_NOT_CONFIRMED: "The shipping addresses have not been confirmed"
 
 # bid
@@ -77,11 +77,14 @@ SHIPMENT.NOT_SHIPPED_YET: "The order has not been shipped yet"
 SHIPMENT.ALREADY_RECEIVED: "The order has already been received"
 SHIPMENT.NO_TRACKING_NUMBER: "No tracking number is available for this shipment"
 SHIPMENT.ADDRESS_LOCKED_AFTER_SHIP: "The shipping address cannot be changed after shipment"
+SHIPMENT.COST_UNAVAILABLE: "Shipping cost is not available for the selected addresses"
+SHIPMENT.SERVICE_NOT_FOUND: "Selected shipping service is not available for this shipment"
 
 # user address
 USER_ADDRESS.NOT_FOUND: "Address not found"
 USER_ADDRESS.NOT_OWNED: "You do not have access to this address"
 USER_ADDRESS.IS_DEFAULT: "The default address cannot be deleted. Set another address as default first"
+USER_ADDRESS.INDONESIA_ONLY: "Address must be located in Indonesia"
 
 # system
 SYSTEM.UNAUTHORIZED: "You must sign in to access this resource"

@@ -2,10 +2,14 @@ package infrastructure
 
 import (
 	"bytes"
+	"crypto/sha512"
+	"crypto/subtle"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -59,11 +63,14 @@ type MidtransNotification struct {
 	FraudStatus       string `json:"fraud_status"`
 	PaymentType       string `json:"payment_type"`
 	GrossAmount       string `json:"gross_amount"`
+	StatusCode        string `json:"status_code"`
+	SignatureKey      string `json:"signature_key"`
 }
 
 // MidtransClient abstracts calls to the Midtrans Snap API.
 type MidtransClient interface {
 	CreateSnapTransaction(request MidtransSnapRequest) (*MidtransSnapResponse, error)
+	ValidateNotification(notification MidtransNotification) bool
 }
 
 type midtransClient struct {
@@ -84,6 +91,22 @@ func NewMidtransClient(serverKey string, isSandbox bool) MidtransClient {
 func (c *midtransClient) authHeader() string {
 	encoded := base64.StdEncoding.EncodeToString([]byte(c.serverKey + ":"))
 	return "Basic " + encoded
+}
+
+func (c *midtransClient) ValidateNotification(notification MidtransNotification) bool {
+	signature := strings.ToLower(strings.TrimSpace(notification.SignatureKey))
+	if signature == "" ||
+		notification.OrderId == "" ||
+		notification.StatusCode == "" ||
+		notification.GrossAmount == "" ||
+		c.serverKey == "" {
+		return false
+	}
+
+	raw := notification.OrderId + notification.StatusCode + notification.GrossAmount + c.serverKey
+	sum := sha512.Sum512([]byte(raw))
+	expected := hex.EncodeToString(sum[:])
+	return subtle.ConstantTimeCompare([]byte(expected), []byte(signature)) == 1
 }
 
 // CreateSnapTransaction calls POST /snap/v1/transactions and returns the token and

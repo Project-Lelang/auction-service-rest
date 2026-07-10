@@ -2,6 +2,7 @@ package use_case
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -25,7 +26,7 @@ type ShipmentUseCase interface {
 	GetByAuction(ctx context.Context, request dto_request.AuctionShipmentGetRequest) model.Shipment
 	Ship(ctx context.Context, request dto_request.AuctionShipmentShipRequest) model.Shipment
 	Receive(ctx context.Context, request dto_request.AuctionShipmentReceiveRequest) model.Shipment
-	UpdateBuyerAddress(ctx context.Context, request dto_request.AuctionShipmentUpdateAddressRequest) model.Shipment
+	UpdateBidderAddress(ctx context.Context, request dto_request.AuctionShipmentUpdateAddressRequest) model.Shipment
 	UpdateSellerAddress(ctx context.Context, request dto_request.AuctionShipmentUpdateAddressRequest) model.Shipment
 	GetTracking(ctx context.Context, request dto_request.AuctionShipmentGetTrackingRequest) map[string]interface{}
 	HandleShipmentAddressDeadline(ctx context.Context, shipmentId int64) error
@@ -52,16 +53,57 @@ func NewShipmentUseCase(repositoryManager repository.RepositoryManager, biteship
 	}
 }
 
-func buyerAddressDuration() time.Duration {
-	return time.Duration(global.GetConfig().ShipmentDeadline.BuyerAddressHours) * time.Hour
+func (u *shipmentUseCase) refreshEstimatedCosts(ctx context.Context, shipment model.Shipment, product model.Product) model.Shipment {
+	sellerSnap := shipment.ParseSellerAddressSnapshot()
+	bidderSnap := shipment.ParseBidderAddressSnapshot()
+	if sellerSnap == nil || bidderSnap == nil {
+		return shipment
+	}
+	if u.biteshipClient == nil {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageShipmentCostUnavailable))
+	}
+
+	bid := mustGetAuctionBid(ctx, u.repositoryManager, shipment.AuctionBidId)
+	options, err := u.biteshipClient.Calculate(
+		sellerSnap.BiteshipAreaId,
+		bidderSnap.BiteshipAreaId,
+		product.WeightGram,
+		int(bid.Amount),
+	)
+	if err != nil || len(options) == 0 {
+		log.Printf("refreshEstimatedCosts: %v", err)
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageShipmentCostUnavailable))
+	}
+
+	estimates := make([]model.ShipmentCostEstimate, 0, len(options))
+	for _, opt := range options {
+		estimates = append(estimates, model.ShipmentCostEstimate{
+			CourierName:        opt.CourierName,
+			CourierCode:        opt.CourierCode,
+			CourierServiceName: opt.CourierServiceName,
+			CourierServiceCode: opt.CourierServiceCode,
+			ShippingFee:        opt.ShippingFee,
+			Price:              opt.Price,
+			Duration:           opt.Duration,
+		})
+	}
+
+	raw, _ := json.Marshal(estimates)
+	updated, err := u.repositoryManager.ShipmentRepository().UpdateEstimatedCosts(ctx, shipment.Id, string(raw))
+	panicIfErr(err)
+	return *updated
+}
+
+func bidderAddressDuration() time.Duration {
+	return time.Duration(global.GetConfig().ShipmentDeadline.BidderAddressHours) * time.Hour
 }
 
 func sellerShipDuration() time.Duration {
 	return time.Duration(global.GetConfig().ShipmentDeadline.SellerShipHours) * time.Hour
 }
 
-func buyerReceiveDuration() time.Duration {
-	return time.Duration(global.GetConfig().ShipmentDeadline.BuyerReceiveHours) * time.Hour
+func bidderReceiveDuration() time.Duration {
+	return time.Duration(global.GetConfig().ShipmentDeadline.BidderReceiveHours) * time.Hour
 }
 
 func trackingCheckDuration() time.Duration {
@@ -91,7 +133,7 @@ func (u *shipmentUseCase) FetchByAuction(ctx context.Context, request dto_reques
 
 	auction := mustGetAuction(ctx, u.repositoryManager, request.AuctionId)
 
-	// Only the seller or superadmin may list all shipments; buyers use GetShipment
+	// Only the seller or superadmin may list all shipments; bidders use GetShipment
 	// product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
 	// if product.UserId != userClaims.UserId && !userClaims.HasRole(constant.RoleSuperAdmin) {
 	// 	panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
@@ -124,7 +166,7 @@ func (u *shipmentUseCase) GetByAuction(ctx context.Context, request dto_request.
 
 	auction, shipment := u.mustGetAuctionShipment(ctx, request.AuctionId, request.ShipmentId)
 
-	// Only the seller, the buyer, or superadmin may view a shipment
+	// Only the seller, the bidder, or superadmin may view a shipment
 	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
 	if product.UserId != userClaims.UserId &&
 		shipment.UserId != userClaims.UserId &&
@@ -147,7 +189,7 @@ func (u *shipmentUseCase) Ship(ctx context.Context, request dto_request.AuctionS
 		panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
 	}
 
-	// Buyer must have confirmed their address first
+	// Bidder must have confirmed their address first
 	if auction.Status != constant.AuctionStatusWaitingForShipment {
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionAddressNotConfirmed))
 	}
@@ -161,33 +203,35 @@ func (u *shipmentUseCase) Ship(ctx context.Context, request dto_request.AuctionS
 	}
 
 	sellerSnap := shipment.ParseSellerAddressSnapshot()
-	buyerSnap := shipment.ParseBuyerAddressSnapshot()
-	if sellerSnap == nil || buyerSnap == nil {
+	bidderSnap := shipment.ParseBidderAddressSnapshot()
+	if sellerSnap == nil || bidderSnap == nil {
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageShipmentAddressLocked))
 	}
 
 	// Find the winning bid to get item value
 	bid := mustGetAuctionBid(ctx, u.repositoryManager, shipment.AuctionBidId)
 
-	// Recalculate rates via Biteship to find the chosen service price.
-	// If the rates API fails (e.g. insufficient balance in sandbox), we still
-	// proceed with shippingFee = 0 so the shipment can be created.
 	options, calcErr := u.biteshipClient.Calculate(
 		sellerSnap.BiteshipAreaId,
-		buyerSnap.BiteshipAreaId,
+		bidderSnap.BiteshipAreaId,
 		product.WeightGram,
 		int(bid.Amount),
 	)
 	if calcErr != nil {
-		log.Printf("Ship: biteship Calculate failed (proceeding with fee=0): %v", calcErr)
+		log.Printf("Ship: biteship Calculate failed: %v", calcErr)
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageShipmentCostUnavailable))
 	}
 
-	var shippingFee int
+	var shippingFee *int
 	for _, opt := range options {
 		if opt.CourierCode == strings.ToLower(request.CourierCode) && opt.CourierServiceCode == strings.ToLower(request.ServiceCode) {
-			shippingFee = opt.Price
+			fee := opt.Price
+			shippingFee = &fee
 			break
 		}
+	}
+	if shippingFee == nil {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageShipmentServiceNotFound))
 	}
 
 	// Fetch seller user for contact info
@@ -198,10 +242,10 @@ func (u *shipmentUseCase) Ship(ctx context.Context, request dto_request.AuctionS
 		OriginContactPhone:      sellerSnap.Phone,
 		OriginAddress:           sellerSnap.Address,
 		OriginAreaId:            sellerSnap.BiteshipAreaId,
-		DestinationContactName:  buyerSnap.RecipientName,
-		DestinationContactPhone: buyerSnap.Phone,
-		DestinationAddress:      buyerSnap.Address,
-		DestinationAreaId:       buyerSnap.BiteshipAreaId,
+		DestinationContactName:  bidderSnap.RecipientName,
+		DestinationContactPhone: bidderSnap.Phone,
+		DestinationAddress:      bidderSnap.Address,
+		DestinationAreaId:       bidderSnap.BiteshipAreaId,
 		CourierCompany:          strings.ToLower(request.CourierCode),
 		CourierType:             strings.ToLower(request.ServiceCode),
 		DeliveryType:            "now",
@@ -227,7 +271,7 @@ func (u *shipmentUseCase) Ship(ctx context.Context, request dto_request.AuctionS
 		orderResult.TrackingId,
 		request.CourierCode,
 		request.ServiceCode,
-		float64(shippingFee),
+		float64(*shippingFee),
 		orderResult.WaybillId,
 	)
 	panicIfErr(err)
@@ -237,8 +281,7 @@ func (u *shipmentUseCase) Ship(ctx context.Context, request dto_request.AuctionS
 	panicIfErr(err)
 
 	// Advance product status to SHIPPED
-	_, err = u.repositoryManager.ProductRepository().UpdateStatus(ctx, auction.ProductId, constant.ProductStatusShipped)
-	panicIfErr(err)
+	panicIfErr(updateProductStatusWithHistory(ctx, u.repositoryManager, auction.ProductId, constant.ProductStatusShipped, nil))
 
 	if u.taskQueue != nil {
 		if err := u.taskQueue.EnqueueShipmentTrackCheck(updated.Id, time.Now().Add(trackingCheckDuration())); err != nil {
@@ -246,16 +289,20 @@ func (u *shipmentUseCase) Ship(ctx context.Context, request dto_request.AuctionS
 		}
 	}
 
+	ref := auction.Id
+	insertUserNotification(ctx, u.repositoryManager, shipment.UserId, "Shipment sent", "The seller has shipped your item.", notification.EventShipmentShipped, &ref)
+	u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBidder, notification.EventShipmentShipped, auction.Id, "Shipment sent", "The seller has shipped your item.")
+
 	return *updated
 }
 
-// Receive marks the shipment as received by the buyer.
+// Receive marks the shipment as received by the bidder.
 func (u *shipmentUseCase) Receive(ctx context.Context, request dto_request.AuctionShipmentReceiveRequest) model.Shipment {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	auction, shipment := u.mustGetAuctionShipment(ctx, request.AuctionId, request.ShipmentId)
 
-	// Only the buyer may mark as received
+	// Only the bidder may mark as received
 	if shipment.UserId != userClaims.UserId {
 		panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
 	}
@@ -270,14 +317,19 @@ func (u *shipmentUseCase) Receive(ctx context.Context, request dto_request.Aucti
 	updated, err := u.completeShipment(ctx, auction, shipment, &request.DeliveryProofImagePath, false)
 	panicIfErr(err)
 
+	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
+	ref := auction.Id
+	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Auction completed", "Bidder confirmed the item. Your balance has been updated.", notification.EventShipmentCompleted, &ref)
+	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventShipmentCompleted, auction.Id, "Auction completed", "Bidder confirmed the item. Your balance has been updated.")
+
 	return *updated
 }
 
-// UpdateBuyerAddress allows the buyer to confirm/select their shipping address.
-// This is a required step after payment: the auction must be in WAITING_FOR_BUYER_ADDRESS.
+// UpdateBidderAddress allows the bidder to confirm/select their shipping address.
+// This is a required step after payment: the auction must be in WAITING_FOR_BIDDER_ADDRESS.
 // Calling this endpoint confirms the address and advances the auction to WAITING_FOR_SHIPMENT,
 // allowing the seller to proceed with shipping.
-func (u *shipmentUseCase) UpdateBuyerAddress(ctx context.Context, request dto_request.AuctionShipmentUpdateAddressRequest) model.Shipment {
+func (u *shipmentUseCase) UpdateBidderAddress(ctx context.Context, request dto_request.AuctionShipmentUpdateAddressRequest) model.Shipment {
 	userClaims := model.MustGetUserCtx(ctx)
 
 	auction, shipment := u.mustGetAuctionShipment(ctx, request.AuctionId, request.ShipmentId)
@@ -286,16 +338,16 @@ func (u *shipmentUseCase) UpdateBuyerAddress(ctx context.Context, request dto_re
 		panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
 	}
 
-	// Buyer may only confirm address during the dedicated address-selection window
-	if auction.Status != constant.AuctionStatusWaitingForBuyerAddress {
-		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionNotWaitingForBuyerAddress))
+	// Bidder may only confirm address during the dedicated address-selection window
+	if auction.Status != constant.AuctionStatusWaitingForBidderAddress {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionNotWaitingForBidderAddress))
 	}
-	if !shipment.BuyerAddressDeadlineAt.IsNil() && !shipment.BuyerAddressDeadlineAt.DateTime().Time().After(time.Now()) {
+	if !shipment.BidderAddressDeadlineAt.IsNil() && !shipment.BidderAddressDeadlineAt.DateTime().Time().After(time.Now()) {
 		_ = u.HandleShipmentAddressDeadline(ctx, shipment.Id)
-		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionNotWaitingForBuyerAddress))
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionNotWaitingForBidderAddress))
 	}
 
-	// Verify the address belongs to the buyer
+	// Verify the address belongs to the bidder
 	address, err := u.repositoryManager.UserAddressRepository().GetById(ctx, request.AddressId)
 	panicIfRepositoryError(err, constant.LanguageUserAddressNotFound)
 	if address.UserId != userClaims.UserId {
@@ -303,7 +355,7 @@ func (u *shipmentUseCase) UpdateBuyerAddress(ctx context.Context, request dto_re
 	}
 
 	snapshot := buildAddressSnapshot(address)
-	updated, err := u.repositoryManager.ShipmentRepository().UpdateBuyerAddress(ctx, shipment.Id, address.Id, snapshot)
+	updated, err := u.repositoryManager.ShipmentRepository().UpdateBidderAddress(ctx, shipment.Id, address.Id, snapshot)
 	panicIfErr(err)
 
 	// Address confirmed — unlock seller to proceed with shipping
@@ -311,8 +363,7 @@ func (u *shipmentUseCase) UpdateBuyerAddress(ctx context.Context, request dto_re
 	panicIfErr(err)
 
 	// Advance product status to WAITING_FOR_SHIPMENT
-	_, err = u.repositoryManager.ProductRepository().UpdateStatus(ctx, auction.ProductId, constant.ProductStatusWaitingForShipment)
-	panicIfErr(err)
+	panicIfErr(updateProductStatusWithHistory(ctx, u.repositoryManager, auction.ProductId, constant.ProductStatusWaitingForShipment, nil))
 
 	shipDeadline := util.CurrentDateTime().Add(sellerShipDuration())
 	updated, err = u.repositoryManager.ShipmentRepository().UpdateShipDeadline(ctx, shipment.Id, shipDeadline)
@@ -323,59 +374,65 @@ func (u *shipmentUseCase) UpdateBuyerAddress(ctx context.Context, request dto_re
 		}
 	}
 
-	// FOR TESTING PURPOSES: if EstimatedCosts is empty, set it to a non-empty JSON so that the shipping flow can proceed without calling the Biteship rates API.
-	if updated.EstimatedCosts == nil || *updated.EstimatedCosts == "" {
-		zeroEstimatedCosts := `[
-  {
-    "price": 12000,
-    "duration": "2-3 Hari",
-    "courier_code": "jne",
-    "courier_name": "JNE Express",
-    "shipping_fee": 12000,
-    "courier_service_code": "reg",
-    "courier_service_name": "Reguler"
-  },
-  {
-    "price": 24000,
-    "duration": "1 Hari",
-    "courier_code": "jne",
-    "courier_name": "JNE Express",
-    "shipping_fee": 24000,
-    "courier_service_code": "yes",
-    "courier_service_name": "Yakin Esok Sampai"
-  },
-  {
-    "price": 11000,
-    "duration": "2-4 Hari",
-    "courier_code": "jnt",
-    "courier_name": "J&T Express",
-    "shipping_fee": 11000,
-    "courier_service_code": "ez",
-    "courier_service_name": "EZ (Regular)"
-  },
-  {
-    "price": 12000,
-    "duration": "1-2 Hari",
-    "courier_code": "sicepat",
-    "courier_name": "SiCepat Ekspres",
-    "shipping_fee": 12000,
-    "courier_service_code": "siuntung",
-    "courier_service_name": "SiUntung"
-  },
-  {
-    "price": 30000,
-    "duration": "1-2 Hari",
-    "courier_code": "sicepat",
-    "courier_name": "SiCepat Ekspres",
-    "shipping_fee": 30000,
-    "courier_service_code": "best",
-    "courier_service_name": "Besok Sampai Tujuan"
-  }
-]`
-		updatedEstimate, err := u.repositoryManager.ShipmentRepository().UpdateEstimatedCosts(ctx, shipment.Id, zeroEstimatedCosts)
-		panicIfErr(err)
-		updated = updatedEstimate
-	}
+	/*
+		Dummy estimated_costs for local testing when Biteship rates are unavailable.
+		Keep this inactive in normal flow so shipping prices always come from provider calculation.
+
+		[
+		  {
+		    "price": 12000,
+		    "duration": "2-3 Hari",
+		    "courier_code": "jne",
+		    "courier_name": "JNE Express",
+		    "shipping_fee": 12000,
+		    "courier_service_code": "reg",
+		    "courier_service_name": "Reguler"
+		  },
+		  {
+		    "price": 24000,
+		    "duration": "1 Hari",
+		    "courier_code": "jne",
+		    "courier_name": "JNE Express",
+		    "shipping_fee": 24000,
+		    "courier_service_code": "yes",
+		    "courier_service_name": "Yakin Esok Sampai"
+		  },
+		  {
+		    "price": 11000,
+		    "duration": "2-4 Hari",
+		    "courier_code": "jnt",
+		    "courier_name": "J&T Express",
+		    "shipping_fee": 11000,
+		    "courier_service_code": "ez",
+		    "courier_service_name": "EZ (Regular)"
+		  },
+		  {
+		    "price": 12000,
+		    "duration": "1-2 Hari",
+		    "courier_code": "sicepat",
+		    "courier_name": "SiCepat Ekspres",
+		    "shipping_fee": 12000,
+		    "courier_service_code": "siuntung",
+		    "courier_service_name": "SiUntung"
+		  },
+		  {
+		    "price": 30000,
+		    "duration": "1-2 Hari",
+		    "courier_code": "sicepat",
+		    "courier_name": "SiCepat Ekspres",
+		    "shipping_fee": 30000,
+		    "courier_service_code": "best",
+		    "courier_service_name": "Besok Sampai Tujuan"
+		  }
+		]
+	*/
+	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
+	updatedValue := u.refreshEstimatedCosts(ctx, *updated, product)
+	updated = &updatedValue
+
+	ref := auction.Id
+	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Bidder address confirmed", "Bidder has confirmed the shipping address. You can ship the item now.", notification.EventBidderAddressConfirmed, &ref)
+	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventBidderAddressConfirmed, auction.Id, "Bidder address confirmed", "Bidder has confirmed the shipping address. You can ship the item now.")
 
 	return *updated
 }
@@ -407,6 +464,8 @@ func (u *shipmentUseCase) UpdateSellerAddress(ctx context.Context, request dto_r
 	snapshot := buildAddressSnapshot(address)
 	updated, err := u.repositoryManager.ShipmentRepository().UpdateSellerAddress(ctx, shipment.Id, address.Id, snapshot)
 	panicIfErr(err)
+	updatedValue := u.refreshEstimatedCosts(ctx, *updated, product)
+	updated = &updatedValue
 
 	return *updated
 }
@@ -417,7 +476,7 @@ func (u *shipmentUseCase) GetTracking(ctx context.Context, request dto_request.A
 
 	auction, shipment := u.mustGetAuctionShipment(ctx, request.AuctionId, request.ShipmentId)
 
-	// Buyer, seller or superadmin may track
+	// Bidder, seller or superadmin may track
 	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
 	if product.UserId != userClaims.UserId &&
 		shipment.UserId != userClaims.UserId &&
@@ -486,8 +545,7 @@ func (u *shipmentUseCase) completeShipment(ctx context.Context, auction model.Au
 			return err
 		}
 
-		_, err = u.repositoryManager.ProductRepository().UpdateStatus(ctx, auction.ProductId, constant.ProductStatusCompleted)
-		return err
+		return updateProductStatusWithHistory(ctx, u.repositoryManager, auction.ProductId, constant.ProductStatusCompleted, nil)
 	})
 	return updated, err
 }
@@ -512,10 +570,10 @@ func (u *shipmentUseCase) refundCompletedPayment(ctx context.Context, auctionId 
 
 func (u *shipmentUseCase) HandleShipmentAddressDeadline(ctx context.Context, shipmentId int64) error {
 	auction, shipment := u.mustGetAuctionShipmentFromShipmentId(ctx, shipmentId)
-	if auction.Status != constant.AuctionStatusWaitingForBuyerAddress ||
-		shipment.BuyerAddressDeadlineAt.IsNil() ||
-		!shipment.BuyerAddressFailedAt.IsNil() ||
-		shipment.BuyerAddressDeadlineAt.DateTime().Time().After(time.Now()) {
+	if auction.Status != constant.AuctionStatusWaitingForBidderAddress ||
+		shipment.BidderAddressDeadlineAt.IsNil() ||
+		!shipment.BidderAddressFailedAt.IsNil() ||
+		shipment.BidderAddressDeadlineAt.DateTime().Time().After(time.Now()) {
 		return nil
 	}
 
@@ -527,10 +585,10 @@ func (u *shipmentUseCase) HandleShipmentAddressDeadline(ctx context.Context, shi
 		if err != nil {
 			return err
 		}
-		if !lockedShipment.BuyerAddressFailedAt.IsNil() {
+		if !lockedShipment.BidderAddressFailedAt.IsNil() {
 			return nil
 		}
-		if _, err = u.repositoryManager.ShipmentRepository().UpdateBuyerAddressFailed(ctx, lockedShipment.Id); err != nil {
+		if _, err = u.repositoryManager.ShipmentRepository().UpdateBidderAddressFailed(ctx, lockedShipment.Id); err != nil {
 			return err
 		}
 		if _, err = u.repositoryManager.AuctionRepository().UpdateStatus(ctx, auction.Id, constant.AuctionStatusWaitingForSellerDecision); err != nil {
@@ -555,7 +613,7 @@ func (u *shipmentUseCase) HandleShipmentAddressDeadline(ctx context.Context, shi
 			return err
 		}
 
-		msg := "Buyer did not confirm shipping address before the deadline"
+		msg := "Bidder did not confirm shipping address before the deadline"
 		return u.repositoryManager.ProductStatusHistoryRepository().Insert(ctx, &model.ProductStatusHistory{
 			ProductId: auction.ProductId,
 			Status:    constant.ProductStatusWaitingForSellerDecision,
@@ -567,12 +625,12 @@ func (u *shipmentUseCase) HandleShipmentAddressDeadline(ctx context.Context, shi
 	}
 
 	ref := auction.Id
-	insertUserNotification(ctx, u.repositoryManager, shipment.UserId, "Address confirmation expired", "You missed the address confirmation deadline, so your payment was refunded to your balance.", "BUYER_ADDRESS_EXPIRED", &ref)
-	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Buyer address deadline missed", "Buyer did not confirm the shipping address before the deadline. You can relist or offer the auction to the next bidder.", "BUYER_ADDRESS_EXPIRED", &ref)
+	insertUserNotification(ctx, u.repositoryManager, shipment.UserId, "Address confirmation expired", "You missed the address confirmation deadline, so your payment was refunded to your balance.", "BIDDER_ADDRESS_EXPIRED", &ref)
+	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Bidder address deadline missed", "Bidder did not confirm the shipping address before the deadline. You can relist or offer the auction to the next bidder.", "BIDDER_ADDRESS_EXPIRED", &ref)
 	if payment != nil {
-		u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBuyer, notification.EventBuyerAddressExpired, auction.Id, "Address confirmation expired", "You missed the address confirmation deadline, so your payment was refunded.")
+		u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBidder, notification.EventBidderAddressExpired, auction.Id, "Address confirmation expired", "You missed the address confirmation deadline, so your payment was refunded.")
 	}
-	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventBuyerAddressExpired, auction.Id, "Buyer address deadline missed", "Buyer did not confirm the shipping address before the deadline.")
+	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventBidderAddressExpired, auction.Id, "Bidder address deadline missed", "Bidder did not confirm the shipping address before the deadline.")
 	return nil
 }
 
@@ -625,7 +683,7 @@ func (u *shipmentUseCase) HandleShipmentShipDeadline(ctx context.Context, shipme
 	ref := auction.Id
 	insertUserNotification(ctx, u.repositoryManager, shipment.UserId, "Order refunded", "Seller did not ship before the deadline, so your payment was refunded to your balance.", "SHIPMENT_REFUNDED", &ref)
 	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Shipment deadline missed", "You missed the shipping deadline for this auction.", "SHIPMENT_DEADLINE_MISSED", &ref)
-	u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBuyer, notification.EventShipmentRefunded, auction.Id, "Order refunded", "Seller did not ship before the deadline, so your payment was refunded.")
+	u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBidder, notification.EventShipmentRefunded, auction.Id, "Order refunded", "Seller did not ship before the deadline, so your payment was refunded.")
 	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventShipmentDeadlineMissed, auction.Id, "Shipment deadline missed", "You missed the shipping deadline for this auction.")
 	return nil
 }
@@ -697,9 +755,9 @@ func (u *shipmentUseCase) HandleShipmentReceiveDeadline(ctx context.Context, shi
 	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
 	ref := auction.Id
 	insertUserNotification(ctx, u.repositoryManager, shipment.UserId, "Order auto-completed", "Receipt confirmation deadline passed, so the order was completed automatically.", "SHIPMENT_AUTO_COMPLETED", &ref)
-	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Order completed", "Buyer confirmation deadline passed, so the order was completed automatically.", "SHIPMENT_AUTO_COMPLETED", &ref)
-	u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBuyer, notification.EventShipmentAutoCompleted, auction.Id, "Order auto-completed", "Receipt confirmation deadline passed, so the order was completed automatically.")
-	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventShipmentAutoCompleted, auction.Id, "Order completed", "Buyer confirmation deadline passed, so the order was completed automatically.")
+	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Order completed", "Bidder confirmation deadline passed, so the order was completed automatically.", "SHIPMENT_AUTO_COMPLETED", &ref)
+	u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBidder, notification.EventShipmentAutoCompleted, auction.Id, "Order auto-completed", "Receipt confirmation deadline passed, so the order was completed automatically.")
+	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventShipmentAutoCompleted, auction.Id, "Order completed", "Bidder confirmation deadline passed, so the order was completed automatically.")
 	return nil
 }
 
@@ -710,9 +768,9 @@ func (u *shipmentUseCase) RecoverShipmentDeadlines(ctx context.Context) error {
 	}
 	now := time.Now()
 	for _, shipment := range shipments {
-		if shipment.BuyerAddressDeadlineAt.DateTime().Time().After(now) {
+		if shipment.BidderAddressDeadlineAt.DateTime().Time().After(now) {
 			if u.taskQueue != nil {
-				if err := u.taskQueue.EnqueueShipmentAddressDue(shipment.Id, shipment.BuyerAddressDeadlineAt.DateTime().Add(shipmentDeadlineGrace()).Time()); err != nil {
+				if err := u.taskQueue.EnqueueShipmentAddressDue(shipment.Id, shipment.BidderAddressDeadlineAt.DateTime().Add(shipmentDeadlineGrace()).Time()); err != nil {
 					log.Printf("[startup] re-enqueue address deadline shipment %d failed: %v", shipment.Id, err)
 				}
 			}
@@ -793,7 +851,7 @@ func (u *shipmentUseCase) markShipmentDelivered(ctx context.Context, shipmentId 
 		return nil
 	}
 
-	receiveDeadline := util.CurrentDateTime().Add(buyerReceiveDuration())
+	receiveDeadline := util.CurrentDateTime().Add(bidderReceiveDuration())
 	updated, err := u.repositoryManager.ShipmentRepository().UpdateDelivered(ctx, shipment.Id, receiveDeadline)
 	if err != nil {
 		return err
@@ -807,9 +865,9 @@ func (u *shipmentUseCase) markShipmentDelivered(ctx context.Context, shipmentId 
 	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
 	ref := auction.Id
 	insertUserNotification(ctx, u.repositoryManager, shipment.UserId, "Package delivered", "Courier tracking says your package has been delivered. Please confirm receipt before the deadline.", "SHIPMENT_DELIVERED", &ref)
-	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Package delivered", "Courier tracking says the package has been delivered. Buyer confirmation deadline has started.", "SHIPMENT_DELIVERED", &ref)
-	u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBuyer, notification.EventShipmentDelivered, auction.Id, "Package delivered", "Courier tracking says your package has been delivered. Please confirm receipt before the deadline.")
-	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventShipmentDelivered, auction.Id, "Package delivered", "Courier tracking says the package has been delivered. Buyer confirmation deadline has started.")
+	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Package delivered", "Courier tracking says the package has been delivered. Bidder confirmation deadline has started.", "SHIPMENT_DELIVERED", &ref)
+	u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBidder, notification.EventShipmentDelivered, auction.Id, "Package delivered", "Courier tracking says your package has been delivered. Please confirm receipt before the deadline.")
+	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventShipmentDelivered, auction.Id, "Package delivered", "Courier tracking says the package has been delivered. Bidder confirmation deadline has started.")
 	return nil
 }
 

@@ -198,7 +198,7 @@ func (u *auctionUseCase) FetchOnGoingAndScheduled(ctx context.Context, request d
 
 	return auctions, total
 }
-  
+
 func (u *auctionUseCase) AdminFetch(
 	ctx context.Context,
 	request dto_request.AuctionFetchRequest,
@@ -308,11 +308,12 @@ func (u *auctionUseCase) OwnCreate(ctx context.Context, request dto_request.OwnA
 	}
 
 	// start_time must be at least 1 hour from now
-	// if request.StartTime.Time().Before(time.Now().Add(time.Hour)) {
-	// 	panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionStartTimeTooSoon))
-	// }
+	if request.StartTime.Time().Before(time.Now().Add(time.Hour)) {
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionStartTimeTooSoon))
+	}
 
 	auction := model.Auction{
+		Code:          "AUC-" + strconv.FormatInt(time.Now().UTC().UnixNano(), 10),
 		ProductId:     productId,
 		StartingPrice: request.StartingPrice,
 		StartTime:     request.StartTime,
@@ -589,6 +590,7 @@ func (u *auctionUseCase) EnqueueScheduledTasks(ctx context.Context) []int64 {
 // closeAuction contains the shared closing logic used by both the task handler
 // and any manual close paths.
 func (u *auctionUseCase) closeAuction(ctx context.Context, auction model.Auction) error {
+	var winnerUserId int64
 	err := u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
 		// Lock the active winner row (if any) to decide the closing path and
 		// prevent concurrent ticks from processing the same auction twice.
@@ -618,14 +620,19 @@ func (u *auctionUseCase) closeAuction(ctx context.Context, auction model.Auction
 			})
 		}
 
+		winningBid, err := u.repositoryManager.AuctionBidRepository().GetById(ctx, *winner.AuctionBidId)
+		if err != nil {
+			return err
+		}
+		winnerUserId = winningBid.UserId
+
 		// Has winner — move auction and product to WAITING_FOR_PAYMENT.
 		// The winner record itself was already created (and kept current) by the
 		// bid use case, so no new winner insert is needed here.
 		if _, err := u.repositoryManager.AuctionRepository().UpdateStatus(ctx, auction.Id, constant.AuctionStatusWaitingForPayment); err != nil {
 			return err
 		}
-		_, err = u.repositoryManager.ProductRepository().UpdateStatus(ctx, auction.ProductId, constant.ProductStatusWaitingForPayment)
-		return err
+		return updateProductStatusWithHistory(ctx, u.repositoryManager, auction.ProductId, constant.ProductStatusWaitingForPayment, nil)
 	})
 	if err != nil {
 		return err
@@ -640,6 +647,22 @@ func (u *auctionUseCase) closeAuction(ctx context.Context, auction model.Auction
 			AuctionId: auction.Id,
 			Title:     "Auction ended",
 			Body:      "Your auction has ended.",
+			DataPayload: map[string]string{
+				"auction_url": auctionURL(auction.Id),
+				"product_id":  strconv.FormatInt(auction.ProductId, 10),
+			},
+		})
+	}
+	if winnerUserId != 0 {
+		ref := auction.Id
+		insertUserNotification(ctx, u.repositoryManager, winnerUserId, "You won the auction", "You won this auction. Please complete the payment before the deadline.", notification.EventWinAwaitingPay, &ref)
+		publishAuctionNotification(ctx, u.notificationQueue, notification.Payload{
+			UserId:    winnerUserId,
+			Role:      notification.RoleBidder,
+			EventType: notification.EventWinAwaitingPay,
+			AuctionId: auction.Id,
+			Title:     "You won the auction",
+			Body:      "You won this auction. Please complete the payment before the deadline.",
 			DataPayload: map[string]string{
 				"auction_url": auctionURL(auction.Id),
 				"product_id":  strconv.FormatInt(auction.ProductId, 10),
@@ -733,8 +756,7 @@ func (u *auctionUseCase) OwnSecondChance(ctx context.Context, request dto_reques
 		if _, err := u.repositoryManager.AuctionRepository().UpdateStatus(ctx, auction.Id, constant.AuctionStatusWaitingForPayment); err != nil {
 			return err
 		}
-		_, err := u.repositoryManager.ProductRepository().UpdateStatus(ctx, auction.ProductId, constant.ProductStatusWaitingForPayment)
-		return err
+		return updateProductStatusWithHistory(ctx, u.repositoryManager, auction.ProductId, constant.ProductStatusWaitingForPayment, nil)
 	}))
 
 	auction.Status = constant.AuctionStatusWaitingForPayment

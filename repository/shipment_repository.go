@@ -34,12 +34,12 @@ type ShipmentRepository interface {
 	UpdateShipped(ctx context.Context, id int64, trackingNumber string, courierCode string, serviceCode string, shippingCost float64, biteshipOrderId string) (*model.Shipment, error)
 	UpdateReceived(ctx context.Context, id int64, deliveryProofImagePath string) (*model.Shipment, error)
 	UpdateAutoReceived(ctx context.Context, id int64) (*model.Shipment, error)
-	UpdateBuyerAddressFailed(ctx context.Context, id int64) (*model.Shipment, error)
+	UpdateBidderAddressFailed(ctx context.Context, id int64) (*model.Shipment, error)
 	UpdateSellerFailed(ctx context.Context, id int64) (*model.Shipment, error)
-	UpdateBuyerAddressDeadline(ctx context.Context, id int64, buyerAddressDeadlineAt data_type.DateTime) (*model.Shipment, error)
+	UpdateBidderAddressDeadline(ctx context.Context, id int64, bidderAddressDeadlineAt data_type.DateTime) (*model.Shipment, error)
 	UpdateShipDeadline(ctx context.Context, id int64, shipDeadlineAt data_type.DateTime) (*model.Shipment, error)
 	UpdateDelivered(ctx context.Context, id int64, receiveDeadlineAt data_type.DateTime) (*model.Shipment, error)
-	UpdateBuyerAddress(ctx context.Context, id int64, buyerAddressId int64, snapshot string) (*model.Shipment, error)
+	UpdateBidderAddress(ctx context.Context, id int64, bidderAddressId int64, snapshot string) (*model.Shipment, error)
 	UpdateSellerAddress(ctx context.Context, id int64, sellerAddressId int64, snapshot string) (*model.Shipment, error)
 	UpdateEstimatedCosts(ctx context.Context, id int64, estimatedCosts string) (*model.Shipment, error)
 }
@@ -166,10 +166,10 @@ func (r *shipmentRepository) FetchPendingAddressDeadline(ctx context.Context) ([
 		From(r.fromTable()).
 		Join("auction_bids ab ON ab.id = " + r.f("auction_bid_id")).
 		Join("auctions a ON a.id = ab.auction_id").
-		Where(squirrel.Eq{"a.status": constant.AuctionStatusWaitingForBuyerAddress}).
-		Where(squirrel.Expr(r.f("buyer_address_failed_at") + " IS NULL")).
-		Where(squirrel.Expr(r.f("buyer_address_deadline_at") + " IS NOT NULL")).
-		OrderBy(r.f("buyer_address_deadline_at") + " ASC")
+		Where(squirrel.Eq{"a.status": constant.AuctionStatusWaitingForBidderAddress}).
+		Where(squirrel.Expr(r.f("bidder_address_failed_at") + " IS NULL")).
+		Where(squirrel.Expr(r.f("bidder_address_deadline_at") + " IS NOT NULL")).
+		OrderBy(r.f("bidder_address_deadline_at") + " ASC")
 	return r.fetchInternal(ctx, stmt)
 }
 
@@ -265,12 +265,12 @@ func (r *shipmentRepository) UpdateAutoReceived(ctx context.Context, id int64) (
 	return r.GetById(ctx, id)
 }
 
-func (r *shipmentRepository) UpdateBuyerAddressFailed(ctx context.Context, id int64) (*model.Shipment, error) {
+func (r *shipmentRepository) UpdateBidderAddressFailed(ctx context.Context, id int64) (*model.Shipment, error) {
 	now := util.CurrentDateTime()
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
-			"buyer_address_failed_at": now,
-			"updated_at":              now,
+			"bidder_address_failed_at": now,
+			"updated_at":               now,
 		},
 		squirrel.Eq{"id": id},
 	); err != nil {
@@ -293,12 +293,12 @@ func (r *shipmentRepository) UpdateSellerFailed(ctx context.Context, id int64) (
 	return r.GetById(ctx, id)
 }
 
-func (r *shipmentRepository) UpdateBuyerAddressDeadline(ctx context.Context, id int64, buyerAddressDeadlineAt data_type.DateTime) (*model.Shipment, error) {
+func (r *shipmentRepository) UpdateBidderAddressDeadline(ctx context.Context, id int64, bidderAddressDeadlineAt data_type.DateTime) (*model.Shipment, error) {
 	now := util.CurrentDateTime()
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
-			"buyer_address_deadline_at": buyerAddressDeadlineAt,
-			"updated_at":                now,
+			"bidder_address_deadline_at": bidderAddressDeadlineAt,
+			"updated_at":                 now,
 		},
 		squirrel.Eq{"id": id},
 	); err != nil {
@@ -336,13 +336,13 @@ func (r *shipmentRepository) UpdateReceived(ctx context.Context, id int64, deliv
 	return r.GetById(ctx, id)
 }
 
-func (r *shipmentRepository) UpdateBuyerAddress(ctx context.Context, id int64, buyerAddressId int64, snapshot string) (*model.Shipment, error) {
+func (r *shipmentRepository) UpdateBidderAddress(ctx context.Context, id int64, bidderAddressId int64, snapshot string) (*model.Shipment, error) {
 	now := util.CurrentDateTime()
 	if err := update(r.db, ctx, r.tableName(),
 		map[string]interface{}{
-			"buyer_address_id":       buyerAddressId,
-			"buyer_address_snapshot": snapshot,
-			"updated_at":             now,
+			"bidder_address_id":       bidderAddressId,
+			"bidder_address_snapshot": snapshot,
+			"updated_at":              now,
 		},
 		squirrel.Eq{"id": id},
 	); err != nil {

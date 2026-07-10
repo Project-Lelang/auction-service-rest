@@ -51,7 +51,7 @@ const (
 	LanguageAuctionStartTimeTooSoon            = "AUCTION.START_TIME_TOO_SOON"
 	LanguageAuctionNotWaitingForSellerDecision = "AUCTION.NOT_WAITING_FOR_SELLER_DECISION"
 	LanguageAuctionNoNextBidder                = "AUCTION.NO_NEXT_BIDDER"
-	LanguageAuctionNotWaitingForBuyerAddress   = "AUCTION.NOT_WAITING_FOR_BUYER_ADDRESS"
+	LanguageAuctionNotWaitingForBidderAddress  = "AUCTION.NOT_WAITING_FOR_BIDDER_ADDRESS"
 	LanguageAuctionAddressNotConfirmed         = "AUCTION.ADDRESS_NOT_CONFIRMED"
 
 	// bid
@@ -80,11 +80,14 @@ const (
 	LanguageShipmentAlreadyReceived  = "SHIPMENT.ALREADY_RECEIVED"
 	LanguageShipmentNoTrackingNumber = "SHIPMENT.NO_TRACKING_NUMBER"
 	LanguageShipmentAddressLocked    = "SHIPMENT.ADDRESS_LOCKED_AFTER_SHIP"
+	LanguageShipmentCostUnavailable  = "SHIPMENT.COST_UNAVAILABLE"
+	LanguageShipmentServiceNotFound  = "SHIPMENT.SERVICE_NOT_FOUND"
 
 	// user address
 	LanguageUserAddressNotFound  = "USER_ADDRESS.NOT_FOUND"
 	LanguageUserAddressNotOwned  = "USER_ADDRESS.NOT_OWNED"
 	LanguageUserAddressIsDefault = "USER_ADDRESS.IS_DEFAULT"
+	LanguageUserAddressIndonesia = "USER_ADDRESS.INDONESIA_ONLY"
 
 	// system
 	LanguageSystemUnauthorized          = "SYSTEM.UNAUTHORIZED"

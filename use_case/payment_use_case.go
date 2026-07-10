@@ -131,7 +131,7 @@ func (u *paymentUseCase) createPaymentForWinner(
 	auction model.Auction,
 	winner model.AuctionWinner,
 	bid model.AuctionBid,
-	buyer model.User,
+	bidder model.User,
 ) (*model.Payment, error) {
 	feeAmount := calculateAuctionFee(bid.Amount)
 	amount := roundMoney(bid.Amount)
@@ -160,7 +160,7 @@ func (u *paymentUseCase) createPaymentForWinner(
 	payment := model.Payment{
 		Code:            newPaymentCode(),
 		AuctionId:       auction.Id,
-		UserId:          buyer.Id,
+		UserId:          bidder.Id,
 		PaymentMethodId: methodId,
 		Amount:          amount,
 		Status:          constant.PaymentStatusWaitingForPayment,
@@ -187,8 +187,8 @@ func (u *paymentUseCase) createPaymentForWinner(
 				},
 			},
 			CustomerDetails: infrastructure.MidtransCustomerDetails{
-				FirstName: buyer.Fullname,
-				Email:     buyer.Email,
+				FirstName: bidder.Fullname,
+				Email:     bidder.Email,
 			},
 			Expiry: &infrastructure.MidtransExpiry{
 				StartTime: time.Now().Format("2006-01-02 15:04:05 +0700"),
@@ -217,6 +217,10 @@ func (u *paymentUseCase) createPaymentForWinner(
 
 // HandleMidtransNotification processes an incoming Midtrans webhook notification.
 func (u *paymentUseCase) HandleMidtransNotification(ctx context.Context, notification infrastructure.MidtransNotification) {
+	if u.midtransClient == nil || !u.midtransClient.ValidateNotification(notification) {
+		panic(dto_response.NewUnauthorizedErrorResponse(constant.LanguageSystemUnauthorized))
+	}
+
 	payment, err := u.repositoryManager.PaymentRepository().GetByCode(ctx, notification.OrderId)
 	if err != nil {
 		// Unknown order – ignore
@@ -226,7 +230,7 @@ func (u *paymentUseCase) HandleMidtransNotification(ctx context.Context, notific
 	// Map Midtrans transaction_status to our internal action.
 	//
 	// "cancel" / "deny": the Snap session may still be usable (e.g. credit-card
-	//   deny lets the buyer retry with another method). We leave the payment as
+	//   deny lets the bidder retry with another method). We leave the payment as
 	//   WAITING_FOR_PAYMENT so a subsequent settlement notification is processed.
 	//
 	// "expire": the 24-hour window is truly over — trigger the seller-decision flow.
@@ -278,21 +282,21 @@ func (u *paymentUseCase) onPaymentCompleted(ctx context.Context, payment model.P
 		return err
 	}
 
-	if _, err := u.repositoryManager.AuctionRepository().UpdateStatus(ctx, payment.AuctionId, constant.AuctionStatusWaitingForBuyerAddress); err != nil {
+	if _, err := u.repositoryManager.AuctionRepository().UpdateStatus(ctx, payment.AuctionId, constant.AuctionStatusWaitingForBidderAddress); err != nil {
 		return err
 	}
 
-	// Resolve buyer's and seller's default addresses (best-effort, may be nil)
-	var buyerAddressId *int64
+	// Resolve bidder's and seller's default addresses (best-effort, may be nil)
+	var bidderAddressId *int64
 	var sellerAddressId *int64
-	var buyerSnapshotStr *string
+	var bidderSnapshotStr *string
 	var sellerSnapshotStr *string
 
-	buyerAddr, buyerAddrErr := u.repositoryManager.UserAddressRepository().GetDefaultByUserId(ctx, payment.UserId)
-	if buyerAddrErr == nil && buyerAddr != nil {
-		buyerAddressId = &buyerAddr.Id
-		snap := buildAddressSnapshot(buyerAddr)
-		buyerSnapshotStr = &snap
+	bidderAddr, bidderAddrErr := u.repositoryManager.UserAddressRepository().GetDefaultByUserId(ctx, payment.UserId)
+	if bidderAddrErr == nil && bidderAddr != nil {
+		bidderAddressId = &bidderAddr.Id
+		snap := buildAddressSnapshot(bidderAddr)
+		bidderSnapshotStr = &snap
 	}
 
 	// Resolve seller: look up the auction product to find the seller user_id
@@ -304,7 +308,7 @@ func (u *paymentUseCase) onPaymentCompleted(ctx context.Context, payment model.P
 	if err != nil {
 		return err
 	}
-	if _, err := u.repositoryManager.ProductRepository().UpdateStatus(ctx, auction.ProductId, constant.ProductStatusWaitingForBuyerAddress); err != nil {
+	if err := updateProductStatusWithHistory(ctx, u.repositoryManager, auction.ProductId, constant.ProductStatusWaitingForBidderAddress, nil); err != nil {
 		return err
 	}
 	sellerAddr, sellerAddrErr := u.repositoryManager.UserAddressRepository().GetDefaultByUserId(ctx, product.UserId)
@@ -318,27 +322,27 @@ func (u *paymentUseCase) onPaymentCompleted(ctx context.Context, payment model.P
 	shipment := model.Shipment{
 		AuctionBidId:          *winner.AuctionBidId,
 		UserId:                payment.UserId,
-		BuyerAddressId:        buyerAddressId,
+		BidderAddressId:       bidderAddressId,
 		SellerAddressId:       sellerAddressId,
-		BuyerAddressSnapshot:  buyerSnapshotStr,
+		BidderAddressSnapshot: bidderSnapshotStr,
 		SellerAddressSnapshot: sellerSnapshotStr,
 	}
 	if err := u.repositoryManager.ShipmentRepository().Insert(ctx, &shipment); err != nil {
 		return err
 	}
-	buyerAddressDeadline := util.CurrentDateTime().Add(time.Duration(global.GetConfig().ShipmentDeadline.BuyerAddressHours) * time.Hour)
-	updatedShipment, err := u.repositoryManager.ShipmentRepository().UpdateBuyerAddressDeadline(ctx, shipment.Id, buyerAddressDeadline)
+	bidderAddressDeadline := util.CurrentDateTime().Add(time.Duration(global.GetConfig().ShipmentDeadline.BidderAddressHours) * time.Hour)
+	updatedShipment, err := u.repositoryManager.ShipmentRepository().UpdateBidderAddressDeadline(ctx, shipment.Id, bidderAddressDeadline)
 	if err != nil {
 		return err
 	}
 	shipment = *updatedShipment
 	if u.taskQueue != nil {
-		_ = u.taskQueue.EnqueueShipmentAddressDue(shipment.Id, buyerAddressDeadline.Add(time.Duration(global.GetConfig().ShipmentDeadline.DeadlineGraceMinutes)*time.Minute).Time())
+		_ = u.taskQueue.EnqueueShipmentAddressDue(shipment.Id, bidderAddressDeadline.Add(time.Duration(global.GetConfig().ShipmentDeadline.DeadlineGraceMinutes)*time.Minute).Time())
 	}
 
 	// Best-effort: compute Biteship estimated costs and store on shipment
-	if u.biteshipClient != nil && buyerAddr != nil && sellerAddr != nil &&
-		buyerAddr.BiteshipAreaId != "" && sellerAddr.BiteshipAreaId != "" {
+	if u.biteshipClient != nil && bidderAddr != nil && sellerAddr != nil &&
+		bidderAddr.BiteshipAreaId != "" && sellerAddr.BiteshipAreaId != "" {
 		winnerBidId := *winner.AuctionBidId
 		shipmentId := shipment.Id
 		biteshipClient := u.biteshipClient
@@ -349,7 +353,7 @@ func (u *paymentUseCase) onPaymentCompleted(ctx context.Context, payment model.P
 			if err != nil {
 				return
 			}
-			estimated := computeEstimatedCosts(biteshipClient, sellerAddr.BiteshipAreaId, buyerAddr.BiteshipAreaId, product.WeightGram, int(bid.Amount))
+			estimated := computeEstimatedCosts(biteshipClient, sellerAddr.BiteshipAreaId, bidderAddr.BiteshipAreaId, product.WeightGram, int(bid.Amount))
 			if estimated != "" {
 				if _, err := repoMgr.ShipmentRepository().UpdateEstimatedCosts(bgCtx, shipmentId, estimated); err != nil {
 					log.Printf("onPaymentCompleted: UpdateEstimatedCosts: %v", err)
@@ -386,8 +390,8 @@ func (u *paymentUseCase) onPaymentExpired(ctx context.Context, payment model.Pay
 	if err != nil {
 		return err
 	}
-	_, err = u.repositoryManager.ProductRepository().UpdateStatus(ctx, auctionForProduct.ProductId, constant.ProductStatusWaitingForSellerDecision)
-	return err
+	msg := "Winner did not complete payment before the deadline"
+	return updateProductStatusWithHistory(ctx, u.repositoryManager, auctionForProduct.ProductId, constant.ProductStatusWaitingForSellerDecision, &msg)
 }
 
 // HandlePaymentExpiry is the safety-net asynq task handler.  It fires
@@ -485,7 +489,7 @@ func (u *paymentUseCase) CreateInitialPaymentForWinner(ctx context.Context, auct
 		return err
 	}
 
-	buyer, err := u.repositoryManager.UserRepository().GetById(ctx, bid.UserId)
+	bidder, err := u.repositoryManager.UserRepository().GetById(ctx, bid.UserId)
 	if err != nil {
 		return err
 	}
@@ -495,7 +499,7 @@ func (u *paymentUseCase) CreateInitialPaymentForWinner(ctx context.Context, auct
 			return err
 		}
 		winner.Status = constant.AuctionWinnerStatusWaitingForPayment
-		_, err := u.createPaymentForWinner(ctx, *auction, *winner, *bid, *buyer)
+		_, err := u.createPaymentForWinner(ctx, *auction, *winner, *bid, *bidder)
 		return err
 	})
 }

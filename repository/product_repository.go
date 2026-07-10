@@ -28,6 +28,7 @@ type ProductRepository interface {
 	Update(ctx context.Context, id int64, name string, description *string, condition string, weightGram int) (*model.Product, error)
 	UpdateImages(ctx context.Context, id int64, coverImagePath *string, imagePaths *string) (*model.Product, error)
 	UpdateStatus(ctx context.Context, id int64, status string) (*model.Product, error)
+	UpdateStatusByValidator(ctx context.Context, id int64, status string, validatorUserId int64) (*model.Product, error)
 }
 
 type productRepository struct {
@@ -196,6 +197,20 @@ func (r *productRepository) UpdateStatus(ctx context.Context, id int64, status s
 		map[string]interface{}{
 			"status":     status,
 			"updated_at": util.CurrentDateTime(),
+		},
+		squirrel.Eq{"id": id},
+	); err != nil {
+		return nil, err
+	}
+	return r.GetById(ctx, id)
+}
+
+func (r *productRepository) UpdateStatusByValidator(ctx context.Context, id int64, status string, validatorUserId int64) (*model.Product, error) {
+	if err := update(r.db, ctx, r.tableName(),
+		map[string]interface{}{
+			"status":            status,
+			"validator_user_id": validatorUserId,
+			"updated_at":        util.CurrentDateTime(),
 		},
 		squirrel.Eq{"id": id},
 	); err != nil {

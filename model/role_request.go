@@ -3,11 +3,12 @@ package model
 const RoleRequestTableName = "role_requests"
 
 type RoleRequest struct {
-	Id      int64   `db:"id" json:"id"`
-	UserId  int64   `db:"user_id" json:"user_id"`
-	Status  string  `db:"status" json:"status"`
-	Role    string  `db:"role" json:"role"`
-	Message *string `db:"message" json:"message"`
+	Id              int64   `db:"id" json:"id"`
+	UserId          int64   `db:"user_id" json:"user_id"`
+	ValidatorUserId *int64  `db:"validator_user_id" json:"validator_user_id"`
+	Status          string  `db:"status" json:"status"`
+	Role            string  `db:"role" json:"role"`
+	Message         *string `db:"message" json:"message"`
 
 	Timestamp
 
@@ -37,13 +38,14 @@ func (r *RoleRequest) TableName() string {
 
 func (r *RoleRequest) ToMap() map[string]interface{} {
 	return map[string]interface{}{
-		"id":         r.Id,
-		"user_id":    r.UserId,
-		"status":     r.Status,
-		"role":       r.Role,
-		"message":    r.Message,
-		"created_at": r.CreatedAt,
-		"updated_at": r.UpdatedAt,
+		"id":                r.Id,
+		"user_id":           r.UserId,
+		"validator_user_id": r.ValidatorUserId,
+		"status":            r.Status,
+		"role":              r.Role,
+		"message":           r.Message,
+		"created_at":        r.CreatedAt,
+		"updated_at":        r.UpdatedAt,
 	}
 }
 

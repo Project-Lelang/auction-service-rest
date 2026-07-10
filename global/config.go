@@ -76,9 +76,9 @@ type NotificationConfig struct {
 }
 
 type ShipmentDeadlineConfig struct {
-	BuyerAddressHours         int `yaml:"buyer_address_hours"`
+	BidderAddressHours        int `yaml:"bidder_address_hours"`
 	SellerShipHours           int `yaml:"seller_ship_hours"`
-	BuyerReceiveHours         int `yaml:"buyer_receive_hours"`
+	BidderReceiveHours        int `yaml:"bidder_receive_hours"`
 	TrackingCheckIntervalMins int `yaml:"tracking_check_interval_minutes"`
 	DeadlineGraceMinutes      int `yaml:"deadline_grace_minutes"`
 }
@@ -187,14 +187,14 @@ func LoadConfig() error {
 	if config.Notification.RetryBaseMs == 0 {
 		config.Notification.RetryBaseMs = 500
 	}
-	if config.ShipmentDeadline.BuyerAddressHours == 0 {
-		config.ShipmentDeadline.BuyerAddressHours = 24
+	if config.ShipmentDeadline.BidderAddressHours == 0 {
+		config.ShipmentDeadline.BidderAddressHours = 24
 	}
 	if config.ShipmentDeadline.SellerShipHours == 0 {
 		config.ShipmentDeadline.SellerShipHours = 72
 	}
-	if config.ShipmentDeadline.BuyerReceiveHours == 0 {
-		config.ShipmentDeadline.BuyerReceiveHours = 168
+	if config.ShipmentDeadline.BidderReceiveHours == 0 {
+		config.ShipmentDeadline.BidderReceiveHours = 168
 	}
 	if config.ShipmentDeadline.TrackingCheckIntervalMins == 0 {
 		config.ShipmentDeadline.TrackingCheckIntervalMins = 60

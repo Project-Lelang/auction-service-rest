@@ -213,12 +213,13 @@ func (u *roleRequestUseCase) AdminFetchLogsByUserId(ctx context.Context, userId 
 
 // Approve digunakan oleh Admin untuk menerima permintaan role dan meng-inject role baru ke user terkait
 func (u *roleRequestUseCase) Approve(ctx context.Context, id int64) {
+	admin := model.MustGetUserCtx(ctx)
 	req, err := u.repositoryManager.RoleRequestRepository().GetById(ctx, id)
 	panicIfErr(err)
 
 	panicIfErr(u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
 		// 1. Perbarui status entitas utama menjadi APPROVED
-		if err := u.repositoryManager.RoleRequestRepository().UpdateStatus(ctx, id, "APPROVED", nil); err != nil {
+		if err := u.repositoryManager.RoleRequestRepository().UpdateStatus(ctx, id, "APPROVED", nil, &admin.UserId); err != nil {
 			return err
 		}
 
@@ -233,10 +234,11 @@ func (u *roleRequestUseCase) Approve(ctx context.Context, id int64) {
 
 // Reject digunakan oleh Admin untuk menolak permintaan dengan menyertakan alasan wajib
 func (u *roleRequestUseCase) Reject(ctx context.Context, id int64, req dto_request.RoleRequestRejectRequest) {
+	admin := model.MustGetUserCtx(ctx)
 	roleRequest, err := u.repositoryManager.RoleRequestRepository().GetById(ctx, id)
 	panicIfRepositoryError(err, constant.LanguageRoleRequestNotFound)
 
-	panicIfErr(u.repositoryManager.RoleRequestRepository().UpdateStatus(ctx, id, constant.RoleRequestStatusRejected, &req.Message))
+	panicIfErr(u.repositoryManager.RoleRequestRepository().UpdateStatus(ctx, id, constant.RoleRequestStatusRejected, &req.Message, &admin.UserId))
 
 	insertUserNotification(
 		ctx,

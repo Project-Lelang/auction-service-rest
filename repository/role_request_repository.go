@@ -23,7 +23,7 @@ type RoleRequestRepository interface {
 	Count(ctx context.Context, options ...model.RoleRequestQueryOption) (int64, error)
 
 	// Update
-	UpdateStatus(ctx context.Context, id int64, status string, message *string) error
+	UpdateStatus(ctx context.Context, id int64, status string, message *string, validatorUserId *int64) error
 	UpdateStatusUser(ctx context.Context, rr *model.RoleRequest) error
 }
 
@@ -192,7 +192,7 @@ func (r *roleRequestRepository) Count(ctx context.Context, options ...model.Role
 
 // ------------------------------------------------------------------ update
 
-func (r *roleRequestRepository) UpdateStatus(ctx context.Context, id int64, status string, message *string) error {
+func (r *roleRequestRepository) UpdateStatus(ctx context.Context, id int64, status string, message *string, validatorUserId *int64) error {
 	payload := map[string]interface{}{
 		"status":     status,
 		"updated_at": util.CurrentDateTime(),
@@ -200,6 +200,9 @@ func (r *roleRequestRepository) UpdateStatus(ctx context.Context, id int64, stat
 
 	if message != nil {
 		payload["message"] = *message
+	}
+	if validatorUserId != nil {
+		payload["validator_user_id"] = *validatorUserId
 	}
 
 	return update(

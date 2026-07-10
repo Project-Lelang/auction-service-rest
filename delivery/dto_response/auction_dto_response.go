@@ -11,6 +11,7 @@ import (
 // AuctionResponse represents a single auction in API responses.
 type AuctionResponse struct {
 	Id            int64                  `json:"id"             example:"1"`
+	Code          string                 `json:"code"           example:"AUC-20260710-000001"`
 	ProductId     int64                  `json:"product_id"     example:"2"`
 	StartingPrice float64                `json:"starting_price" example:"100000"`
 	StartTime     data_type.DateTime     `json:"start_time"`
@@ -27,6 +28,7 @@ type AuctionResponse struct {
 func NewAuctionResponse(ctx context.Context, a model.Auction) AuctionResponse {
 	r := AuctionResponse{
 		Id:            a.Id,
+		Code:          a.Code,
 		ProductId:     a.ProductId,
 		StartingPrice: a.StartingPrice,
 		StartTime:     a.StartTime,
