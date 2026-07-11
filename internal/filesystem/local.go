@@ -113,11 +113,14 @@ func (l *localClient) Stream(ctx context.Context, path string) (ReadCloserWithCo
 }
 
 func (l *localClient) Url(path string) string {
+	fmt.Println("BASEURL =", l.config.BaseUrl)
 	return fmt.Sprintf("%s/%s", l.config.BaseUrl, ParsePathTrim(path))
 }
 
 // PresignedUrl generates an HMAC-signed time-limited URL for local file serving.
 func (l *localClient) PresignedUrl(filename string, path string, expiry time.Duration) string {
+	fmt.Println("PATH =", path)
+	fmt.Println("URL  =", l.Url(path))
 	expires := time.Now().Add(expiry).Unix()
 	data := fmt.Sprintf("%s:%d", filename, expires)
 

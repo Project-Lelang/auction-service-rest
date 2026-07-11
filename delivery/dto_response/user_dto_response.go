@@ -11,6 +11,8 @@ import (
 type UserResponse struct {
 	Id         int64              `json:"id"          example:"1"`
 	Fullname   string             `json:"fullname"    example:"John Doe"`
+	Email      string             `json:"email"    example:"user@example.com"`
+	Nik        string             `json:"nik"     example:"3201010101010001"`
 	IsVerified bool               `json:"is_verified" example:"false"`
 	Roles      []UserRoleResponse `json:"roles"`
 } // @name UserResponse
@@ -53,6 +55,8 @@ func NewUserResponse(_ context.Context, u model.User) UserResponse {
 		Id:         u.Id,
 		Fullname:   u.Fullname,
 		IsVerified: u.IsVerified,
+		Email:      u.Email,
+		Nik:        *u.Nik,
 	}
 
 	for _, role := range u.Roles {
