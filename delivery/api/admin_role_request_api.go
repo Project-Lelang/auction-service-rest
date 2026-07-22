@@ -1,3 +1,5 @@
+// package api/admin_role_request_api.go
+
 package api
 
 import (
@@ -30,8 +32,8 @@ func RegisterAdminRoleRequestApi(router gin.IRouter, baseApi *api, useCaseManage
 
 	userRequestGroup := router.Group("/admin/users/:userId")
 	{
-		// userRequestGroup.GET("/roles", api.GetUserRoles())
 		userRequestGroup.GET("/role-requests", api.GetUserRoleRequests())
+		userRequestGroup.GET("/role-requests/logs", api.GetUserRoleRequestLogs()) // NEW: logs dengan validator
 		userRequestGroup.PATCH("/role-requests/:requestId/approve", api.ApproveRoleRequest())
 		userRequestGroup.PATCH("/role-requests/:requestId/reject", api.RejectRoleRequest())
 	}
@@ -50,11 +52,9 @@ func RegisterAdminRoleRequestApi(router gin.IRouter, baseApi *api, useCaseManage
 //	@Success	200	{object}	dto_response.Response
 func (a *AdminRoleRequestApi) ListRoleRequests() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
-
 		role := ctx.getParam("role")
 
 		var request dto_request.RoleRequestFetchRequest
-
 		ctx.mustBind(&request)
 
 		request.Role = &role
@@ -74,31 +74,6 @@ func (a *AdminRoleRequestApi) ListRoleRequests() gin.HandlerFunc {
 	})
 }
 
-// GetUserRoles godoc
-//
-//	@Router		/admin/users/{userId}/roles [get]
-//	@Summary	Admin — Get active roles of a user
-//	@tags		Admin Role Requests
-//	@Security	BearerAuth
-//	@Param		userId	path	int	true	"User ID"
-//	@Produce	json
-//	@Success	200	{object}	dto_response.Response
-// func (a *AdminRoleRequestApi) GetUserRoles() gin.HandlerFunc {
-// 	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
-// 		userId := ctx.mustGetParamInt64("userId")
-
-// 		// Panggil kembali userUseCase bawaan
-// 		user := a.userUseCase.AdminGet(ctx.context(), userId)
-
-// 		ctx.json(http.StatusOK, dto_response.Response{
-// 			Data: dto_response.DataResponse{
-// 				// Biasanya temanmu menggunakan field "Roles" (dengan R kapital) di struct-nya
-// 				"roles": user.Roles,
-// 			},
-// 		})
-// 	})
-// }
-
 // GetUserRoleRequests godoc
 //
 //	@Router		/admin/users/{userId}/role-requests [get]
@@ -116,6 +91,30 @@ func (a *AdminRoleRequestApi) GetUserRoleRequests() gin.HandlerFunc {
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
 				"role_requests": data,
+			},
+		})
+	})
+}
+
+// GetUserRoleRequestLogs godoc
+//
+//	@Router		/admin/users/{userId}/role-requests/logs [get]
+//	@Summary	Admin — Get role request logs with validator details
+//	@tags		Admin Role Requests
+//	@Security	BearerAuth
+//	@Param		userId	path	int	true	"User ID"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response
+func (a *AdminRoleRequestApi) GetUserRoleRequestLogs() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleAdmin}, func(ctx apiContext) {
+		userId := ctx.mustGetParamInt64("userId")
+
+		data := a.roleRequestUseCase.AdminFetchLogsByUserId(ctx.context(), userId)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"role_requests": data,
+				"total":         len(data),
 			},
 		})
 	})

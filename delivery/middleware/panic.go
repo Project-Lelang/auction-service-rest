@@ -74,6 +74,10 @@ func PanicHandler(router gin.IRouter, loggerStack infrastructure.LoggerStack) {
 				if debugStackResponse == nil {
 					debugStackResponse = dto_response.NewInternalServerErrorResponseP()
 				}
+				localizer, _ := ctx.MustGet("i18n").(*internalI18n.Localizer)
+				if localizer != nil {
+					debugStackResponse.Message = localizer.MustTranslate(debugStackResponse.Message)
+				}
 				ctx.AbortWithStatusJSON(debugStackResponse.Code, debugStackResponse)
 			}
 		}()

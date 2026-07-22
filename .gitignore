@@ -53,3 +53,11 @@ conf.yml
 
 /docs/swagger.json
 /docs/swagger.yaml
+
+build.sh
+prod-compose.yaml
+upload-sdk.sh
+upload-translation.local.sh
+/storage/firebase-adminsdk.json
+/storage/tmp
+/storage/public

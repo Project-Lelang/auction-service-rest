@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	RoleBuyer  = "buyer"
+	RoleBidder = "bidder"
 	RoleSeller = "seller"
 
 	EventOutbid                 = "OUTBID"
@@ -15,19 +15,24 @@ const (
 	EventAuctionEnd             = "AUCTION_END"
 	EventAuctionUnpaid          = "AUCTION_UNPAID"
 	EventAuctionStart           = "AUCTION_START"
-	EventBuyerAddressExpired    = "BUYER_ADDRESS_EXPIRED"
+	EventBidderAddressConfirmed = "BIDDER_ADDRESS_CONFIRMED"
+	EventBidderAddressExpired   = "BIDDER_ADDRESS_EXPIRED"
+	EventShipmentShipped        = "SHIPMENT_SHIPPED"
 	EventShipmentDelivered      = "SHIPMENT_DELIVERED"
+	EventShipmentCompleted      = "SHIPMENT_COMPLETED"
 	EventShipmentRefunded       = "SHIPMENT_REFUNDED"
 	EventShipmentAutoCompleted  = "SHIPMENT_AUTO_COMPLETED"
 	EventShipmentDeadlineMissed = "SHIPMENT_DEADLINE_MISSED"
 )
 
 var eventsByRole = map[string]map[string]struct{}{
-	RoleBuyer: {
+	RoleBidder: {
 		EventOutbid:                {},
 		EventWinAwaitingPay:        {},
-		EventBuyerAddressExpired:   {},
+		EventBidderAddressExpired:  {},
+		EventShipmentShipped:       {},
 		EventShipmentDelivered:     {},
+		EventShipmentCompleted:     {},
 		EventShipmentRefunded:      {},
 		EventShipmentAutoCompleted: {},
 	},
@@ -35,8 +40,10 @@ var eventsByRole = map[string]map[string]struct{}{
 		EventAuctionEnd:             {},
 		EventAuctionUnpaid:          {},
 		EventAuctionStart:           {},
-		EventBuyerAddressExpired:    {},
+		EventBidderAddressConfirmed: {},
+		EventBidderAddressExpired:   {},
 		EventShipmentDelivered:      {},
+		EventShipmentCompleted:      {},
 		EventShipmentAutoCompleted:  {},
 		EventShipmentDeadlineMissed: {},
 	},
@@ -53,6 +60,7 @@ type Payload struct {
 	DataPayload map[string]string `json:"data_payload"`
 	Timestamp   time.Time         `json:"timestamp"`
 	Attempt     int               `json:"attempt,omitempty"`
+	Persisted   bool              `json:"persisted,omitempty"`
 }
 
 func (p Payload) Validate() error {

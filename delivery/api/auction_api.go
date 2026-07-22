@@ -52,7 +52,7 @@ func (a *AuctionApi) FetchAuctions() gin.HandlerFunc {
 // FetchOnGoingAuctions godoc
 //
 //	@Router		/auctions/on-going/filter [post]
-//	@Summary	List ongoing auctions (paginated, public)
+//	@Summary	List ongoing and scheduled auctions (paginated, public)
 //	@tags		Auction
 //	@Accept		json
 //	@Param		body	body	dto_request.AuctionFetchRequest	true	"Body Request"
@@ -63,10 +63,7 @@ func (a *AuctionApi) FetchOnGoingAuctions() gin.HandlerFunc {
 		var request dto_request.AuctionFetchRequest
 		ctx.mustBind(&request)
 
-		status := constant.AuctionStatusOnGoing
-		request.Status = &status
-
-		auctions, total := a.auctionUseCase.Fetch(ctx.context(), request)
+		auctions, total := a.auctionUseCase.FetchOnGoingAndScheduled(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.NewPaginationResponse(
@@ -109,8 +106,7 @@ func (a *AuctionApi) GetAuction() gin.HandlerFunc {
 //	@tags		Auction
 //	@Security	BearerAuth
 //	@Accept		json
-//	@Param		auctionId	path	int									true	"Auction ID"
-//	@Param		body		body	dto_request.AuctionBidCreateRequest	true	"Body Request"
+//	@Param		body	body	dto_request.AuctionBidCreateRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	201	{object}	dto_response.Response{data=dto_response.DataResponse{bid=dto_response.AuctionBidResponse}}
 func (a *AuctionApi) PlaceBid() gin.HandlerFunc {
@@ -125,6 +121,36 @@ func (a *AuctionApi) PlaceBid() gin.HandlerFunc {
 			Data: dto_response.DataResponse{
 				"bid": dto_response.NewAuctionBidResponse(ctx.context(), bid),
 			},
+		})
+	})
+}
+
+// FetchBids godoc
+//
+//	@Router		/auctions/{auctionId}/bids/filter [post]
+//	@Summary	List bids for an auction (authenticated users)
+//	@tags		Auction
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		auctionId	path	int									true	"Auction ID"
+//	@Param		body		body	dto_request.AuctionBidFetchRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.AuctionBidResponse}}
+func (a *AuctionApi) FetchBids() gin.HandlerFunc {
+	return a.Authorize(func(ctx apiContext) {
+		var request dto_request.AuctionBidFetchRequest
+		ctx.mustBind(&request)
+		request.AuctionId = ctx.mustGetParamInt64("auctionId")
+
+		bids, total := a.bidUseCase.FetchAuctionBids(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.NewPaginationResponse(
+				util.ConvertArray(ctx.context(), bids, dto_response.NewAuctionBidResponse),
+				int(total),
+				request.Page,
+				request.Limit,
+			),
 		})
 	})
 }
@@ -320,10 +346,10 @@ func (a *AuctionApi) Ship() gin.HandlerFunc {
 	})
 }
 
-// UpdateBuyerAddress godoc
+// UpdateBidderAddress godoc
 //
-//	@Router		/auctions/{auctionId}/shipments/{shipmentId}/buyer-address [patch]
-//	@Summary	Update buyer shipping address (BIDDER only, before shipped)
+//	@Router		/auctions/{auctionId}/shipments/{shipmentId}/bidder-address [patch]
+//	@Summary	Update bidder shipping address (BIDDER only, before shipped)
 //	@tags		Auction
 //	@Security	BearerAuth
 //	@Accept		json
@@ -332,14 +358,14 @@ func (a *AuctionApi) Ship() gin.HandlerFunc {
 //	@Param		body		body	dto_request.AuctionShipmentUpdateAddressRequest	true	"Body Request"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{shipment=dto_response.ShipmentResponse}}
-func (a *AuctionApi) UpdateBuyerAddress() gin.HandlerFunc {
+func (a *AuctionApi) UpdateBidderAddress() gin.HandlerFunc {
 	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
 		var request dto_request.AuctionShipmentUpdateAddressRequest
 		ctx.mustBind(&request)
 		request.AuctionId = ctx.mustGetParamInt64("auctionId")
 		request.ShipmentId = ctx.mustGetParamInt64("shipmentId")
 
-		shipment := a.shipmentUseCase.UpdateBuyerAddress(ctx.context(), request)
+		shipment := a.shipmentUseCase.UpdateBidderAddress(ctx.context(), request)
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
@@ -381,7 +407,7 @@ func (a *AuctionApi) UpdateSellerAddress() gin.HandlerFunc {
 // GetTracking godoc
 //
 //	@Router		/auctions/{auctionId}/shipments/{shipmentId}/tracking [get]
-//	@Summary	Get live tracking info via Komship (BUYER/SELLER only)
+//	@Summary	Get live tracking info via Komship (BIDDER/SELLER only)
 //	@tags		Auction
 //	@Security	BearerAuth
 //	@Param		auctionId	path	int	true	"Auction ID"
@@ -438,6 +464,7 @@ func (a *AuctionApi) Receive() gin.HandlerFunc {
 //	@Summary	Webhook endpoint for Midtrans payment notifications
 //	@tags		Auction
 //	@Accept		json
+//	@Param		body	body	infrastructure.MidtransNotification	true	"Midtrans notification payload"
 //	@Produce	json
 //	@Success	200	{object}	dto_response.Response{data=dto_response.SuccessResponse}
 func (a *AuctionApi) HandlePaymentNotification() gin.HandlerFunc {
@@ -467,6 +494,7 @@ func RegisterAuctionApi(router gin.IRouter, baseApi *api, useCaseManager use_cas
 	auctionsGroup.POST("/filter", a.FetchAuctions())
 	auctionsGroup.POST("/on-going/filter", a.FetchOnGoingAuctions())
 	auctionsGroup.GET("/:auctionId", a.GetAuction())
+	auctionsGroup.POST("/:auctionId/bids/filter", a.FetchBids())
 	auctionsGroup.POST("/:auctionId/bids", a.PlaceBid())
 	auctionsGroup.POST("/:auctionId/bids/no-locking", a.PlaceBidNoLocking())
 	auctionsGroup.POST("/:auctionId/winners/filter", a.FetchWinners())
@@ -476,7 +504,7 @@ func RegisterAuctionApi(router gin.IRouter, baseApi *api, useCaseManager use_cas
 	auctionsGroup.GET("/:auctionId/shipments/:shipmentId", a.GetShipment())
 	auctionsGroup.POST("/:auctionId/shipments/:shipmentId/ship", a.Ship())
 	auctionsGroup.POST("/:auctionId/shipments/:shipmentId/receive", a.Receive())
-	auctionsGroup.PATCH("/:auctionId/shipments/:shipmentId/buyer-address", a.UpdateBuyerAddress())
+	auctionsGroup.PATCH("/:auctionId/shipments/:shipmentId/bidder-address", a.UpdateBidderAddress())
 	auctionsGroup.PATCH("/:auctionId/shipments/:shipmentId/seller-address", a.UpdateSellerAddress())
 	auctionsGroup.GET("/:auctionId/shipments/:shipmentId/tracking", a.GetTracking())
 

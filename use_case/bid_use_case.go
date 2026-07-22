@@ -17,10 +17,82 @@ import (
 
 // BidUseCase covers bid operations for the own (bidder) scope.
 type BidUseCase interface {
+	FetchByAuction(ctx context.Context, request dto_request.AuctionBidFetchRequest) ([]model.AuctionBid, int64)
+	FetchAuctionBids(ctx context.Context, request dto_request.AuctionBidFetchRequest) ([]model.AuctionBid, int64)
 	OwnFetch(ctx context.Context, request dto_request.OwnBidFetchRequest) ([]model.AuctionBid, int64)
 	OwnGet(ctx context.Context, request dto_request.OwnBidGetRequest) model.AuctionBid
 	PlaceBid(ctx context.Context, request dto_request.AuctionBidCreateRequest) model.AuctionBid
 	PlaceBidNoLocking(ctx context.Context, request dto_request.AuctionBidCreateRequest) model.AuctionBid
+}
+
+func (u *bidUseCase) FetchByAuction(ctx context.Context, request dto_request.AuctionBidFetchRequest) ([]model.AuctionBid, int64) {
+	userClaims := model.MustGetUserCtx(ctx)
+
+	auction := mustGetAuction(ctx, u.repositoryManager, request.AuctionId)
+	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
+	if product.UserId != userClaims.UserId && !userClaims.HasRole(constant.RoleSuperAdmin) {
+		panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
+	}
+
+	option := model.AuctionBidQueryOption{
+		QueryOption: model.NewQueryOptionWithPagination(
+			request.Page,
+			request.Limit,
+			model.Sorts(request.Sorts),
+		),
+		AuctionId: util.Pointer(request.AuctionId),
+	}
+
+	total, err := u.repositoryManager.AuctionBidRepository().Count(ctx, option)
+	panicIfErr(err)
+
+	bids, err := u.repositoryManager.AuctionBidRepository().Fetch(ctx, option)
+	panicIfErr(err)
+
+	userIds := make([]int64, 0, len(bids))
+	for i := range bids {
+		userIds = append(userIds, bids[i].UserId)
+	}
+	if len(userIds) > 0 {
+		users, err := u.repositoryManager.UserRepository().FetchByIds(ctx, userIds)
+		panicIfErr(err)
+
+		usersById := make(map[int64]model.User, len(users))
+		for i := range users {
+			usersById[users[i].Id] = users[i]
+		}
+		for i := range bids {
+			if user, ok := usersById[bids[i].UserId]; ok {
+				bids[i].User = util.Pointer(user)
+			}
+		}
+	}
+
+	return bids, total
+}
+
+// FetchAuctionBids lists bids for an auction without restricting access to the
+// auction owner. Authentication remains enforced by the API handler.
+func (u *bidUseCase) FetchAuctionBids(ctx context.Context, request dto_request.AuctionBidFetchRequest) ([]model.AuctionBid, int64) {
+	// Validate that the requested auction exists before querying its bids.
+	mustGetAuction(ctx, u.repositoryManager, request.AuctionId)
+
+	option := model.AuctionBidQueryOption{
+		QueryOption: model.NewQueryOptionWithPagination(
+			request.Page,
+			request.Limit,
+			model.Sorts(request.Sorts),
+		),
+		AuctionId: util.Pointer(request.AuctionId),
+	}
+
+	total, err := u.repositoryManager.AuctionBidRepository().Count(ctx, option)
+	panicIfErr(err)
+
+	bids, err := u.repositoryManager.AuctionBidRepository().Fetch(ctx, option)
+	panicIfErr(err)
+
+	return bids, total
 }
 
 type bidUseCase struct {
@@ -218,7 +290,7 @@ func (u *bidUseCase) PlaceBid(ctx context.Context, request dto_request.AuctionBi
 	if outbidUserId != 0 {
 		publishAuctionNotification(ctx, u.notificationQueue, notification.Payload{
 			UserId:    outbidUserId,
-			Role:      notification.RoleBuyer,
+			Role:      notification.RoleBidder,
 			EventType: notification.EventOutbid,
 			AuctionId: auction.Id,
 			Title:     "Outbid!",
@@ -300,7 +372,7 @@ func (u *bidUseCase) PlaceBidNoLocking(ctx context.Context, request dto_request.
 	if outbidUserId != 0 {
 		publishAuctionNotification(ctx, u.notificationQueue, notification.Payload{
 			UserId:    outbidUserId,
-			Role:      notification.RoleBuyer,
+			Role:      notification.RoleBidder,
 			EventType: notification.EventOutbid,
 			AuctionId: auction.Id,
 			Title:     "Outbid!",

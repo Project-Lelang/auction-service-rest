@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS user_addresses (
     address        TEXT         NOT NULL,
     postal_code    VARCHAR(10)  NOT NULL,
     biteship_area_id VARCHAR(100) NOT NULL DEFAULT '',
+    latitude       DECIMAL(10,7) NULL,
+    longitude      DECIMAL(10,7) NULL,
     is_default     TINYINT(1)   NOT NULL DEFAULT 0,
     created_at     DATETIME     NOT NULL,
     updated_at     DATETIME     NOT NULL,

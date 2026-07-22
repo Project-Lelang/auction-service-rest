@@ -91,7 +91,7 @@ func (w *NotificationWorker) worker(ctx context.Context, workerId int) {
 			if !ok {
 				return
 			}
-			if err := w.process(ctx, payload); err != nil {
+			if err := w.process(ctx, &payload); err != nil {
 				w.handleFailure(ctx, payload, err)
 			} else {
 				w.logf(
@@ -106,9 +106,16 @@ func (w *NotificationWorker) worker(ctx context.Context, workerId int) {
 	}
 }
 
-func (w *NotificationWorker) process(ctx context.Context, payload notification.Payload) error {
+func (w *NotificationWorker) process(ctx context.Context, payload *notification.Payload) error {
 	if err := payload.Validate(); err != nil {
 		return err
+	}
+
+	if !payload.Persisted {
+		if err := w.persistNotification(ctx, *payload); err != nil {
+			return err
+		}
+		payload.Persisted = true
 	}
 
 	tokens, err := w.repositoryManager.UserFcmTokenRepository().FetchByUserIds(ctx, []int64{payload.UserId})
@@ -121,7 +128,7 @@ func (w *NotificationWorker) process(ctx context.Context, payload notification.P
 		fcmTokens = append(fcmTokens, token.FcmToken)
 	}
 
-	result, err := w.pushClient.SendMulticast(ctx, fcmTokens, payload)
+	result, err := w.pushClient.SendMulticast(ctx, fcmTokens, *payload)
 	if err != nil {
 		return err
 	}
@@ -169,6 +176,10 @@ func (w *NotificationWorker) process(ctx context.Context, payload notification.P
 		return transientErr
 	}
 
+	return nil
+}
+
+func (w *NotificationWorker) persistNotification(ctx context.Context, payload notification.Payload) error {
 	referenceId := payload.AuctionId
 	return w.repositoryManager.NotifcationRepository().Insert(ctx, &model.Notification{
 		UserId:      payload.UserId,

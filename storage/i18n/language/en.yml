@@ -22,11 +22,81 @@ USER.ROLE_ALREADY_EXIST: "User role already exists"
 # product
 PRODUCT.NOT_FOUND: "Product not found"
 PRODUCT.INVALID_STATUS_TRANSITION: "Invalid product status transition"
+PRODUCT.NOT_OWNED: "The product does not belong to the specified user"
+
+# role request
+ROLE_REQUEST.ALREADY_HAVE_ROLE: "You already have this role"
+ROLE_REQUEST.PENDING_EXISTS: "A pending request for this role already exists"
+ROLE_REQUEST.PREREQUISITE_NOT_MET: "The prerequisite role must be approved first"
+ROLE_REQUEST.MISSING_BIDDER_INFO: "Bidder identity information is incomplete"
+ROLE_REQUEST.MISSING_SELLER_INFO: "Seller bank account information is incomplete"
+ROLE_REQUEST.NOT_FOUND: "Role request not found"
+
+# withdrawal request
+WITHDRAWAL_REQUEST.INSUFFICIENT_BALANCE: "Insufficient balance for this withdrawal"
+WITHDRAWAL_REQUEST.NO_BANK_ACCOUNT: "Add a bank account before requesting a withdrawal"
+WITHDRAWAL_REQUEST.NOT_FOUND: "Withdrawal request not found"
+WITHDRAWAL_REQUEST.NOT_OWNED: "The withdrawal request does not belong to this user"
+WITHDRAWAL_REQUEST.ALREADY_COMPLETED: "The withdrawal request has already been completed"
+
+# auction
+AUCTION.NOT_FOUND: "Auction not found"
+AUCTION.PRODUCT_NOT_VERIFIED: "Only verified products can be auctioned"
+AUCTION.PRODUCT_ALREADY_SCHEDULED: "This product already has a scheduled auction"
+AUCTION.NOT_SCHEDULED: "Only scheduled auctions can be updated"
+AUCTION.INVALID_TIME_RANGE: "The auction end time must be later than its start time"
+AUCTION.START_TIME_TOO_SOON: "The auction start time is too soon"
+AUCTION.NOT_WAITING_FOR_SELLER_DECISION: "This auction is not waiting for a seller decision"
+AUCTION.NO_NEXT_BIDDER: "No eligible next bidder was found"
+AUCTION.NOT_WAITING_FOR_BIDDER_ADDRESS: "This auction is not waiting for the bidder's address"
+AUCTION.ADDRESS_NOT_CONFIRMED: "The shipping addresses have not been confirmed"
+
+# bid
+BID.NOT_FOUND: "Bid not found"
+BID.AUCTION_NOT_ON_GOING: "Bids can only be placed while the auction is ongoing"
+BID.AMOUNT_TOO_LOW: "Bid amount must be higher than the current highest bid"
+BID.CANNOT_BID_OWN_AUCTION: "You cannot bid on your own auction"
+
+# winner
+WINNER.NOT_FOUND: "Auction winner not found"
+
+# payment
+PAYMENT.NOT_FOUND: "Payment not found"
+
+# payment method
+PAYMENT_METHOD.NOT_FOUND: "Payment method not found"
+PAYMENT_METHOD.CODE_ALREADY_USED: "Payment method code is already in use"
+
+# notification
+NOTIFICATION.NOT_FOUND: "Notification not found"
+
+# shipment
+SHIPMENT.NOT_FOUND: "Shipment not found"
+SHIPMENT.ALREADY_SHIPPED: "The order has already been shipped"
+SHIPMENT.NOT_SHIPPED_YET: "The order has not been shipped yet"
+SHIPMENT.ALREADY_RECEIVED: "The order has already been received"
+SHIPMENT.NO_TRACKING_NUMBER: "No tracking number is available for this shipment"
+SHIPMENT.ADDRESS_LOCKED_AFTER_SHIP: "The shipping address cannot be changed after shipment"
+SHIPMENT.COST_UNAVAILABLE: "Shipping cost is not available for the selected addresses"
+SHIPMENT.SERVICE_NOT_FOUND: "Selected shipping service is not available for this shipment"
+
+# user address
+USER_ADDRESS.NOT_FOUND: "Address not found"
+USER_ADDRESS.NOT_OWNED: "You do not have access to this address"
+USER_ADDRESS.IS_DEFAULT: "The default address cannot be deleted. Set another address as default first"
+USER_ADDRESS.INDONESIA_ONLY: "Address must be located in Indonesia"
 
 # system
-SYSTEM.UNAUTHORIZED: "Unauthorized"
-SYSTEM.FORBIDDEN: "Forbidden"
+SYSTEM.UNAUTHORIZED: "You must sign in to access this resource"
+SYSTEM.FORBIDDEN: "You do not have permission to access this resource"
 SYSTEM.INVALID_REQUEST_PAYLOAD: "Invalid request payload"
 SYSTEM.INTERNAL_SERVER_ERROR: "Internal server error"
 SYSTEM.NOT_FOUND: "Not found"
 SYSTEM.MUST_BE_A_VALID_UUID: "%s must be a valid UUID"
+
+# file
+FILE.EXTENSION_IS_NOT_SUPPORTED: "This file type is not supported"
+FILE.SIZE_IS_0B: "The file is empty"
+FILE.FILE_NOT_EXIST: "File not found"
+FILE.SOME_FILE_NOT_EXIST: "One or more files were not found"
+FILE.MAXIMUM_FILE_SIZE_IS_X_MB: "The maximum file size is %s MB"

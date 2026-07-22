@@ -124,10 +124,39 @@ func (i *infrastructureManager) MigrateDB(isRollingBack bool, steps int, force *
 }
 
 func (i *infrastructureManager) RefreshDB() error {
-	if err := i.MigrateDB(true, 0, nil); err != nil && err != migrate.ErrNoChange {
+	// Fresh migration intentionally discards the entire schema. Do not execute
+	// every down migration here: historical down migrations may be unable to
+	// represent current data (for example, converting email values back into a
+	// short phone column) and can fail before the schema is cleared.
+	m, err := migrate.New("file://./migration", i.migrationDSN())
+	if err != nil {
 		return err
 	}
-	return i.MigrateDB(false, 0, nil)
+	if err = m.Drop(); err != nil && err != migrate.ErrNoChange {
+		_, _ = m.Close()
+		return err
+	}
+	if sourceErr, databaseErr := m.Close(); sourceErr != nil {
+		return sourceErr
+	} else if databaseErr != nil {
+		return databaseErr
+	}
+
+	if err := i.MigrateDB(false, 0, nil); err != nil {
+		return err
+	}
+
+	// A fresh database reuses numeric IDs from the beginning. Every existing
+	// Redis task and notification may therefore point at an unrelated new row,
+	// and fixed Asynq task IDs would conflict with newly scheduled work.
+	if err := i.taskQueueClient.Reset(); err != nil {
+		return fmt.Errorf("reset task queue after fresh migration: %w", err)
+	}
+	if err := i.notificationQueue.Reset(context.Background()); err != nil {
+		return fmt.Errorf("reset notification queue after fresh migration: %w", err)
+	}
+
+	return nil
 }
 
 func (i *infrastructureManager) CloseDB() error {

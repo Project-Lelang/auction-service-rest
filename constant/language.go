@@ -25,6 +25,7 @@ const (
 	// product
 	LanguageProductNotFound                = "PRODUCT.NOT_FOUND"
 	LanguageProductInvalidStatusTransition = "PRODUCT.INVALID_STATUS_TRANSITION"
+	LanguageProductNotOwned                = "PRODUCT.NOT_OWNED"
 
 	// role request
 	LanguageRoleRequestAlreadyHaveRole    = "ROLE_REQUEST.ALREADY_HAVE_ROLE"
@@ -38,16 +39,19 @@ const (
 	LanguageWithdrawalRequestInsufficientBalance = "WITHDRAWAL_REQUEST.INSUFFICIENT_BALANCE"
 	LanguageWithdrawalRequestNoBankAccount       = "WITHDRAWAL_REQUEST.NO_BANK_ACCOUNT"
 	LanguageWithdrawalRequestNotFound            = "WITHDRAWAL_REQUEST.NOT_FOUND"
+	LanguageWithdrawalRequestNotOwned            = "WITHDRAWAL_REQUEST.NOT_OWNED"
+	LanguageWithdrawalRequestAlreadyCompleted    = "WITHDRAWAL_REQUEST.ALREADY_COMPLETED"
 
 	// auction
 	LanguageAuctionNotFound                    = "AUCTION.NOT_FOUND"
 	LanguageAuctionProductNotVerified          = "AUCTION.PRODUCT_NOT_VERIFIED"
+	LanguageAuctionProductAlreadyScheduled     = "AUCTION.PRODUCT_ALREADY_SCHEDULED"
 	LanguageAuctionNotScheduled                = "AUCTION.NOT_SCHEDULED"
 	LanguageAuctionInvalidTimeRange            = "AUCTION.INVALID_TIME_RANGE"
 	LanguageAuctionStartTimeTooSoon            = "AUCTION.START_TIME_TOO_SOON"
 	LanguageAuctionNotWaitingForSellerDecision = "AUCTION.NOT_WAITING_FOR_SELLER_DECISION"
 	LanguageAuctionNoNextBidder                = "AUCTION.NO_NEXT_BIDDER"
-	LanguageAuctionNotWaitingForBuyerAddress   = "AUCTION.NOT_WAITING_FOR_BUYER_ADDRESS"
+	LanguageAuctionNotWaitingForBidderAddress  = "AUCTION.NOT_WAITING_FOR_BIDDER_ADDRESS"
 	LanguageAuctionAddressNotConfirmed         = "AUCTION.ADDRESS_NOT_CONFIRMED"
 
 	// bid
@@ -62,6 +66,13 @@ const (
 	// payment
 	LanguagePaymentNotFound = "PAYMENT.NOT_FOUND"
 
+	// payment method
+	LanguagePaymentMethodNotFound        = "PAYMENT_METHOD.NOT_FOUND"
+	LanguagePaymentMethodCodeAlreadyUsed = "PAYMENT_METHOD.CODE_ALREADY_USED"
+
+	// notification
+	LanguageNotificationNotFound = "NOTIFICATION.NOT_FOUND"
+
 	// shipment
 	LanguageShipmentNotFound         = "SHIPMENT.NOT_FOUND"
 	LanguageShipmentAlreadyShipped   = "SHIPMENT.ALREADY_SHIPPED"
@@ -69,11 +80,14 @@ const (
 	LanguageShipmentAlreadyReceived  = "SHIPMENT.ALREADY_RECEIVED"
 	LanguageShipmentNoTrackingNumber = "SHIPMENT.NO_TRACKING_NUMBER"
 	LanguageShipmentAddressLocked    = "SHIPMENT.ADDRESS_LOCKED_AFTER_SHIP"
+	LanguageShipmentCostUnavailable  = "SHIPMENT.COST_UNAVAILABLE"
+	LanguageShipmentServiceNotFound  = "SHIPMENT.SERVICE_NOT_FOUND"
 
 	// user address
 	LanguageUserAddressNotFound  = "USER_ADDRESS.NOT_FOUND"
 	LanguageUserAddressNotOwned  = "USER_ADDRESS.NOT_OWNED"
 	LanguageUserAddressIsDefault = "USER_ADDRESS.IS_DEFAULT"
+	LanguageUserAddressIndonesia = "USER_ADDRESS.INDONESIA_ONLY"
 
 	// system
 	LanguageSystemUnauthorized          = "SYSTEM.UNAUTHORIZED"

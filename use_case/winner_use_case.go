@@ -66,6 +66,12 @@ func (u *winnerUseCase) FetchByAuction(ctx context.Context, request dto_request.
 	winners, err := u.repositoryManager.AuctionWinnerRepository().Fetch(ctx, option)
 	panicIfErr(err)
 
+	winnerPointers := make([]*model.AuctionWinner, len(winners))
+	for i := range winners {
+		winnerPointers[i] = &winners[i]
+	}
+	mustLoadAuctionWinnerData(ctx, u.repositoryManager, winnerPointers)
+
 	return winners, total
 }
 
@@ -79,14 +85,14 @@ func (u *winnerUseCase) GetByAuction(ctx context.Context, request dto_request.Au
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageWinnerNotFound))
 	}
 
-	// The winner's bid holds the user_id of the actual buyer
+	// The winner's bid holds the user_id of the actual bidder
 	if winner.AuctionBidId == nil {
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageBidNotFound))
 	}
 	bid, err := u.repositoryManager.AuctionBidRepository().GetById(ctx, *winner.AuctionBidId)
 	panicIfRepositoryError(err, constant.LanguageBidNotFound)
 
-	// Only the seller, the buyer themselves, or superadmin may view a winner
+	// Only the seller, the bidder themselves, or superadmin may view a winner
 	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
 	if product.UserId != userClaims.UserId &&
 		bid.UserId != userClaims.UserId &&

@@ -195,11 +195,12 @@ func (u *productUseCase) AdminFetch(ctx context.Context, request dto_request.Adm
 }
 
 func (u *productUseCase) AdminApprove(ctx context.Context, request dto_request.AdminProductApproveRequest) model.Product {
+	admin := model.MustGetUserCtx(ctx)
 	product := mustGetProduct(ctx, u.repositoryManager, request.ProductId)
 
 	// Validate ownership alignment
 	if product.UserId != request.UserId {
-		panic(dto_response.NewBadRequestErrorResponse("Product does not belong to specified user"))
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageProductNotOwned))
 	}
 	// Verify it can transition from REQUEST to VERIFIED status
 	if product.Status != constant.ProductStatusRequest {
@@ -209,15 +210,16 @@ func (u *productUseCase) AdminApprove(ctx context.Context, request dto_request.A
 	var updated *model.Product
 	panicIfErr(u.repositoryManager.Transaction(ctx, func(txCtx context.Context) error {
 		var err error
-		updated, err = u.repositoryManager.ProductRepository().UpdateStatus(txCtx, request.ProductId, constant.ProductStatusVerified)
+		updated, err = u.repositoryManager.ProductRepository().UpdateStatusByValidator(txCtx, request.ProductId, constant.ProductStatusVerified, admin.UserId)
 		if err != nil {
 			return err
 		}
 
 		return u.repositoryManager.ProductStatusHistoryRepository().Insert(txCtx, &model.ProductStatusHistory{
-			ProductId: request.ProductId,
-			Status:    constant.ProductStatusVerified,
-			Message:   nil, // Verification holds no negative comment message
+			ProductId:       request.ProductId,
+			ValidatorUserId: &admin.UserId,
+			Status:          constant.ProductStatusVerified,
+			Message:         nil, // Verification holds no negative comment message
 		})
 	}))
 
@@ -226,10 +228,11 @@ func (u *productUseCase) AdminApprove(ctx context.Context, request dto_request.A
 }
 
 func (u *productUseCase) AdminReject(ctx context.Context, request dto_request.AdminProductRejectRequest) model.Product {
+	admin := model.MustGetUserCtx(ctx)
 	product := mustGetProduct(ctx, u.repositoryManager, request.ProductId)
 
 	if product.UserId != request.UserId {
-		panic(dto_response.NewBadRequestErrorResponse("Product does not belong to specified user"))
+		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageProductNotOwned))
 	}
 	if product.Status != constant.ProductStatusRequest {
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageProductInvalidStatusTransition))
@@ -238,15 +241,16 @@ func (u *productUseCase) AdminReject(ctx context.Context, request dto_request.Ad
 	var updated *model.Product
 	panicIfErr(u.repositoryManager.Transaction(ctx, func(txCtx context.Context) error {
 		var err error
-		updated, err = u.repositoryManager.ProductRepository().UpdateStatus(txCtx, request.ProductId, constant.ProductStatusRejected)
+		updated, err = u.repositoryManager.ProductRepository().UpdateStatusByValidator(txCtx, request.ProductId, constant.ProductStatusRejected, admin.UserId)
 		if err != nil {
 			return err
 		}
 
 		return u.repositoryManager.ProductStatusHistoryRepository().Insert(txCtx, &model.ProductStatusHistory{
-			ProductId: request.ProductId,
-			Status:    constant.ProductStatusRejected,
-			Message:   request.Message, // Saved directly to history record
+			ProductId:       request.ProductId,
+			ValidatorUserId: &admin.UserId,
+			Status:          constant.ProductStatusRejected,
+			Message:         request.Message, // Saved directly to history record
 		})
 	}))
 
@@ -306,7 +310,7 @@ func (u *productUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnP
 	if product.UserId != userClaims.UserId {
 		panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
 	}
-	if product.Status != constant.ProductStatusDraft {
+	if product.Status != constant.ProductStatusDraft && product.Status != constant.ProductStatusRejected {
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageProductInvalidStatusTransition))
 	}
 

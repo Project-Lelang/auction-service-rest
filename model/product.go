@@ -7,15 +7,16 @@ import (
 const ProductTableName = "products"
 
 type Product struct {
-	Id             int64   `db:"id"`
-	UserId         int64   `db:"user_id"`
-	Name           string  `db:"name"`
-	Description    *string `db:"description"`
-	Condition      string  `db:"condition"`
-	CoverImagePath *string `db:"cover_image_path"`
-	ImagePaths     *string `db:"image_paths"` // stored as JSON string
-	WeightGram     int     `db:"weight_gram"`
-	Status         string  `db:"status"`
+	Id              int64   `db:"id"`
+	UserId          int64   `db:"user_id"`
+	ValidatorUserId *int64  `db:"validator_user_id"`
+	Name            string  `db:"name"`
+	Description     *string `db:"description"`
+	Condition       string  `db:"condition"`
+	CoverImagePath  *string `db:"cover_image_path"`
+	ImagePaths      *string `db:"image_paths"` // stored as JSON string
+	WeightGram      int     `db:"weight_gram"`
+	Status          string  `db:"status"`
 	Timestamp
 
 	// relations
@@ -78,16 +79,17 @@ func (p *Product) ToMap() map[string]interface{} {
 		imagePathsJSON = *p.ImagePaths
 	}
 	return map[string]interface{}{
-		"id":               p.Id,
-		"user_id":          p.UserId,
-		"name":             p.Name,
-		"description":      p.Description,
-		"`condition`":      p.Condition,
-		"cover_image_path": p.CoverImagePath,
-		"image_paths":      imagePathsJSON,
-		"weight_gram":      p.WeightGram,
-		"status":           p.Status,
-		"created_at":       p.CreatedAt,
-		"updated_at":       p.UpdatedAt,
+		"id":                p.Id,
+		"user_id":           p.UserId,
+		"validator_user_id": p.ValidatorUserId,
+		"name":              p.Name,
+		"description":       p.Description,
+		"`condition`":       p.Condition,
+		"cover_image_path":  p.CoverImagePath,
+		"image_paths":       imagePathsJSON,
+		"weight_gram":       p.WeightGram,
+		"status":            p.Status,
+		"created_at":        p.CreatedAt,
+		"updated_at":        p.UpdatedAt,
 	}
 }

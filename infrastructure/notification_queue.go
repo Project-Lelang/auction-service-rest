@@ -21,6 +21,9 @@ type NotificationQueueClient interface {
 	Publish(ctx context.Context, payload notification.Payload) error
 	Subscribe(ctx context.Context) (notification.Payload, error)
 	MoveToDLQ(ctx context.Context, payload notification.Payload, reason string) error
+	// Reset removes queued notifications whose database IDs became invalid
+	// after a fresh database migration.
+	Reset(ctx context.Context) error
 	Close() error
 }
 
@@ -93,6 +96,10 @@ func (c *redisNotificationQueueClient) MoveToDLQ(ctx context.Context, payload no
 		return err
 	}
 	return c.client.LPush(ctx, c.dlqName, b).Err()
+}
+
+func (c *redisNotificationQueueClient) Reset(ctx context.Context) error {
+	return c.client.Del(ctx, c.queueName, c.dlqName).Err()
 }
 
 func (c *redisNotificationQueueClient) Close() error {

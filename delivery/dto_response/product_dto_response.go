@@ -11,6 +11,7 @@ import (
 type ProductResponse struct {
 	Id              int64                          `json:"id"                       example:"1"`
 	UserId          int64                          `json:"user_id"                  example:"2"`
+	ValidatorUserId *int64                         `json:"validator_user_id,omitempty" example:"3"`
 	Name            string                         `json:"name"                     example:"Vintage Camera"`
 	Description     *string                        `json:"description,omitempty"    example:"A beautiful vintage camera"`
 	Condition       string                         `json:"condition"                example:"NEW"`
@@ -25,10 +26,11 @@ type ProductResponse struct {
 
 // ProductStatusHistoryResponse represents a single status history entry.
 type ProductStatusHistoryResponse struct {
-	Id        int64   `json:"id"                example:"1"`
-	ProductId int64   `json:"product_id"        example:"2"`
-	Status    string  `json:"status"            example:"VERIFIED"`
-	Message   *string `json:"message,omitempty" example:"Looks good!"`
+	Id              int64   `json:"id"                example:"1"`
+	ProductId       int64   `json:"product_id"        example:"2"`
+	ValidatorUserId *int64  `json:"validator_user_id,omitempty" example:"3"`
+	Status          string  `json:"status"            example:"VERIFIED"`
+	Message         *string `json:"message,omitempty" example:"Looks good!"`
 	Timestamp
 } // @name ProductStatusHistoryResponse
 
@@ -36,6 +38,7 @@ func NewProductResponse(ctx context.Context, p model.Product) ProductResponse {
 	r := ProductResponse{
 		Id:              p.Id,
 		UserId:          p.UserId,
+		ValidatorUserId: p.ValidatorUserId,
 		Name:            p.Name,
 		Description:     p.Description,
 		Condition:       p.Condition,
@@ -60,10 +63,11 @@ func NewProductResponse(ctx context.Context, p model.Product) ProductResponse {
 
 func NewProductStatusHistoryResponse(_ context.Context, h model.ProductStatusHistory) ProductStatusHistoryResponse {
 	return ProductStatusHistoryResponse{
-		Id:        h.Id,
-		ProductId: h.ProductId,
-		Status:    h.Status,
-		Message:   h.Message,
-		Timestamp: Timestamp(h.Timestamp),
+		Id:              h.Id,
+		ProductId:       h.ProductId,
+		ValidatorUserId: h.ValidatorUserId,
+		Status:          h.Status,
+		Message:         h.Message,
+		Timestamp:       Timestamp(h.Timestamp),
 	}
 }
