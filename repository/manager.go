@@ -28,6 +28,7 @@ type RepositoryManager interface {
 	UserFcmTokenRepository() UserFcmTokenRepository
 
 	Transaction(ctx context.Context, fn func(ctx context.Context) error) error
+	TransactionWithOptions(ctx context.Context, opts *sql.TxOptions, fn func(ctx context.Context) error) error
 	PaymentMethodRepository() PaymentMethodRepository
 }
 
@@ -92,34 +93,43 @@ func NewRepositoryManager(
 }
 
 func (r *repositoryManager) Transaction(
-	ctx context.Context,
-	fn func(ctx context.Context) error,
+    ctx context.Context,
+    fn func(ctx context.Context) error,
+) error {
+    return r.TransactionWithOptions(ctx, nil, fn)
+}
+
+func (r *repositoryManager) TransactionWithOptions(
+    ctx context.Context,
+    opts *sql.TxOptions,
+    fn func(ctx context.Context) error,
 ) (err error) {
-	var tx *sqlx.Tx
+    var tx *sqlx.Tx
 
-	defer func() {
-		if err != nil && tx != nil {
-			if rbErr := tx.Rollback(); rbErr != nil && rbErr != sql.ErrTxDone {
-				err = fmt.Errorf("%v\nrollback err: %v", err, rbErr)
-			}
-		}
-	}()
+    defer func() {
+        if err != nil && tx != nil {
+            if rbErr := tx.Rollback(); rbErr != nil && rbErr != sql.ErrTxDone {
+                err = fmt.Errorf("%v\nrollback err: %v", err, rbErr)
+            }
+        }
+    }()
 
-	tx, err = r.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return
-	}
+    // Pass the custom options structure into the sqlx transaction initializer
+    tx, err = r.db.BeginTxx(ctx, opts)
+    if err != nil {
+        return
+    }
 
-	ctx, err = model.SetDbtxCtx(ctx, tx)
-	if err != nil {
-		return
-	}
+    ctx, err = model.SetDbtxCtx(ctx, tx)
+    if err != nil {
+        return
+    }
 
-	if err = fn(ctx); err != nil {
-		return
-	}
+    if err = fn(ctx); err != nil {
+        return
+    }
 
-	return tx.Commit()
+    return tx.Commit()
 }
 
 func (r *repositoryManager) UserRepository() UserRepository {

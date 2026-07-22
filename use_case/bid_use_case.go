@@ -2,6 +2,7 @@ package use_case
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"auction-service/constant"
@@ -214,13 +215,16 @@ func (u *bidUseCase) OwnGet(ctx context.Context, request dto_request.OwnBidGetRe
 // Pessimistic concurrency control is achieved by locking the auction row and
 // the current active winner row inside a transaction before inserting/updating.
 func (u *bidUseCase) PlaceBid(ctx context.Context, request dto_request.AuctionBidCreateRequest) model.AuctionBid {
+	txOpts := &sql.TxOptions{
+        Isolation: sql.LevelSerializable,
+    }
+
 	userClaims := model.MustGetUserCtx(ctx)
 
 	if !userClaims.HasRole(constant.RoleBidder) {
 		panic(dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden))
 	}
 
-	// Pre-check auction status (no lock yet – just an early guard)
 	auction := mustGetAuction(ctx, u.repositoryManager, request.AuctionId)
 	ensureAuctionOpenForBid(&auction)
 
@@ -232,8 +236,7 @@ func (u *bidUseCase) PlaceBid(ctx context.Context, request dto_request.AuctionBi
 
 	var createdBid model.AuctionBid
 	var outbidUserId int64
-
-	err := u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+	err := u.repositoryManager.TransactionWithOptions(ctx,txOpts, func(ctx context.Context) error {
 		// Lock the auction row to serialise concurrent bids
 		auction, err := u.repositoryManager.AuctionRepository().GetById(ctx, request.AuctionId)
 		if err != nil {
