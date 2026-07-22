@@ -289,8 +289,6 @@ func (u *shipmentUseCase) Ship(ctx context.Context, request dto_request.AuctionS
 		}
 	}
 
-	ref := auction.Id
-	insertUserNotification(ctx, u.repositoryManager, shipment.UserId, "Shipment sent", "The seller has shipped your item.", notification.EventShipmentShipped, &ref)
 	u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBidder, notification.EventShipmentShipped, auction.Id, "Shipment sent", "The seller has shipped your item.")
 
 	return *updated
@@ -318,8 +316,6 @@ func (u *shipmentUseCase) Receive(ctx context.Context, request dto_request.Aucti
 	panicIfErr(err)
 
 	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
-	ref := auction.Id
-	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Auction completed", "Bidder confirmed the item. Your balance has been updated.", notification.EventShipmentCompleted, &ref)
 	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventShipmentCompleted, auction.Id, "Auction completed", "Bidder confirmed the item. Your balance has been updated.")
 
 	return *updated
@@ -430,8 +426,6 @@ func (u *shipmentUseCase) UpdateBidderAddress(ctx context.Context, request dto_r
 	updatedValue := u.refreshEstimatedCosts(ctx, *updated, product)
 	updated = &updatedValue
 
-	ref := auction.Id
-	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Bidder address confirmed", "Bidder has confirmed the shipping address. You can ship the item now.", notification.EventBidderAddressConfirmed, &ref)
 	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventBidderAddressConfirmed, auction.Id, "Bidder address confirmed", "Bidder has confirmed the shipping address. You can ship the item now.")
 
 	return *updated
@@ -536,7 +530,11 @@ func (u *shipmentUseCase) completeShipment(ctx context.Context, auction model.Au
 			return err
 		}
 
-		sellerRevenue := roundMoney(bid.Amount - calculateAuctionFee(bid.Amount))
+		shippingCost := 0.0
+		if lockedShipment.ShippingCost != nil {
+			shippingCost = *lockedShipment.ShippingCost
+		}
+		sellerRevenue := roundMoney(bid.Amount - calculateAuctionFee(bid.Amount) - shippingCost)
 		if _, err = u.repositoryManager.UserRepository().DepositBalance(ctx, product.UserId, sellerRevenue); err != nil {
 			return err
 		}
@@ -624,9 +622,6 @@ func (u *shipmentUseCase) HandleShipmentAddressDeadline(ctx context.Context, shi
 		return err
 	}
 
-	ref := auction.Id
-	insertUserNotification(ctx, u.repositoryManager, shipment.UserId, "Address confirmation expired", "You missed the address confirmation deadline, so your payment was refunded to your balance.", "BIDDER_ADDRESS_EXPIRED", &ref)
-	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Bidder address deadline missed", "Bidder did not confirm the shipping address before the deadline. You can relist or offer the auction to the next bidder.", "BIDDER_ADDRESS_EXPIRED", &ref)
 	if payment != nil {
 		u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBidder, notification.EventBidderAddressExpired, auction.Id, "Address confirmation expired", "You missed the address confirmation deadline, so your payment was refunded.")
 	}
@@ -680,9 +675,6 @@ func (u *shipmentUseCase) HandleShipmentShipDeadline(ctx context.Context, shipme
 		return err
 	}
 
-	ref := auction.Id
-	insertUserNotification(ctx, u.repositoryManager, shipment.UserId, "Order refunded", "Seller did not ship before the deadline, so your payment was refunded to your balance.", "SHIPMENT_REFUNDED", &ref)
-	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Shipment deadline missed", "You missed the shipping deadline for this auction.", "SHIPMENT_DEADLINE_MISSED", &ref)
 	u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBidder, notification.EventShipmentRefunded, auction.Id, "Order refunded", "Seller did not ship before the deadline, so your payment was refunded.")
 	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventShipmentDeadlineMissed, auction.Id, "Shipment deadline missed", "You missed the shipping deadline for this auction.")
 	return nil
@@ -753,9 +745,6 @@ func (u *shipmentUseCase) HandleShipmentReceiveDeadline(ctx context.Context, shi
 	}
 
 	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
-	ref := auction.Id
-	insertUserNotification(ctx, u.repositoryManager, shipment.UserId, "Order auto-completed", "Receipt confirmation deadline passed, so the order was completed automatically.", "SHIPMENT_AUTO_COMPLETED", &ref)
-	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Order completed", "Bidder confirmation deadline passed, so the order was completed automatically.", "SHIPMENT_AUTO_COMPLETED", &ref)
 	u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBidder, notification.EventShipmentAutoCompleted, auction.Id, "Order auto-completed", "Receipt confirmation deadline passed, so the order was completed automatically.")
 	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventShipmentAutoCompleted, auction.Id, "Order completed", "Bidder confirmation deadline passed, so the order was completed automatically.")
 	return nil
@@ -863,9 +852,6 @@ func (u *shipmentUseCase) markShipmentDelivered(ctx context.Context, shipmentId 
 	}
 
 	product := mustGetProduct(ctx, u.repositoryManager, auction.ProductId)
-	ref := auction.Id
-	insertUserNotification(ctx, u.repositoryManager, shipment.UserId, "Package delivered", "Courier tracking says your package has been delivered. Please confirm receipt before the deadline.", "SHIPMENT_DELIVERED", &ref)
-	insertUserNotification(ctx, u.repositoryManager, product.UserId, "Package delivered", "Courier tracking says the package has been delivered. Bidder confirmation deadline has started.", "SHIPMENT_DELIVERED", &ref)
 	u.publishShipmentNotification(ctx, shipment.UserId, notification.RoleBidder, notification.EventShipmentDelivered, auction.Id, "Package delivered", "Courier tracking says your package has been delivered. Please confirm receipt before the deadline.")
 	u.publishShipmentNotification(ctx, product.UserId, notification.RoleSeller, notification.EventShipmentDelivered, auction.Id, "Package delivered", "Courier tracking says the package has been delivered. Bidder confirmation deadline has started.")
 	return nil

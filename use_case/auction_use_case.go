@@ -22,14 +22,14 @@ import (
 // TaskQueue abstracts delayed auction task scheduling.
 // Implemented by infrastructure.TaskQueueClient (duck typing — no import needed).
 type TaskQueue interface {
-	EnqueueAuctionStart(auctionId int64, processAt time.Time) error
-	EnqueueAuctionClose(auctionId int64, processAt time.Time) error
+	EnqueueAuctionStart(auctionId int64, auctionCode string, processAt time.Time) error
+	EnqueueAuctionClose(auctionId int64, auctionCode string, processAt time.Time) error
 	EnqueuePaymentExpiry(paymentId int64, processAt time.Time) error
 	EnqueueShipmentAddressDue(shipmentId int64, processAt time.Time) error
 	EnqueueShipmentShipDue(shipmentId int64, processAt time.Time) error
 	EnqueueShipmentTrackCheck(shipmentId int64, processAt time.Time) error
 	EnqueueShipmentReceiveDue(shipmentId int64, processAt time.Time) error
-	ReplaceAuctionStart(auctionId int64, processAt time.Time) error
+	ReplaceAuctionStart(auctionId int64, auctionCode string, processAt time.Time) error
 }
 
 // AuctionUseCase covers all auction operations for the own (seller) scope
@@ -307,10 +307,10 @@ func (u *auctionUseCase) OwnCreate(ctx context.Context, request dto_request.OwnA
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionInvalidTimeRange))
 	}
 
-	// start_time must be at least 1 hour from now
-	if request.StartTime.Time().Before(time.Now().Add(time.Hour)) {
-		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionStartTimeTooSoon))
-	}
+	// // start_time must be at least 1 hour from now
+	// if request.StartTime.Time().Before(time.Now().Add(time.Hour)) {
+	// 	panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionStartTimeTooSoon))
+	// }
 
 	auction := model.Auction{
 		Code:          "AUC-" + strconv.FormatInt(time.Now().UTC().UnixNano(), 10),
@@ -376,11 +376,15 @@ func (u *auctionUseCase) OwnCreate(ctx context.Context, request dto_request.OwnA
 			return errWinner
 		}
 
+		log.Printf("Enqueued auction start task for auction %d (Start)", auction.Id)
+
 		// Schedule the start task; EnqueueScheduledTasks on startup recovers if this fails.
-		if errRedis := u.taskQueue.EnqueueAuctionStart(auction.Id, auction.StartTime.Time()); errRedis != nil {
+		if errRedis := u.taskQueue.EnqueueAuctionStart(auction.Id, auction.Code, auction.StartTime.Time()); errRedis != nil {
 			log.Printf("[auction worker] enqueue start for %d failed: %v", auction.Id, errRedis)
 			return errRedis
 		}
+
+		log.Printf("Enqueued auction start task for auction %d (Done)", auction.Id)
 
 		return nil
 	})
@@ -406,10 +410,10 @@ func (u *auctionUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnA
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionInvalidTimeRange))
 	}
 
-	// start_time must be at least 1 hour from now
-	if request.StartTime.Time().Before(time.Now().Add(time.Hour)) {
-		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionStartTimeTooSoon))
-	}
+	// // start_time must be at least 1 hour from now
+	// if request.StartTime.Time().Before(time.Now().Add(time.Hour)) {
+	// 	panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionStartTimeTooSoon))
+	// }
 
 	updated, err := u.repositoryManager.AuctionRepository().Update(
 		ctx,
@@ -425,7 +429,7 @@ func (u *auctionUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnA
 	u.populateAuctionProductImageLinks(updated)
 
 	// Replace the scheduled start task with the new timing.
-	if err := u.taskQueue.ReplaceAuctionStart(updated.Id, updated.StartTime.Time()); err != nil {
+	if err := u.taskQueue.ReplaceAuctionStart(updated.Id, updated.Code, updated.StartTime.Time()); err != nil {
 		log.Printf("[auction worker] replace start task for %d failed: %v", updated.Id, err)
 	}
 
@@ -437,6 +441,8 @@ func (u *auctionUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnA
 // SCHEDULED → ON_BIDS,
 // then enqueues the close task.
 func (u *auctionUseCase) HandleStartAuction(ctx context.Context, auctionId int64) error {
+	log.Printf("Handle Start Auction Redis Worker for auction %d", auctionId)
+
 	auction, err := u.repositoryManager.AuctionRepository().GetById(ctx, auctionId)
 	if err != nil {
 		return err
@@ -468,7 +474,7 @@ func (u *auctionUseCase) HandleStartAuction(ctx context.Context, auctionId int64
 	}
 
 	// Enqueue the close task after the DB transaction commits.
-	if err := u.taskQueue.EnqueueAuctionClose(auctionId, auction.EndTime.Time()); err != nil {
+	if err := u.taskQueue.EnqueueAuctionClose(auctionId, auction.Code, auction.EndTime.Time()); err != nil {
 		log.Printf("[auction worker] enqueue close for %d failed: %v (will recover on restart)", auctionId, err)
 	}
 	product, err := u.repositoryManager.ProductRepository().GetById(ctx, auction.ProductId)
@@ -536,7 +542,7 @@ func (u *auctionUseCase) EnqueueScheduledTasks(ctx context.Context) []int64 {
 					startedDirectly++
 				}
 			} else {
-				if err := u.taskQueue.EnqueueAuctionStart(a.Id, a.StartTime.Time()); err != nil {
+				if err := u.taskQueue.EnqueueAuctionStart(a.Id, a.Code, a.StartTime.Time()); err != nil {
 					log.Printf("[auction worker] re-enqueue start for %d failed: %v", a.Id, err)
 				}
 			}
@@ -560,7 +566,7 @@ func (u *auctionUseCase) EnqueueScheduledTasks(ctx context.Context) []int64 {
 					needPaymentInit = append(needPaymentInit, a.Id)
 				}
 			} else {
-				if err := u.taskQueue.EnqueueAuctionClose(a.Id, a.EndTime.Time()); err != nil {
+				if err := u.taskQueue.EnqueueAuctionClose(a.Id, a.Code, a.EndTime.Time()); err != nil {
 					log.Printf("[auction worker] re-enqueue close for %d failed: %v", a.Id, err)
 				}
 			}
@@ -654,8 +660,6 @@ func (u *auctionUseCase) closeAuction(ctx context.Context, auction model.Auction
 		})
 	}
 	if winnerUserId != 0 {
-		ref := auction.Id
-		insertUserNotification(ctx, u.repositoryManager, winnerUserId, "You won the auction", "You won this auction. Please complete the payment before the deadline.", notification.EventWinAwaitingPay, &ref)
 		publishAuctionNotification(ctx, u.notificationQueue, notification.Payload{
 			UserId:    winnerUserId,
 			Role:      notification.RoleBidder,

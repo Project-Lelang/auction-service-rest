@@ -60,6 +60,7 @@ type Payload struct {
 	DataPayload map[string]string `json:"data_payload"`
 	Timestamp   time.Time         `json:"timestamp"`
 	Attempt     int               `json:"attempt,omitempty"`
+	Persisted   bool              `json:"persisted,omitempty"`
 }
 
 func (p Payload) Validate() error {
