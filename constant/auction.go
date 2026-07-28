@@ -26,6 +26,27 @@ const (
 	AuctionWinnerStatusCompleted         = "COMPLETED"
 )
 
+// UserStrike reason
+const (
+	UserStrikeReasonUnpaidAuction     = "UNPAID_AUCTION"
+	UserStrikeReasonCancelledBySeller = "CANCELLED_BY_SELLER"
+)
+
+// UserStrike status
+const (
+	UserStrikeStatusActive   = "ACTIVE"
+	UserStrikeStatusAppealed = "APPEALED"
+	UserStrikeStatusRemoved  = "REMOVED"
+)
+
+// SecondChanceOffer status
+const (
+	SecondChanceOfferStatusPending  = "PENDING"
+	SecondChanceOfferStatusAccepted = "ACCEPTED"
+	SecondChanceOfferStatusRejected = "REJECTED"
+	SecondChanceOfferStatusExpired  = "EXPIRED"
+)
+
 // Payment status
 const (
 	PaymentStatusWaitingForPayment = "WAITING_FOR_PAYMENT"

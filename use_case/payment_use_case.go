@@ -13,6 +13,7 @@ import (
 	"auction-service/delivery/dto_response"
 	"auction-service/global"
 	"auction-service/infrastructure"
+	"auction-service/internal/notification"
 	"auction-service/model"
 	"auction-service/repository"
 	"auction-service/util"
@@ -41,14 +42,16 @@ type paymentUseCase struct {
 	midtransClient    infrastructure.MidtransClient
 	biteshipClient    infrastructure.BiteshipClient
 	taskQueue         TaskQueue
+	notificationQueue NotificationPublisher
 }
 
-func NewPaymentUseCase(repositoryManager repository.RepositoryManager, midtransClient infrastructure.MidtransClient, taskQueue TaskQueue, biteshipClient infrastructure.BiteshipClient, _ NotificationPublisher) PaymentUseCase {
+func NewPaymentUseCase(repositoryManager repository.RepositoryManager, midtransClient infrastructure.MidtransClient, taskQueue TaskQueue, biteshipClient infrastructure.BiteshipClient, notificationQueue NotificationPublisher) PaymentUseCase {
 	return &paymentUseCase{
 		repositoryManager: repositoryManager,
 		midtransClient:    midtransClient,
 		biteshipClient:    biteshipClient,
 		taskQueue:         taskQueue,
+		notificationQueue: notificationQueue,
 	}
 }
 
@@ -370,6 +373,7 @@ func (u *paymentUseCase) onPaymentCompleted(ctx context.Context, payment model.P
 // and puts the auction into WAITING_FOR_SELLER_DECISION so the seller can
 // choose to relist the product or offer it to the next-highest bidder.
 func (u *paymentUseCase) onPaymentExpired(ctx context.Context, payment model.Payment) error {
+	var strike *model.UserStrike
 	// Lock and fetch the active winner associated with this auction.
 	currentWinner, err := u.repositoryManager.AuctionWinnerRepository().GetActiveByAuctionIdForUpdate(ctx, payment.AuctionId)
 	if err != nil {
@@ -390,8 +394,50 @@ func (u *paymentUseCase) onPaymentExpired(ctx context.Context, payment model.Pay
 	if err != nil {
 		return err
 	}
+	product, err := u.repositoryManager.ProductRepository().GetById(ctx, auctionForProduct.ProductId)
+	if err != nil {
+		return err
+	}
+	if currentWinner.AuctionBidId != nil {
+		bid, err := u.repositoryManager.AuctionBidRepository().GetById(ctx, *currentWinner.AuctionBidId)
+		if err != nil {
+			return err
+		}
+		strikeExpiredAt := util.CurrentDateTime().Add(7 * 24 * time.Hour)
+		strike = &model.UserStrike{
+			BidderId:     bid.UserId,
+			AuctionId:    payment.AuctionId,
+			SellerId:     product.UserId,
+			StrikeReason: constant.UserStrikeReasonUnpaidAuction,
+			Status:       constant.UserStrikeStatusActive,
+			ExpiredAt:    strikeExpiredAt.NullDateTime(),
+		}
+		if err := u.repositoryManager.UserStrikeRepository().Insert(ctx, strike); err != nil {
+			return err
+		}
+	}
 	msg := "Winner did not complete payment before the deadline"
-	return updateProductStatusWithHistory(ctx, u.repositoryManager, auctionForProduct.ProductId, constant.ProductStatusWaitingForSellerDecision, &msg)
+	if err := updateProductStatusWithHistory(ctx, u.repositoryManager, auctionForProduct.ProductId, constant.ProductStatusWaitingForSellerDecision, &msg); err != nil {
+		return err
+	}
+	if strike != nil {
+		publishAuctionNotification(ctx, u.notificationQueue, notification.Payload{
+			UserId:    strike.BidderId,
+			Role:      notification.RoleBidder,
+			EventType: notification.EventUserStrikeCreated,
+			AuctionId: strike.AuctionId,
+			Title:     "Account temporarily suspended from bidding",
+			Body:      "You received a strike because the auction payment was not completed. View your profile for details.",
+			DataPayload: map[string]string{
+				"auction_url":   auctionURL(strike.AuctionId),
+				"auction_id":    strconv.FormatInt(strike.AuctionId, 10),
+				"strike_id":     strconv.FormatInt(strike.Id, 10),
+				"strike_reason": strike.StrikeReason,
+				"expired_at":    strike.ExpiredAt.String(),
+			},
+		})
+	}
+	return nil
 }
 
 // HandlePaymentExpiry is the safety-net asynq task handler.  It fires

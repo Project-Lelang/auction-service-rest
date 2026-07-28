@@ -48,6 +48,7 @@ AUCTION.INVALID_TIME_RANGE: "Waktu selesai lelang harus setelah waktu mulai"
 AUCTION.START_TIME_TOO_SOON: "Waktu mulai lelang terlalu dekat"
 AUCTION.NOT_WAITING_FOR_SELLER_DECISION: "Lelang ini tidak sedang menunggu keputusan seller"
 AUCTION.NO_NEXT_BIDDER: "Bidder berikutnya yang memenuhi syarat tidak ditemukan"
+AUCTION.SECOND_CHANCE_PENDING: "Lelang ini sudah memiliki second chance offer yang masih menunggu jawaban"
 AUCTION.NOT_WAITING_FOR_BIDDER_ADDRESS: "Lelang ini tidak sedang menunggu alamat bidder"
 AUCTION.ADDRESS_NOT_CONFIRMED: "Alamat pengiriman belum dikonfirmasi"
 
@@ -56,6 +57,13 @@ BID.NOT_FOUND: "Bid tidak ditemukan"
 BID.AUCTION_NOT_ON_GOING: "Bid hanya dapat dilakukan saat lelang sedang berlangsung"
 BID.AMOUNT_TOO_LOW: "Nominal bid harus lebih tinggi dari bid tertinggi saat ini"
 BID.CANNOT_BID_OWN_AUCTION: "Anda tidak dapat melakukan bid pada lelang sendiri"
+BID.USER_HAS_ACTIVE_STRIKE: "Akun Anda sementara tidak dapat melakukan bid karena memiliki strike aktif. Lihat profile untuk detailnya."
+
+# second chance offer
+SECOND_CHANCE_OFFER.NOT_FOUND: "Second chance offer tidak ditemukan"
+SECOND_CHANCE_OFFER.NOT_PENDING: "Second chance offer ini tidak sedang menunggu jawaban"
+SECOND_CHANCE_OFFER.EXPIRED: "Second chance offer ini sudah kedaluwarsa"
+SECOND_CHANCE_OFFER.AUCTION_INVALID: "Lelang ini belum dapat menerima second chance offer"
 
 # winner
 WINNER.NOT_FOUND: "Pemenang lelang tidak ditemukan"
