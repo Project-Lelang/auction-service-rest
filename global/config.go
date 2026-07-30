@@ -75,6 +75,11 @@ type NotificationConfig struct {
 	RetryBaseMs int    `yaml:"retry_base_ms"`
 }
 
+type PaymentDeadlineConfig struct {
+	PaymentExpiryMinutes int `yaml:"payment_expiry_minutes"`
+	ExpiryGraceMinutes   int `yaml:"expiry_grace_minutes"`
+}
+
 type ShipmentDeadlineConfig struct {
 	BidderAddressHours        int `yaml:"bidder_address_hours"`
 	SellerShipHours           int `yaml:"seller_ship_hours"`
@@ -119,6 +124,7 @@ type YamlConfig struct {
 	Biteship           *BiteshipConfig        `yaml:"biteship"`
 	Redis              RedisConfig            `yaml:"redis"`
 	Notification       NotificationConfig     `yaml:"notification"`
+	PaymentDeadline    PaymentDeadlineConfig  `yaml:"payment_deadline"`
 	ShipmentDeadline   ShipmentDeadlineConfig `yaml:"shipment_deadline"`
 	Firebase           *FirebaseConfig        `yaml:"firebase"`
 	Email              EmailConfig            `yaml:"email"`
@@ -186,6 +192,12 @@ func LoadConfig() error {
 	}
 	if config.Notification.RetryBaseMs == 0 {
 		config.Notification.RetryBaseMs = 500
+	}
+	if config.PaymentDeadline.PaymentExpiryMinutes == 0 {
+		config.PaymentDeadline.PaymentExpiryMinutes = 24 * 60
+	}
+	if config.PaymentDeadline.ExpiryGraceMinutes == 0 {
+		config.PaymentDeadline.ExpiryGraceMinutes = 5
 	}
 	if config.ShipmentDeadline.BidderAddressHours == 0 {
 		config.ShipmentDeadline.BidderAddressHours = 24

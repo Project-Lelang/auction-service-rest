@@ -45,6 +45,14 @@ type paymentUseCase struct {
 	notificationQueue NotificationPublisher
 }
 
+func paymentExpiryDuration() time.Duration {
+	return time.Duration(global.GetConfig().PaymentDeadline.PaymentExpiryMinutes) * time.Minute
+}
+
+func paymentExpiryGrace() time.Duration {
+	return time.Duration(global.GetConfig().PaymentDeadline.ExpiryGraceMinutes) * time.Minute
+}
+
 func NewPaymentUseCase(repositoryManager repository.RepositoryManager, midtransClient infrastructure.MidtransClient, taskQueue TaskQueue, biteshipClient infrastructure.BiteshipClient, notificationQueue NotificationPublisher) PaymentUseCase {
 	return &paymentUseCase{
 		repositoryManager: repositoryManager,
@@ -152,7 +160,7 @@ func (u *paymentUseCase) createPaymentForWinner(
 		return nil, err
 	}
 
-	expiredAt := util.CurrentDateTime().Add(24 * time.Hour)
+	expiredAt := util.CurrentDateTime().Add(paymentExpiryDuration())
 
 	// Attach the Midtrans payment method if it exists in the DB.
 	var methodId *int64
@@ -194,13 +202,20 @@ func (u *paymentUseCase) createPaymentForWinner(
 				Email:     bidder.Email,
 			},
 			Expiry: &infrastructure.MidtransExpiry{
-				StartTime: time.Now().Format("2006-01-02 15:04:05 +0700"),
-				Unit:      "hour",
-				Duration:  24,
+				StartTime: time.Now().In(global.GetTimeLocation()).Format("2006-01-02 15:04:05 -0700"),
+				Unit:      "minute",
+				Duration:  global.GetConfig().PaymentDeadline.PaymentExpiryMinutes,
 			},
 		}
 
 		snapResp, err := u.midtransClient.CreateSnapTransaction(snapReq)
+		if err != nil {
+			if b, mErr := json.Marshal(snapReq); mErr == nil {
+				log.Printf("failed create midtrans snap: %v; request: %s", err, string(b))
+			} else {
+				log.Printf("failed create midtrans snap: %v", err)
+			}
+		}
 		if err == nil && snapResp != nil {
 			_, _ = u.repositoryManager.PaymentRepository().UpdateSnapInfo(ctx, payment.Id, snapResp.RedirectUrl, snapResp.Token)
 			payment.SnapUrl = &snapResp.RedirectUrl
@@ -208,10 +223,10 @@ func (u *paymentUseCase) createPaymentForWinner(
 		}
 	}
 
-	// Enqueue safety-net expiry task (fires 5 minutes after expired_at in case
-	// the Midtrans expire webhook is delayed or never arrives).
+	// Enqueue a safety-net expiry task after expired_at in case the Midtrans
+	// expire webhook is delayed or never arrives.
 	if u.taskQueue != nil {
-		_ = u.taskQueue.EnqueuePaymentExpiry(payment.Id, expiredAt.Add(5*time.Minute).Time())
+		_ = u.taskQueue.EnqueuePaymentExpiry(payment.Id, expiredAt.Add(paymentExpiryGrace()).Time())
 	}
 
 	_ = winner
@@ -440,9 +455,9 @@ func (u *paymentUseCase) onPaymentExpired(ctx context.Context, payment model.Pay
 	return nil
 }
 
-// HandlePaymentExpiry is the safety-net asynq task handler.  It fires
-// 5 minutes after the payment's expired_at to ensure the expired-payment flow
-// runs even when the Midtrans expire webhook is not delivered.
+// HandlePaymentExpiry is the safety-net asynq task handler. It runs after the
+// payment's expired_at to ensure the expired-payment flow runs even when the
+// Midtrans expire webhook is not delivered.
 func (u *paymentUseCase) HandlePaymentExpiry(ctx context.Context, paymentId int64) error {
 	payment, err := u.repositoryManager.PaymentRepository().GetById(ctx, paymentId)
 	if err != nil {

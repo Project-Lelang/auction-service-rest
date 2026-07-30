@@ -37,6 +37,7 @@ cp conf.yml.example conf.yml
 - Set `jwt.secret_key` to a strong secret.
 - Set `super_admin.email` and `super_admin.password`.
 - Set `fe_uri` and `cors_allowed_origins` to the frontend URL.
+- Set `payment_deadline.payment_expiry_minutes` if the default 24-hour payment window should change.
 - Configure `email` for SMTP before production.
 - Configure `midtrans`, `biteship`, and `firebase` when those integrations are enabled.
 
