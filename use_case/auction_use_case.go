@@ -25,6 +25,7 @@ type TaskQueue interface {
 	EnqueueAuctionStart(auctionId int64, auctionCode string, processAt time.Time) error
 	EnqueueAuctionClose(auctionId int64, auctionCode string, processAt time.Time) error
 	EnqueuePaymentExpiry(paymentId int64, processAt time.Time) error
+	EnqueueSecondChanceOfferExpiry(offerId int64, processAt time.Time) error
 	EnqueueShipmentAddressDue(shipmentId int64, processAt time.Time) error
 	EnqueueShipmentShipDue(shipmentId int64, processAt time.Time) error
 	EnqueueShipmentTrackCheck(shipmentId int64, processAt time.Time) error
@@ -52,7 +53,12 @@ type AuctionUseCase interface {
 
 	// own seller-decision after winner failed to pay
 	OwnRelist(ctx context.Context, request dto_request.OwnAuctionRelistRequest) model.Auction
-	OwnSecondChance(ctx context.Context, request dto_request.OwnAuctionSecondChanceRequest) model.Auction
+	OwnSecondChance(ctx context.Context, request dto_request.OwnAuctionSecondChanceRequest) model.SecondChanceOffer
+	OwnFetchSecondChanceOffers(ctx context.Context, request dto_request.OwnSecondChanceOfferFetchRequest) ([]model.SecondChanceOffer, int64)
+	OwnAcceptSecondChanceOffer(ctx context.Context, request dto_request.OwnSecondChanceOfferActionRequest) model.SecondChanceOffer
+	OwnRejectSecondChanceOffer(ctx context.Context, request dto_request.OwnSecondChanceOfferActionRequest) model.SecondChanceOffer
+	HandleSecondChanceOfferExpiry(ctx context.Context, offerId int64) error
+	RecoverExpiredSecondChanceOffers(ctx context.Context) error
 
 	// task handlers — called by the asynq worker goroutine
 	HandleStartAuction(ctx context.Context, auctionId int64) error
@@ -686,6 +692,11 @@ func (u *auctionUseCase) OwnRelist(ctx context.Context, request dto_request.OwnA
 	if auction.Status != constant.AuctionStatusWaitingForSellerDecision {
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionNotWaitingForSellerDecision))
 	}
+	pendingOffer, err := u.repositoryManager.SecondChanceOfferRepository().GetPendingByAuctionId(ctx, auction.Id)
+	panicIfErr(err, constant.ErrNoData)
+	if err == nil && pendingOffer != nil {
+		panic(dto_response.NewConflictErrorResponse(constant.LanguageAuctionSecondChancePending))
+	}
 
 	panicIfErr(u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
 		if _, err := u.repositoryManager.AuctionRepository().UpdateStatus(ctx, auction.Id, constant.AuctionStatusCancelled); err != nil {
@@ -707,14 +718,32 @@ func (u *auctionUseCase) OwnRelist(ctx context.Context, request dto_request.OwnA
 	return auction
 }
 
-// OwnSecondChance offers the auction to the next-highest bidder after the
-// original winner did not pay.  Returns an error if no next bidder exists.
-func (u *auctionUseCase) OwnSecondChance(ctx context.Context, request dto_request.OwnAuctionSecondChanceRequest) model.Auction {
+func (u *auctionUseCase) loadSecondChanceOfferData(ctx context.Context, offers []*model.SecondChanceOffer) {
+	for _, offer := range offers {
+		auction, err := u.repositoryManager.AuctionRepository().GetById(ctx, offer.AuctionId)
+		panicIfErr(err)
+		offer.Auction = auction
+
+		bid, err := u.repositoryManager.AuctionBidRepository().GetById(ctx, offer.BidId)
+		panicIfErr(err)
+		offer.Bid = bid
+	}
+}
+
+// OwnSecondChance creates a pending offer for the next-highest bidder after the
+// original winner did not pay. The bidder must accept before they become winner.
+func (u *auctionUseCase) OwnSecondChance(ctx context.Context, request dto_request.OwnAuctionSecondChanceRequest) model.SecondChanceOffer {
 	userClaims := model.MustGetUserCtx(ctx)
 	auction := u.mustGetOwnAuction(ctx, request.AuctionId, userClaims.UserId)
 
 	if auction.Status != constant.AuctionStatusWaitingForSellerDecision {
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionNotWaitingForSellerDecision))
+	}
+
+	pendingOffer, err := u.repositoryManager.SecondChanceOfferRepository().GetPendingByAuctionId(ctx, auction.Id)
+	panicIfErr(err, constant.ErrNoData)
+	if err == nil && pendingOffer != nil {
+		panic(dto_response.NewConflictErrorResponse(constant.LanguageAuctionSecondChancePending))
 	}
 
 	// Collect user IDs of all previously cancelled winners so we can exclude
@@ -737,6 +766,13 @@ func (u *auctionUseCase) OwnSecondChance(ctx context.Context, request dto_reques
 		panicIfErr(err)
 		seenUsers[bid.UserId] = struct{}{}
 	}
+	previousOffers, err := u.repositoryManager.SecondChanceOfferRepository().Fetch(ctx, model.SecondChanceOfferQueryOption{
+		AuctionId: &auction.Id,
+	})
+	panicIfErr(err)
+	for _, offer := range previousOffers {
+		seenUsers[offer.BuyerId] = struct{}{}
+	}
 	excludeUserIds := make([]int64, 0, len(seenUsers))
 	for uid := range seenUsers {
 		excludeUserIds = append(excludeUserIds, uid)
@@ -748,10 +784,115 @@ func (u *auctionUseCase) OwnSecondChance(ctx context.Context, request dto_reques
 		panic(dto_response.NewBadRequestErrorResponse(constant.LanguageAuctionNoNextBidder))
 	}
 
+	offer := model.SecondChanceOffer{
+		AuctionId: auction.Id,
+		SellerId:  userClaims.UserId,
+		BuyerId:   nextBid.UserId,
+		BidId:     nextBid.Id,
+		Status:    constant.SecondChanceOfferStatusPending,
+		ExpiredAt: util.CurrentDateTime().Add(24 * time.Hour).NullDateTime(),
+	}
+	panicIfErr(u.repositoryManager.SecondChanceOfferRepository().Insert(ctx, &offer))
+	if u.taskQueue != nil {
+		if err := u.taskQueue.EnqueueSecondChanceOfferExpiry(offer.Id, offer.ExpiredAt.DateTime().Time()); err != nil {
+			log.Printf("[auction worker] enqueue second chance offer expiry for %d failed: %v", offer.Id, err)
+		}
+	}
+	publishAuctionNotification(ctx, u.notificationQueue, notification.Payload{
+		UserId:    offer.BuyerId,
+		Role:      notification.RoleBidder,
+		EventType: notification.EventSecondChanceOffer,
+		AuctionId: offer.AuctionId,
+		Title:     "Second chance offer available",
+		Body:      "You received a second chance offer for an auction you bid on. Please accept or reject it before it expires.",
+		DataPayload: map[string]string{
+			"auction_url": auctionURL(offer.AuctionId),
+			"auction_id":  strconv.FormatInt(offer.AuctionId, 10),
+			"offer_id":    strconv.FormatInt(offer.Id, 10),
+			"bid_id":      strconv.FormatInt(offer.BidId, 10),
+			"amount":      strconv.FormatFloat(nextBid.Amount, 'f', -1, 64),
+			"expired_at":  offer.ExpiredAt.String(),
+		},
+	})
+
+	offer.Auction = &auction
+	offer.Bid = nextBid
+	return offer
+}
+
+func (u *auctionUseCase) OwnFetchSecondChanceOffers(ctx context.Context, request dto_request.OwnSecondChanceOfferFetchRequest) ([]model.SecondChanceOffer, int64) {
+	userClaims := model.MustGetUserCtx(ctx)
+
+	option := model.SecondChanceOfferQueryOption{
+		QueryOption: model.NewQueryOptionWithPagination(
+			request.Page,
+			request.Limit,
+			model.Sorts(request.Sorts),
+		),
+		BuyerId: util.Pointer(userClaims.UserId),
+		Status:  request.Status,
+	}
+
+	total, err := u.repositoryManager.SecondChanceOfferRepository().Count(ctx, option)
+	panicIfErr(err)
+
+	offers, err := u.repositoryManager.SecondChanceOfferRepository().Fetch(ctx, option)
+	panicIfErr(err)
+
+	u.loadSecondChanceOfferData(ctx, util.SliceValueToSlicePointer(offers))
+	return offers, total
+}
+
+func (u *auctionUseCase) validateOwnPendingSecondChanceOffer(ctx context.Context, offer model.SecondChanceOffer) error {
+	userClaims := model.MustGetUserCtx(ctx)
+
+	if offer.BuyerId != userClaims.UserId {
+		return dto_response.NewForbiddenErrorResponse(constant.LanguageSystemForbidden)
+	}
+	if offer.Status != constant.SecondChanceOfferStatusPending {
+		return dto_response.NewBadRequestErrorResponse(constant.LanguageSecondChanceOfferNotPending)
+	}
+	if !offer.ExpiredAt.IsNil() && offer.ExpiredAt.DateTime().IsLessThanOrEqual(util.CurrentDateTime()) {
+		return dto_response.NewBadRequestErrorResponse(constant.LanguageSecondChanceOfferExpired)
+	}
+	return nil
+}
+
+func (u *auctionUseCase) OwnAcceptSecondChanceOffer(ctx context.Context, request dto_request.OwnSecondChanceOfferActionRequest) model.SecondChanceOffer {
+	var offer model.SecondChanceOffer
+	var auction model.Auction
+
 	panicIfErr(u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+		lockedOffer, err := u.repositoryManager.SecondChanceOfferRepository().GetByIdForUpdate(ctx, request.OfferId)
+		if err != nil {
+			if err == constant.ErrNoData {
+				return dto_response.NewBadRequestErrorResponse(constant.LanguageSecondChanceOfferNotFound)
+			}
+			return err
+		}
+		offer = *lockedOffer
+		if err := u.validateOwnPendingSecondChanceOffer(ctx, offer); err != nil {
+			return err
+		}
+
+		auctionPtr, err := u.repositoryManager.AuctionRepository().GetById(ctx, offer.AuctionId)
+		if err != nil {
+			return err
+		}
+		auction = *auctionPtr
+		if auction.Status != constant.AuctionStatusWaitingForSellerDecision {
+			return dto_response.NewBadRequestErrorResponse(constant.LanguageSecondChanceOfferAuctionInvalid)
+		}
+
+		updatedOffer, err := u.repositoryManager.SecondChanceOfferRepository().UpdateStatus(ctx, offer.Id, constant.SecondChanceOfferStatusAccepted)
+		if err != nil {
+			return err
+		}
+		offer = *updatedOffer
+
 		newWinner := model.AuctionWinner{
 			AuctionId:    auction.Id,
-			AuctionBidId: &nextBid.Id,
+			AuctionBidId: &offer.BidId,
 			Status:       constant.AuctionWinnerStatusOnGoing,
 		}
 		if err := u.repositoryManager.AuctionWinnerRepository().Insert(ctx, &newWinner); err != nil {
@@ -765,5 +906,66 @@ func (u *auctionUseCase) OwnSecondChance(ctx context.Context, request dto_reques
 
 	auction.Status = constant.AuctionStatusWaitingForPayment
 	u.populateAuctionProductImageLinks(&auction)
-	return auction
+	offer.Auction = &auction
+	bid := mustGetAuctionBid(ctx, u.repositoryManager, offer.BidId)
+	offer.Bid = &bid
+	return offer
+}
+
+func (u *auctionUseCase) OwnRejectSecondChanceOffer(ctx context.Context, request dto_request.OwnSecondChanceOfferActionRequest) model.SecondChanceOffer {
+	var offer model.SecondChanceOffer
+
+	panicIfErr(u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+		lockedOffer, err := u.repositoryManager.SecondChanceOfferRepository().GetByIdForUpdate(ctx, request.OfferId)
+		if err != nil {
+			if err == constant.ErrNoData {
+				return dto_response.NewBadRequestErrorResponse(constant.LanguageSecondChanceOfferNotFound)
+			}
+			return err
+		}
+		offer = *lockedOffer
+		if err := u.validateOwnPendingSecondChanceOffer(ctx, offer); err != nil {
+			return err
+		}
+
+		updatedOffer, err := u.repositoryManager.SecondChanceOfferRepository().UpdateStatus(ctx, offer.Id, constant.SecondChanceOfferStatusRejected)
+		if err != nil {
+			return err
+		}
+		offer = *updatedOffer
+		return nil
+	}))
+
+	u.loadSecondChanceOfferData(ctx, []*model.SecondChanceOffer{&offer})
+	return offer
+}
+
+func (u *auctionUseCase) HandleSecondChanceOfferExpiry(ctx context.Context, offerId int64) error {
+	return u.repositoryManager.Transaction(ctx, func(ctx context.Context) error {
+		offer, err := u.repositoryManager.SecondChanceOfferRepository().GetByIdForUpdate(ctx, offerId)
+		if err != nil {
+			return err
+		}
+		if offer.Status != constant.SecondChanceOfferStatusPending ||
+			offer.ExpiredAt.IsNil() ||
+			offer.ExpiredAt.DateTime().Time().After(time.Now()) {
+			return nil
+		}
+		_, err = u.repositoryManager.SecondChanceOfferRepository().UpdateStatus(ctx, offer.Id, constant.SecondChanceOfferStatusExpired)
+		return err
+	})
+}
+
+func (u *auctionUseCase) RecoverExpiredSecondChanceOffers(ctx context.Context) error {
+	offers, err := u.repositoryManager.SecondChanceOfferRepository().FetchExpiredPending(ctx)
+	if err != nil {
+		return err
+	}
+	for _, offer := range offers {
+		log.Printf("[startup] recovering expired second chance offer %d", offer.Id)
+		if err := u.HandleSecondChanceOfferExpiry(ctx, offer.Id); err != nil {
+			log.Printf("[startup] recover expired second chance offer %d failed: %v", offer.Id, err)
+		}
+	}
+	return nil
 }

@@ -51,6 +51,7 @@ const (
 	LanguageAuctionStartTimeTooSoon            = "AUCTION.START_TIME_TOO_SOON"
 	LanguageAuctionNotWaitingForSellerDecision = "AUCTION.NOT_WAITING_FOR_SELLER_DECISION"
 	LanguageAuctionNoNextBidder                = "AUCTION.NO_NEXT_BIDDER"
+	LanguageAuctionSecondChancePending         = "AUCTION.SECOND_CHANCE_PENDING"
 	LanguageAuctionNotWaitingForBidderAddress  = "AUCTION.NOT_WAITING_FOR_BIDDER_ADDRESS"
 	LanguageAuctionAddressNotConfirmed         = "AUCTION.ADDRESS_NOT_CONFIRMED"
 
@@ -59,6 +60,12 @@ const (
 	LanguageBidAuctionNotOnGoing   = "BID.AUCTION_NOT_ON_GOING"
 	LanguageBidAmountTooLow        = "BID.AMOUNT_TOO_LOW"
 	LanguageBidCannotBidOwnAuction = "BID.CANNOT_BID_OWN_AUCTION"
+	LanguageBidUserHasActiveStrike = "BID.USER_HAS_ACTIVE_STRIKE"
+
+	LanguageSecondChanceOfferNotFound       = "SECOND_CHANCE_OFFER.NOT_FOUND"
+	LanguageSecondChanceOfferNotPending     = "SECOND_CHANCE_OFFER.NOT_PENDING"
+	LanguageSecondChanceOfferExpired        = "SECOND_CHANCE_OFFER.EXPIRED"
+	LanguageSecondChanceOfferAuctionInvalid = "SECOND_CHANCE_OFFER.AUCTION_INVALID"
 
 	// winner
 	LanguageWinnerNotFound = "WINNER.NOT_FOUND"

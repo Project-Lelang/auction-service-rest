@@ -16,6 +16,7 @@ const (
 	TypeAuctionStart       = "auction:start"
 	TypeAuctionClose       = "auction:close"
 	TypePaymentExpiry      = "payment:expire"
+	TypeSecondChanceExpiry = "second_chance_offer:expire"
 	TypeShipmentAddressDue = "shipment:address_due"
 	TypeShipmentShipDue    = "shipment:ship_due"
 	TypeShipmentTrackCheck = "shipment:track_check"
@@ -34,6 +35,11 @@ type PaymentTaskPayload struct {
 	PaymentId int64 `json:"payment_id"`
 }
 
+// SecondChanceOfferTaskPayload is the JSON payload carried by offer expiry tasks.
+type SecondChanceOfferTaskPayload struct {
+	OfferId int64 `json:"offer_id"`
+}
+
 // ShipmentTaskPayload is the JSON payload carried by shipment deadline tasks.
 type ShipmentTaskPayload struct {
 	ShipmentId int64 `json:"shipment_id"`
@@ -44,6 +50,7 @@ type TaskQueueClient interface {
 	EnqueueAuctionStart(AuctionId int64, auctionCode string, processAt time.Time) error
 	EnqueueAuctionClose(AuctionId int64, auctionCode string, processAt time.Time) error
 	EnqueuePaymentExpiry(PaymentId int64, processAt time.Time) error
+	EnqueueSecondChanceOfferExpiry(OfferId int64, processAt time.Time) error
 	EnqueueShipmentAddressDue(ShipmentId int64, processAt time.Time) error
 	EnqueueShipmentShipDue(ShipmentId int64, processAt time.Time) error
 	EnqueueShipmentTrackCheck(ShipmentId int64, processAt time.Time) error
@@ -125,6 +132,11 @@ func (c *asynqTaskQueueClient) EnqueueAuctionClose(auctionId int64, auctionCode 
 func (c *asynqTaskQueueClient) EnqueuePaymentExpiry(paymentId int64, processAt time.Time) error {
 	payload, _ := json.Marshal(PaymentTaskPayload{PaymentId: paymentId})
 	return c.enqueue(TypePaymentExpiry, fmt.Sprintf("%s:%d", TypePaymentExpiry, paymentId), payload, processAt)
+}
+
+func (c *asynqTaskQueueClient) EnqueueSecondChanceOfferExpiry(offerId int64, processAt time.Time) error {
+	payload, _ := json.Marshal(SecondChanceOfferTaskPayload{OfferId: offerId})
+	return c.enqueue(TypeSecondChanceExpiry, fmt.Sprintf("%s:%d", TypeSecondChanceExpiry, offerId), payload, processAt)
 }
 
 func (c *asynqTaskQueueClient) EnqueueShipmentAddressDue(shipmentId int64, processAt time.Time) error {

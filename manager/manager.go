@@ -37,13 +37,15 @@ func NewContainer(hub *ws.Hub) *Container {
 	auctionRepo := repository.NewAuctionRepository(db)
 	auctionBidRepo := repository.NewAuctionBidRepository(db)
 	auctionWinnerRepo := repository.NewAuctionWinnerRepository(db)
+	userStrikeRepo := repository.NewUserStrikeRepository(db)
+	secondChanceOfferRepo := repository.NewSecondChanceOfferRepository(db)
 	paymentRepo := repository.NewPaymentRepository(db)
 	shipmentRepo := repository.NewShipmentRepository(db)
 	userAddressRepo := repository.NewUserAddressRepository(db)
 	notificationRepo := repository.NewNotificationRepository(db)
 	userFcmTokenRepo := repository.NewUserFcmTokenRepository(db)
 
-	repoManager := repository.NewRepositoryManager(db, userRepo, userRoleRepo, otpRepo, productRepo, productStatusHistoryRepo, roleRequestRepo, withdrawalRequestRepo, auctionRepo, auctionBidRepo, auctionWinnerRepo, paymentRepo, shipmentRepo, paymentMethodRepo, userAddressRepo, notificationRepo, userFcmTokenRepo)
+	repoManager := repository.NewRepositoryManager(db, userRepo, userRoleRepo, otpRepo, productRepo, productStatusHistoryRepo, roleRequestRepo, withdrawalRequestRepo, auctionRepo, auctionBidRepo, auctionWinnerRepo, userStrikeRepo, secondChanceOfferRepo, paymentRepo, shipmentRepo, paymentMethodRepo, userAddressRepo, notificationRepo, userFcmTokenRepo)
 	jwtInstance := internalJwt.NewJwt([]byte(config.JwtConfig.SecretKey))
 
 	// filesystem

@@ -48,6 +48,7 @@ AUCTION.INVALID_TIME_RANGE: "The auction end time must be later than its start t
 AUCTION.START_TIME_TOO_SOON: "The auction start time is too soon"
 AUCTION.NOT_WAITING_FOR_SELLER_DECISION: "This auction is not waiting for a seller decision"
 AUCTION.NO_NEXT_BIDDER: "No eligible next bidder was found"
+AUCTION.SECOND_CHANCE_PENDING: "This auction already has a pending second chance offer"
 AUCTION.NOT_WAITING_FOR_BIDDER_ADDRESS: "This auction is not waiting for the bidder's address"
 AUCTION.ADDRESS_NOT_CONFIRMED: "The shipping addresses have not been confirmed"
 
@@ -56,6 +57,13 @@ BID.NOT_FOUND: "Bid not found"
 BID.AUCTION_NOT_ON_GOING: "Bids can only be placed while the auction is ongoing"
 BID.AMOUNT_TOO_LOW: "Bid amount must be higher than the current highest bid"
 BID.CANNOT_BID_OWN_AUCTION: "You cannot bid on your own auction"
+BID.USER_HAS_ACTIVE_STRIKE: "Your account is temporarily suspended from bidding because you have an active strike. View your profile for more details."
+
+# second chance offer
+SECOND_CHANCE_OFFER.NOT_FOUND: "Second chance offer not found"
+SECOND_CHANCE_OFFER.NOT_PENDING: "This second chance offer is not pending"
+SECOND_CHANCE_OFFER.EXPIRED: "This second chance offer has expired"
+SECOND_CHANCE_OFFER.AUCTION_INVALID: "This auction cannot accept a second chance offer right now"
 
 # winner
 WINNER.NOT_FOUND: "Auction winner not found"

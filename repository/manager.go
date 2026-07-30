@@ -21,6 +21,8 @@ type RepositoryManager interface {
 	AuctionRepository() AuctionRepository
 	AuctionBidRepository() AuctionBidRepository
 	AuctionWinnerRepository() AuctionWinnerRepository
+	UserStrikeRepository() UserStrikeRepository
+	SecondChanceOfferRepository() SecondChanceOfferRepository
 	PaymentRepository() PaymentRepository
 	ShipmentRepository() ShipmentRepository
 	UserAddressRepository() UserAddressRepository
@@ -44,6 +46,8 @@ type repositoryManager struct {
 	auctionRepository              AuctionRepository
 	auctionBidRepository           AuctionBidRepository
 	auctionWinnerRepository        AuctionWinnerRepository
+	userStrikeRepository           UserStrikeRepository
+	secondChanceOfferRepository    SecondChanceOfferRepository
 	paymentRepository              PaymentRepository
 	shipmentRepository             ShipmentRepository
 	paymentMethodRepository        PaymentMethodRepository
@@ -64,6 +68,8 @@ func NewRepositoryManager(
 	auctionRepository AuctionRepository,
 	auctionBidRepository AuctionBidRepository,
 	auctionWinnerRepository AuctionWinnerRepository,
+	userStrikeRepository UserStrikeRepository,
+	secondChanceOfferRepository SecondChanceOfferRepository,
 	paymentRepository PaymentRepository,
 	shipmentRepository ShipmentRepository,
 	paymentMethodRepository PaymentMethodRepository,
@@ -83,6 +89,8 @@ func NewRepositoryManager(
 		auctionRepository:              auctionRepository,
 		auctionBidRepository:           auctionBidRepository,
 		auctionWinnerRepository:        auctionWinnerRepository,
+		userStrikeRepository:           userStrikeRepository,
+		secondChanceOfferRepository:    secondChanceOfferRepository,
 		paymentRepository:              paymentRepository,
 		shipmentRepository:             shipmentRepository,
 		paymentMethodRepository:        paymentMethodRepository,
@@ -93,43 +101,43 @@ func NewRepositoryManager(
 }
 
 func (r *repositoryManager) Transaction(
-    ctx context.Context,
-    fn func(ctx context.Context) error,
+	ctx context.Context,
+	fn func(ctx context.Context) error,
 ) error {
-    return r.TransactionWithOptions(ctx, nil, fn)
+	return r.TransactionWithOptions(ctx, nil, fn)
 }
 
 func (r *repositoryManager) TransactionWithOptions(
-    ctx context.Context,
-    opts *sql.TxOptions,
-    fn func(ctx context.Context) error,
+	ctx context.Context,
+	opts *sql.TxOptions,
+	fn func(ctx context.Context) error,
 ) (err error) {
-    var tx *sqlx.Tx
+	var tx *sqlx.Tx
 
-    defer func() {
-        if err != nil && tx != nil {
-            if rbErr := tx.Rollback(); rbErr != nil && rbErr != sql.ErrTxDone {
-                err = fmt.Errorf("%v\nrollback err: %v", err, rbErr)
-            }
-        }
-    }()
+	defer func() {
+		if err != nil && tx != nil {
+			if rbErr := tx.Rollback(); rbErr != nil && rbErr != sql.ErrTxDone {
+				err = fmt.Errorf("%v\nrollback err: %v", err, rbErr)
+			}
+		}
+	}()
 
-    // Pass the custom options structure into the sqlx transaction initializer
-    tx, err = r.db.BeginTxx(ctx, opts)
-    if err != nil {
-        return
-    }
+	// Pass the custom options structure into the sqlx transaction initializer
+	tx, err = r.db.BeginTxx(ctx, opts)
+	if err != nil {
+		return
+	}
 
-    ctx, err = model.SetDbtxCtx(ctx, tx)
-    if err != nil {
-        return
-    }
+	ctx, err = model.SetDbtxCtx(ctx, tx)
+	if err != nil {
+		return
+	}
 
-    if err = fn(ctx); err != nil {
-        return
-    }
+	if err = fn(ctx); err != nil {
+		return
+	}
 
-    return tx.Commit()
+	return tx.Commit()
 }
 
 func (r *repositoryManager) UserRepository() UserRepository {
@@ -170,6 +178,14 @@ func (r *repositoryManager) AuctionBidRepository() AuctionBidRepository {
 
 func (r *repositoryManager) AuctionWinnerRepository() AuctionWinnerRepository {
 	return r.auctionWinnerRepository
+}
+
+func (r *repositoryManager) UserStrikeRepository() UserStrikeRepository {
+	return r.userStrikeRepository
+}
+
+func (r *repositoryManager) SecondChanceOfferRepository() SecondChanceOfferRepository {
+	return r.secondChanceOfferRepository
 }
 
 func (r *repositoryManager) PaymentRepository() PaymentRepository {

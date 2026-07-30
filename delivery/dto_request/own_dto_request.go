@@ -8,6 +8,17 @@ type OwnProfileUpdateRequest struct {
 	Gender   *string `json:"gender"   validate:"omitempty,oneof=MALE FEMALE" example:"MALE"`
 } // @name OwnProfileUpdateRequest
 
+type OwnStrikeFetchSorts []struct {
+	Field     string `json:"field"     validate:"required,oneof=id strike_reason status expired_at created_at updated_at" example:"created_at"`
+	Direction string `json:"direction" validate:"required,oneof=asc desc"                                             example:"desc"`
+} // @name OwnStrikeFetchSorts
+
+type OwnStrikeFetchRequest struct {
+	PaginationRequest
+	Sorts  OwnStrikeFetchSorts `json:"sorts"  validate:"dive"`
+	Status *string             `json:"status" validate:"omitempty,oneof=ACTIVE APPEALED REMOVED" example:"ACTIVE"`
+} // @name OwnStrikeFetchRequest
+
 // OwnProductFetchSorts defines sortable fields for the own product fetch endpoint.
 // The anonymous-struct layout must stay identical to model.Sorts for direct
 // type-conversion: model.Sorts(request.Sorts).

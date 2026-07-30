@@ -47,6 +47,9 @@ notification:
   worker_count: 5
   max_retries: 3
   retry_base_ms: 500
+payment_deadline:
+  payment_expiry_minutes: 1440 # 24 hours
+  expiry_grace_minutes: 5
 shipment_deadline:
   bidder_address_hours: 24
   seller_ship_hours: 72

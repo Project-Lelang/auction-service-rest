@@ -13,6 +13,7 @@ import (
 	"auction-service/delivery/dto_response"
 	"auction-service/global"
 	"auction-service/infrastructure"
+	"auction-service/internal/notification"
 	"auction-service/model"
 	"auction-service/repository"
 	"auction-service/util"
@@ -41,14 +42,24 @@ type paymentUseCase struct {
 	midtransClient    infrastructure.MidtransClient
 	biteshipClient    infrastructure.BiteshipClient
 	taskQueue         TaskQueue
+	notificationQueue NotificationPublisher
 }
 
-func NewPaymentUseCase(repositoryManager repository.RepositoryManager, midtransClient infrastructure.MidtransClient, taskQueue TaskQueue, biteshipClient infrastructure.BiteshipClient, _ NotificationPublisher) PaymentUseCase {
+func paymentExpiryDuration() time.Duration {
+	return time.Duration(global.GetConfig().PaymentDeadline.PaymentExpiryMinutes) * time.Minute
+}
+
+func paymentExpiryGrace() time.Duration {
+	return time.Duration(global.GetConfig().PaymentDeadline.ExpiryGraceMinutes) * time.Minute
+}
+
+func NewPaymentUseCase(repositoryManager repository.RepositoryManager, midtransClient infrastructure.MidtransClient, taskQueue TaskQueue, biteshipClient infrastructure.BiteshipClient, notificationQueue NotificationPublisher) PaymentUseCase {
 	return &paymentUseCase{
 		repositoryManager: repositoryManager,
 		midtransClient:    midtransClient,
 		biteshipClient:    biteshipClient,
 		taskQueue:         taskQueue,
+		notificationQueue: notificationQueue,
 	}
 }
 
@@ -149,7 +160,7 @@ func (u *paymentUseCase) createPaymentForWinner(
 		return nil, err
 	}
 
-	expiredAt := util.CurrentDateTime().Add(24 * time.Hour)
+	expiredAt := util.CurrentDateTime().Add(paymentExpiryDuration())
 
 	// Attach the Midtrans payment method if it exists in the DB.
 	var methodId *int64
@@ -191,13 +202,20 @@ func (u *paymentUseCase) createPaymentForWinner(
 				Email:     bidder.Email,
 			},
 			Expiry: &infrastructure.MidtransExpiry{
-				StartTime: time.Now().Format("2006-01-02 15:04:05 +0700"),
-				Unit:      "hour",
-				Duration:  24,
+				StartTime: time.Now().In(global.GetTimeLocation()).Format("2006-01-02 15:04:05 -0700"),
+				Unit:      "minute",
+				Duration:  global.GetConfig().PaymentDeadline.PaymentExpiryMinutes,
 			},
 		}
 
 		snapResp, err := u.midtransClient.CreateSnapTransaction(snapReq)
+		if err != nil {
+			if b, mErr := json.Marshal(snapReq); mErr == nil {
+				log.Printf("failed create midtrans snap: %v; request: %s", err, string(b))
+			} else {
+				log.Printf("failed create midtrans snap: %v", err)
+			}
+		}
 		if err == nil && snapResp != nil {
 			_, _ = u.repositoryManager.PaymentRepository().UpdateSnapInfo(ctx, payment.Id, snapResp.RedirectUrl, snapResp.Token)
 			payment.SnapUrl = &snapResp.RedirectUrl
@@ -205,10 +223,10 @@ func (u *paymentUseCase) createPaymentForWinner(
 		}
 	}
 
-	// Enqueue safety-net expiry task (fires 5 minutes after expired_at in case
-	// the Midtrans expire webhook is delayed or never arrives).
+	// Enqueue a safety-net expiry task after expired_at in case the Midtrans
+	// expire webhook is delayed or never arrives.
 	if u.taskQueue != nil {
-		_ = u.taskQueue.EnqueuePaymentExpiry(payment.Id, expiredAt.Add(5*time.Minute).Time())
+		_ = u.taskQueue.EnqueuePaymentExpiry(payment.Id, expiredAt.Add(paymentExpiryGrace()).Time())
 	}
 
 	_ = winner
@@ -370,6 +388,7 @@ func (u *paymentUseCase) onPaymentCompleted(ctx context.Context, payment model.P
 // and puts the auction into WAITING_FOR_SELLER_DECISION so the seller can
 // choose to relist the product or offer it to the next-highest bidder.
 func (u *paymentUseCase) onPaymentExpired(ctx context.Context, payment model.Payment) error {
+	var strike *model.UserStrike
 	// Lock and fetch the active winner associated with this auction.
 	currentWinner, err := u.repositoryManager.AuctionWinnerRepository().GetActiveByAuctionIdForUpdate(ctx, payment.AuctionId)
 	if err != nil {
@@ -390,13 +409,55 @@ func (u *paymentUseCase) onPaymentExpired(ctx context.Context, payment model.Pay
 	if err != nil {
 		return err
 	}
+	product, err := u.repositoryManager.ProductRepository().GetById(ctx, auctionForProduct.ProductId)
+	if err != nil {
+		return err
+	}
+	if currentWinner.AuctionBidId != nil {
+		bid, err := u.repositoryManager.AuctionBidRepository().GetById(ctx, *currentWinner.AuctionBidId)
+		if err != nil {
+			return err
+		}
+		strikeExpiredAt := util.CurrentDateTime().Add(7 * 24 * time.Hour)
+		strike = &model.UserStrike{
+			BidderId:     bid.UserId,
+			AuctionId:    payment.AuctionId,
+			SellerId:     product.UserId,
+			StrikeReason: constant.UserStrikeReasonUnpaidAuction,
+			Status:       constant.UserStrikeStatusActive,
+			ExpiredAt:    strikeExpiredAt.NullDateTime(),
+		}
+		if err := u.repositoryManager.UserStrikeRepository().Insert(ctx, strike); err != nil {
+			return err
+		}
+	}
 	msg := "Winner did not complete payment before the deadline"
-	return updateProductStatusWithHistory(ctx, u.repositoryManager, auctionForProduct.ProductId, constant.ProductStatusWaitingForSellerDecision, &msg)
+	if err := updateProductStatusWithHistory(ctx, u.repositoryManager, auctionForProduct.ProductId, constant.ProductStatusWaitingForSellerDecision, &msg); err != nil {
+		return err
+	}
+	if strike != nil {
+		publishAuctionNotification(ctx, u.notificationQueue, notification.Payload{
+			UserId:    strike.BidderId,
+			Role:      notification.RoleBidder,
+			EventType: notification.EventUserStrikeCreated,
+			AuctionId: strike.AuctionId,
+			Title:     "Account temporarily suspended from bidding",
+			Body:      "You received a strike because the auction payment was not completed. View your profile for details.",
+			DataPayload: map[string]string{
+				"auction_url":   auctionURL(strike.AuctionId),
+				"auction_id":    strconv.FormatInt(strike.AuctionId, 10),
+				"strike_id":     strconv.FormatInt(strike.Id, 10),
+				"strike_reason": strike.StrikeReason,
+				"expired_at":    strike.ExpiredAt.String(),
+			},
+		})
+	}
+	return nil
 }
 
-// HandlePaymentExpiry is the safety-net asynq task handler.  It fires
-// 5 minutes after the payment's expired_at to ensure the expired-payment flow
-// runs even when the Midtrans expire webhook is not delivered.
+// HandlePaymentExpiry is the safety-net asynq task handler. It runs after the
+// payment's expired_at to ensure the expired-payment flow runs even when the
+// Midtrans expire webhook is not delivered.
 func (u *paymentUseCase) HandlePaymentExpiry(ctx context.Context, paymentId int64) error {
 	payment, err := u.repositoryManager.PaymentRepository().GetById(ctx, paymentId)
 	if err != nil {

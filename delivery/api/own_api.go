@@ -224,6 +224,36 @@ func (a *OwnApi) UpdateProfile() gin.HandlerFunc {
 	})
 }
 
+// FetchStrikes godoc
+//
+//	@Router		/own/strikes/filter [post]
+//	@Summary	Get authenticated user's strikes
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		body	body	dto_request.OwnStrikeFetchRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.UserStrikeResponse}}
+func (a *OwnApi) FetchStrikes() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+		var request dto_request.OwnStrikeFetchRequest
+		ctx.mustBind(&request)
+
+		strikes, total := a.userUseCase.OwnFetchStrikes(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.NewPaginationResponse(
+				util.ConvertArray(ctx.context(), strikes, func(_ context.Context, s model.UserStrike) dto_response.UserStrikeResponse {
+					return dto_response.NewUserStrikeResponse(s)
+				}),
+				int(total),
+				request.Page,
+				request.Limit,
+			),
+		})
+	})
+}
+
 // CreateUserAddress godoc
 //
 //	@Router		/own/user-addresses [post]
@@ -652,15 +682,92 @@ func (a *OwnApi) SecondChanceAuction() gin.HandlerFunc {
 		var request dto_request.OwnAuctionSecondChanceRequest
 		request.AuctionId = ctx.mustGetParamInt64("auctionId")
 
-		auction := a.auctionUseCase.OwnSecondChance(ctx.context(), request)
-		// Create the initial payment for the new winner (same as post-close flow).
-		if err := a.paymentUseCase.CreateInitialPaymentForWinner(ctx.context(), auction.Id); err != nil {
+		offer := a.auctionUseCase.OwnSecondChance(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"second_chance_offer": dto_response.NewSecondChanceOfferResponse(ctx.context(), offer),
+			},
+		})
+	})
+}
+
+// FetchSecondChanceOffers godoc
+//
+//	@Router		/own/second-chance-offers/filter [post]
+//	@Summary	Get authenticated bidder's second chance offers
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Accept		json
+//	@Param		body	body	dto_request.OwnSecondChanceOfferFetchRequest	true	"Body Request"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.PaginationResponse{nodes=[]dto_response.SecondChanceOfferResponse}}
+func (a *OwnApi) FetchSecondChanceOffers() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+		var request dto_request.OwnSecondChanceOfferFetchRequest
+		ctx.mustBind(&request)
+
+		offers, total := a.auctionUseCase.OwnFetchSecondChanceOffers(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.NewPaginationResponse(
+				util.ConvertArray(ctx.context(), offers, dto_response.NewSecondChanceOfferResponse),
+				int(total),
+				request.Page,
+				request.Limit,
+			),
+		})
+	})
+}
+
+// AcceptSecondChanceOffer godoc
+//
+//	@Router		/own/second-chance-offers/{offerId}/accept [patch]
+//	@Summary	Accept a pending second chance offer
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Param		offerId	path	int	true	"Offer ID"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{second_chance_offer=dto_response.SecondChanceOfferResponse}}
+func (a *OwnApi) AcceptSecondChanceOffer() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+		request := dto_request.OwnSecondChanceOfferActionRequest{
+			OfferId: ctx.mustGetParamInt64("offerId"),
+		}
+
+		offer := a.auctionUseCase.OwnAcceptSecondChanceOffer(ctx.context(), request)
+		if err := a.paymentUseCase.CreateInitialPaymentForWinner(ctx.context(), offer.AuctionId); err != nil {
 			panic(err)
 		}
 
 		ctx.json(http.StatusOK, dto_response.Response{
 			Data: dto_response.DataResponse{
-				"auction": dto_response.NewAuctionResponse(ctx.context(), auction),
+				"second_chance_offer": dto_response.NewSecondChanceOfferResponse(ctx.context(), offer),
+			},
+		})
+	})
+}
+
+// RejectSecondChanceOffer godoc
+//
+//	@Router		/own/second-chance-offers/{offerId}/reject [patch]
+//	@Summary	Reject a pending second chance offer
+//	@tags		Own
+//	@Security	BearerAuth
+//	@Param		offerId	path	int	true	"Offer ID"
+//	@Produce	json
+//	@Success	200	{object}	dto_response.Response{data=dto_response.DataResponse{second_chance_offer=dto_response.SecondChanceOfferResponse}}
+func (a *OwnApi) RejectSecondChanceOffer() gin.HandlerFunc {
+	return a.AuthorizeRoles([]string{constant.RoleBidder}, func(ctx apiContext) {
+		request := dto_request.OwnSecondChanceOfferActionRequest{
+			OfferId: ctx.mustGetParamInt64("offerId"),
+		}
+
+		offer := a.auctionUseCase.OwnRejectSecondChanceOffer(ctx.context(), request)
+
+		ctx.json(http.StatusOK, dto_response.Response{
+			Data: dto_response.DataResponse{
+				"second_chance_offer": dto_response.NewSecondChanceOfferResponse(ctx.context(), offer),
 			},
 		})
 	})
@@ -765,6 +872,7 @@ func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.Us
 	routerProfileGroup := routerGroup.Group("/profiles")
 	routerProfileGroup.GET("", api.GetProfile())
 	routerProfileGroup.PUT("", api.UpdateProfile())
+	routerGroup.POST("/strikes/filter", api.FetchStrikes())
 
 	routerProductGroup := routerGroup.Group("/products")
 	routerProductGroup.POST("", api.Create())
@@ -785,6 +893,11 @@ func RegisterOwnApi(router gin.IRouter, baseApi *api, useCaseManager use_case.Us
 	routerAuctionGroup.PUT("/:auctionId", api.UpdateAuction())
 	routerAuctionGroup.PATCH("/:auctionId/relist", api.RelistAuction())
 	routerAuctionGroup.PATCH("/:auctionId/second-chance", api.SecondChanceAuction())
+
+	routerSecondChanceOfferGroup := routerGroup.Group("/second-chance-offers")
+	routerSecondChanceOfferGroup.POST("/filter", api.FetchSecondChanceOffers())
+	routerSecondChanceOfferGroup.PATCH("/:offerId/accept", api.AcceptSecondChanceOffer())
+	routerSecondChanceOfferGroup.PATCH("/:offerId/reject", api.RejectSecondChanceOffer())
 
 	routerBidGroup := routerGroup.Group("/bids")
 	routerBidGroup.POST("/filter", api.FetchBids())

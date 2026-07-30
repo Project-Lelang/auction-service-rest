@@ -61,6 +61,23 @@ type AuctionWinnerGetRequest struct {
 	WinnerId  int64 `json:"-" swaggerignore:"true"`
 } // @name AuctionWinnerGetRequest
 
+// --------------------------------------------------------------------- second chance offer
+
+type SecondChanceOfferFetchSorts []struct {
+	Field     string `json:"field"     validate:"required,oneof=id status expired_at created_at updated_at" example:"created_at"`
+	Direction string `json:"direction" validate:"required,oneof=asc desc"                                    example:"desc"`
+} // @name SecondChanceOfferFetchSorts
+
+type OwnSecondChanceOfferFetchRequest struct {
+	PaginationRequest
+	Sorts  SecondChanceOfferFetchSorts `json:"sorts"  validate:"dive"`
+	Status *string                     `json:"status" validate:"omitempty,oneof=PENDING ACCEPTED REJECTED EXPIRED" example:"PENDING"`
+} // @name OwnSecondChanceOfferFetchRequest
+
+type OwnSecondChanceOfferActionRequest struct {
+	OfferId int64 `json:"-" swaggerignore:"true"`
+} // @name OwnSecondChanceOfferActionRequest
+
 // --------------------------------------------------------------------- payment
 
 type AuctionPaymentGetRequest struct {

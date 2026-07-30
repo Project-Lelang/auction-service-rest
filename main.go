@@ -93,6 +93,13 @@ func main() {
 		}
 		return container.UseCaseManager().PaymentUseCase().HandlePaymentExpiry(ctx, p.PaymentId)
 	})
+	mux.HandleFunc(infrastructure.TypeSecondChanceExpiry, func(ctx context.Context, t *asynq.Task) error {
+		var p infrastructure.SecondChanceOfferTaskPayload
+		if err := json.Unmarshal(t.Payload(), &p); err != nil {
+			return fmt.Errorf("second_chance_offer:expire invalid payload: %w", err)
+		}
+		return container.UseCaseManager().AuctionUseCase().HandleSecondChanceOfferExpiry(ctx, p.OfferId)
+	})
 	mux.HandleFunc(infrastructure.TypeShipmentAddressDue, func(ctx context.Context, t *asynq.Task) error {
 		var p infrastructure.ShipmentTaskPayload
 		if err := json.Unmarshal(t.Payload(), &p); err != nil {
@@ -155,6 +162,9 @@ func main() {
 	// Process any payments that expired while the server was down.
 	if err := container.UseCaseManager().PaymentUseCase().RecoverExpiredPayments(context.Background()); err != nil {
 		log.Printf("[startup] RecoverExpiredPayments error: %v", err)
+	}
+	if err := container.UseCaseManager().AuctionUseCase().RecoverExpiredSecondChanceOffers(context.Background()); err != nil {
+		log.Printf("[startup] RecoverExpiredSecondChanceOffers error: %v", err)
 	}
 	if err := container.UseCaseManager().ShipmentUseCase().RecoverShipmentDeadlines(context.Background()); err != nil {
 		log.Printf("[startup] RecoverShipmentDeadlines error: %v", err)

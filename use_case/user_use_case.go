@@ -25,6 +25,7 @@ type UserUseCase interface {
 	AdminFetch(ctx context.Context, request dto_request.AdminUserFetchRequest) ([]model.User, int64)
 	AdminGet(ctx context.Context, request dto_request.AdminUserGetRequest) model.User
 	OwnGet(ctx context.Context) model.User
+	OwnFetchStrikes(ctx context.Context, request dto_request.OwnStrikeFetchRequest) ([]model.UserStrike, int64)
 
 	// update
 	OwnUpdate(ctx context.Context, request dto_request.OwnProfileUpdateRequest) model.User
@@ -153,6 +154,26 @@ func (u *userUseCase) OwnGet(ctx context.Context) model.User {
 	u.mustLoadUserData(ctx, []*model.User{&user}, userLoaderParams{roles: true, roleRequests: true})
 	u.populateImageLinks(&user)
 	return user
+}
+
+func (u *userUseCase) OwnFetchStrikes(ctx context.Context, request dto_request.OwnStrikeFetchRequest) ([]model.UserStrike, int64) {
+	userClaims := model.MustGetUserCtx(ctx)
+	option := model.UserStrikeQueryOption{
+		QueryOption: model.NewQueryOptionWithPagination(
+			request.Page,
+			request.Limit,
+			model.Sorts(request.Sorts),
+		),
+		BidderId: util.Pointer(userClaims.UserId),
+		Status:   request.Status,
+	}
+
+	total, err := u.repositoryManager.UserStrikeRepository().Count(ctx, option)
+	panicIfErr(err)
+
+	strikes, err := u.repositoryManager.UserStrikeRepository().Fetch(ctx, option)
+	panicIfErr(err)
+	return strikes, total
 }
 
 func (u *userUseCase) OwnUpdate(ctx context.Context, request dto_request.OwnProfileUpdateRequest) model.User {

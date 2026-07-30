@@ -15,6 +15,8 @@ const (
 	EventAuctionEnd             = "AUCTION_END"
 	EventAuctionUnpaid          = "AUCTION_UNPAID"
 	EventAuctionStart           = "AUCTION_START"
+	EventSecondChanceOffer      = "SECOND_CHANCE_OFFER"
+	EventUserStrikeCreated      = "USER_STRIKE_CREATED"
 	EventBidderAddressConfirmed = "BIDDER_ADDRESS_CONFIRMED"
 	EventBidderAddressExpired   = "BIDDER_ADDRESS_EXPIRED"
 	EventShipmentShipped        = "SHIPMENT_SHIPPED"
@@ -29,6 +31,8 @@ var eventsByRole = map[string]map[string]struct{}{
 	RoleBidder: {
 		EventOutbid:                {},
 		EventWinAwaitingPay:        {},
+		EventSecondChanceOffer:     {},
+		EventUserStrikeCreated:     {},
 		EventBidderAddressExpired:  {},
 		EventShipmentShipped:       {},
 		EventShipmentDelivered:     {},
